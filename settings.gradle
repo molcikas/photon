@@ -1,0 +1,4 @@
+rootProject.name = 'photon'
+include 'photon-core'
+include 'photon-tests'
+
