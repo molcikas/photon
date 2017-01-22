@@ -8,7 +8,7 @@ import java.util.*;
 
 public class SelectSqlBuilderService
 {
-    public Map<EntityBlueprint, String> buildSelectSql(EntityBlueprint aggregateRootEntityBlueprint)
+    public Map<EntityBlueprint, String> buildSelectSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
     {
         Map<EntityBlueprint, String> entitySelectSqlMap = new HashMap<>();
         buildSelectSqlRecursive(aggregateRootEntityBlueprint, aggregateRootEntityBlueprint, Collections.emptyList(), entitySelectSqlMap);
@@ -80,9 +80,10 @@ public class SelectSqlBuilderService
 
     private void buildWhereClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint aggregateRootEntityBlueprint)
     {
-        selectSqlBuilder.append(String.format("\nWHERE `%s`.`%s` = ?",
+        selectSqlBuilder.append(String.format("\nWHERE `%s`.`%s` IN (%s)",
             aggregateRootEntityBlueprint.getTableName(),
-            aggregateRootEntityBlueprint.getPrimaryKeyColumnName()
+            aggregateRootEntityBlueprint.getPrimaryKeyColumnName(),
+            "%s" // Leave a marker for JDBC question marks to be inserted.
         ));
     }
 

@@ -8,7 +8,7 @@ import java.util.*;
 public class AggregateBlueprint
 {
     private final EntityBlueprint aggregateRootEntityBlueprint;
-    private final Map<EntityBlueprint, String> entitySelectSql;
+    private final Map<EntityBlueprint, String> entitySelectSqlTemplates;
 
     public EntityBlueprint getAggregateRootEntityBlueprint()
     {
@@ -25,9 +25,9 @@ public class AggregateBlueprint
         return aggregateRootEntityBlueprint.getEntityClassName();
     }
 
-    public Map<EntityBlueprint, String> getEntitySelectSql()
+    public Map<EntityBlueprint, String> getEntitySelectSqlTemplates()
     {
-        return Collections.unmodifiableMap(entitySelectSql);
+        return Collections.unmodifiableMap(entitySelectSqlTemplates);
     }
 
     public AggregateBlueprint(EntityBlueprint aggregateRootEntityBlueprint, SelectSqlBuilderService selectSqlBuilderService)
@@ -37,6 +37,6 @@ public class AggregateBlueprint
             throw new PhotonException("AggregateBlueprint root entityBlueprint cannot be null.");
         }
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
-        this.entitySelectSql = selectSqlBuilderService.buildSelectSql(aggregateRootEntityBlueprint);
+        this.entitySelectSqlTemplates = selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
     }
 }

@@ -5,14 +5,13 @@ import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
 import photon.tests.H2TestUtil;
+import photon.tests.base.MyTableTests;
 import photon.tests.entities.mytable.MyTable;
 
 import static org.junit.Assert.*;
 
-public class MSSQLMyTableTests
+public class MSSQLMyTableTests extends MyTableTests
 {
-    private Photon photon;
-
     @Before
     public void setupDatabase()
     {
@@ -26,43 +25,28 @@ public class MSSQLMyTableTests
                 "  `myvalue` varchar(255) DEFAULT 'oops',\n" +
                 "  PRIMARY KEY (`id`)\n" +
                 ")").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (1, 'mydbvalue')").executeUpdate();
+            connection.query("insert into `mytable` (`id`, `myvalue`) values (1, 'my1dbvalue')").executeUpdate();
+            connection.query("insert into `mytable` (`id`, `myvalue`) values (2, 'my2dbvalue')").executeUpdate();
+            connection.query("insert into `mytable` (`id`, `myvalue`) values (3, 'my3dbvalue')").executeUpdate();
+            connection.query("insert into `mytable` (`id`, `myvalue`) values (4, 'my4dbvalue')").executeUpdate();
         }
     }
 
     @Test
-    public void aggregateQuery_simple_returnsEntity()
+    public void aggregateQuery_fetchById_simple_returnsEntity()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .register();
-
-        try(PhotonConnection connection = photon.open())
-        {
-            MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
-                .fetchById(1);
-
-            assertNotNull(myTable);
-            assertEquals(1, myTable.getId(), 1);
-            assertEquals("mydbvalue", myTable.getMyvalue());
-        }
+        super.aggregateQuery_fetchById_simple_returnsEntity();
     }
 
     @Test
-    public void aggregateQuery_idNotInDatabase_returnsNull()
+    public void aggregateQuery_fetchById_idNotInDatabase_returnsNull()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .register();
+        super.aggregateQuery_fetchById_idNotInDatabase_returnsNull();
+    }
 
-        try(PhotonConnection connection = photon.open())
-        {
-            MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
-                .fetchById(7);
-
-            assertNull(myTable);
-        }
+    @Test
+    public void aggregateQuery_fetchByIds_returnsAggregates()
+    {
+        super.aggregateQuery_fetchByIds_returnsAggregates();
     }
 }
