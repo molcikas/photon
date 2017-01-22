@@ -4,6 +4,7 @@ public class MyTable
 {
     private int id;
     private String myvalue;
+    private MyOtherTable myOtherTable;
 
     public int getId()
     {
@@ -13,5 +14,10 @@ public class MyTable
     public String getMyvalue()
     {
         return myvalue;
+    }
+
+    public MyOtherTable getMyOtherTable()
+    {
+        return myOtherTable;
     }
 }

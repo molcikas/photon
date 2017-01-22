@@ -1,11 +1,11 @@
-package photon.tests.base;
+package photon.tests.databaseintegrations.h2;
 
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
 import photon.blueprints.SortDirection;
-import photon.tests.H2TestUtil;
+import photon.tests.databaseintegrations.h2.setup.RecipeDbSetup;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
 import photon.tests.entities.recipe.RecipeInstruction;
@@ -20,8 +20,15 @@ import static org.junit.Assert.assertNotNull;
 
 public class RecipeTests
 {
-    protected Photon photon;
+    private Photon photon;
 
+    @Before
+    public void setupDatabase()
+    {
+        photon = RecipeDbSetup.setupDatabase();
+    }
+
+    @Test
     public void aggregateQuery_fetchById_validSingleAggregateAndQuery_ReturnsCorrectAggregate()
     {
         registerRecipeAggregate();
@@ -62,6 +69,7 @@ public class RecipeTests
         }
     }
 
+    @Test
     public void aggregateQuery_fetchById_SingleAggregateWithEmptyChildLists_ReturnsAggregateWithEmptyChildLists()
     {
         registerRecipeAggregate();
@@ -80,6 +88,7 @@ public class RecipeTests
         }
     }
 
+    @Test
     public void aggregateQuery_fetchByIds_validAggregateAndQuery_ReturnsCorrectAggregates()
     {
         registerRecipeAggregate();

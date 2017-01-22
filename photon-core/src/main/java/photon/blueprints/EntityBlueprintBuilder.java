@@ -1,5 +1,6 @@
 package photon.blueprints;
 
+import org.apache.commons.lang3.StringUtils;
 import photon.Photon;
 import photon.exceptions.PhotonException;
 
@@ -75,7 +76,11 @@ public class EntityBlueprintBuilder
     {
         if(parentBuilder == null)
         {
-            throw new PhotonException("Cannot add this entityBlueprint as a child because it does not have a parent entityBlueprint.");
+            throw new PhotonException(String.format("Cannot add entity to field '%s' as a child because it does not have a parent entity.", fieldName));
+        }
+        if(StringUtils.isBlank(foreignKeyToParent))
+        {
+            throw new PhotonException(String.format("Cannot add entity to parent field '%s' because the entity does not have a foreign key to parent set.", fieldName));
         }
         parentBuilder.addChild(fieldName, buildEntity());
         return parentBuilder;

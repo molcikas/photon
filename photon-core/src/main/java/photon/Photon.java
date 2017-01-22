@@ -4,7 +4,7 @@ import photon.exceptions.PhotonException;
 import photon.blueprints.AggregateBlueprint;
 import photon.blueprints.EntityBlueprint;
 import photon.blueprints.EntityBlueprintBuilder;
-import photon.query.SelectSqlBuilderService;
+import photon.blueprints.SelectSqlBuilderService;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

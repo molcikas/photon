@@ -2,14 +2,29 @@ package photon.blueprints;
 
 public class EntityFieldBlueprint
 {
-    public final String fieldName;
-    public final Class fieldClass;
-    public final EntityBlueprint entityBlueprint;
+    private final String fieldName;
+    private final Class fieldClass;
+    private final EntityBlueprint childEntityBlueprint;
 
-    public EntityFieldBlueprint(String fieldName, Class fieldClass, EntityBlueprint entityBlueprint)
+    public String getFieldName()
+    {
+        return fieldName;
+    }
+
+    public Class getFieldClass()
+    {
+        return fieldClass;
+    }
+
+    public EntityBlueprint getChildEntityBlueprint()
+    {
+        return childEntityBlueprint;
+    }
+
+    public EntityFieldBlueprint(String fieldName, Class fieldClass, EntityBlueprint childEntityBlueprint)
     {
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
-        this.entityBlueprint = entityBlueprint;
+        this.childEntityBlueprint = childEntityBlueprint;
     }
 }

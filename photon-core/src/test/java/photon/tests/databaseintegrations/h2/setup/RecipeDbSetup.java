@@ -1,46 +1,32 @@
-package photon.tests.mysql;
+package photon.tests.databaseintegrations.h2.setup;
 
-import org.junit.Before;
-import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
-import photon.blueprints.SortDirection;
-import photon.tests.H2TestUtil;
-import photon.tests.base.RecipeTests;
-import photon.tests.entities.recipe.Recipe;
-import photon.tests.entities.recipe.RecipeIngredient;
-import photon.tests.entities.recipe.RecipeInstruction;
+import photon.tests.databaseintegrations.h2.H2TestUtil;
 
-import java.sql.Types;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-public class MySQLRecipeTests extends RecipeTests
+public class RecipeDbSetup
 {
-    @Before
-    public void setupDatabase()
+    public static Photon setupDatabase()
     {
-        photon = new Photon(H2TestUtil.getH2Url("MySQL"), H2TestUtil.h2User, H2TestUtil.h2Password);
+        Photon photon = new Photon(H2TestUtil.getH2Url("MSSQLServer"), H2TestUtil.h2User, H2TestUtil.h2Password);
 
         try(PhotonConnection connection = photon.open())
         {
-            connection.query("DROP TABLE IF EXISTS `recipe`").executeUpdate();
-            connection.query("CREATE TABLE `recipe` (\n" +
-                "  `recipeId` binary(16) NOT NULL,\n" +
-                "  `name` varchar(50) NOT NULL,\n" +
-                "  `description` text NOT NULL,\n" +
-                "  `prepTime` int(10) unsigned NOT NULL,\n" +
-                "  `cookTime` int(10) unsigned NOT NULL,\n" +
-                "  `servings` int(10) unsigned NOT NULL,\n" +
-                "  `isVegetarian` tinyint(1) NOT NULL,\n" +
-                "  `isVegan` tinyint(1) NOT NULL,\n" +
-                "  `isPublished` tinyint(1) NOT NULL,\n" +
-                "  `credit` varchar(512) DEFAULT NULL,\n" +
-                "  PRIMARY KEY (`recipeId`)\n" +
+            connection.query("DROP TABLE IF EXISTS recipe").executeUpdate();
+            connection.query("CREATE TABLE recipe (\n" +
+                "  recipeId binary(16) NOT NULL,\n" +
+                "  name varchar(50) NOT NULL,\n" +
+                "  description text NOT NULL,\n" +
+                "  prepTime int(10) unsigned NOT NULL,\n" +
+                "  cookTime int(10) unsigned NOT NULL,\n" +
+                "  servings int(10) unsigned NOT NULL,\n" +
+                "  isVegetarian tinyint(1) NOT NULL,\n" +
+                "  isVegan tinyint(1) NOT NULL,\n" +
+                "  isPublished tinyint(1) NOT NULL,\n" +
+                "  credit varchar(512) DEFAULT NULL,\n" +
+                "  PRIMARY KEY (recipeId)\n" +
                 ")").executeUpdate();
-            connection.query("insert into `recipe` (`recipeId`, `name`, `description`, `prepTime`, `cookTime`, `servings`, `isVegetarian`, `isVegan`, `isPublished`, `credit`) values\n" +
+            connection.query("insert into recipe (recipeId, name, description, prepTime, cookTime, servings, isVegetarian, isVegan, isPublished, credit) values\n" +
                 "(X'28D8B2D490A7467C93A159D1493C0D15','AA','BB','1','2','3','0','0','0',NULL),\n" +
                 "(X'28D8B2D490A7467C93A159D1493C0D16','A','B','1','2','3','0','0','0',NULL),\n" +
                 "(X'3DFFC3B3A9B611E6AB830A0027000010','Vegetable Fried Rice','Yummy cashews add a load of benefits to this simple recipe for fried rice.','20','15','6','1','1','1',NULL),\n" +
@@ -54,22 +40,21 @@ public class MySQLRecipeTests extends RecipeTests
                 "(X'3E042916A9B611E6AB830A0027000010','Vegan Chili','Zucchini and two kinds of beans make this recipe meaty without having any meat. Leave off the cheese and make it vegan!','10','30','8','1','1','1',NULL),\n" +
                 "(X'3E0431C1A9B611E6AB830A0027000010','Texas Black Bean Burgers','These burgers are packed with flavor and taste just as good as a regular hamburger.','30','45','4','1','1','0',NULL)").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS `recipeingredient`").executeUpdate();
-            connection.query("CREATE TABLE `recipeingredient` (\n" +
-                "  `recipeIngredientId` binary(16) NOT NULL,\n" +
-                "  `recipeId` binary(16) NOT NULL,\n" +
-                "  `isRequired` tinyint(1) NOT NULL,\n" +
-                "  `quantity` varchar(64) DEFAULT NULL,\n" +
-                "  `quantityUnit` varchar(64) DEFAULT NULL,\n" +
-                "  `quantityDetail` varchar(64) DEFAULT NULL,\n" +
-                "  `name` varchar(128) NOT NULL,\n" +
-                "  `preparation` varchar(128) DEFAULT NULL,\n" +
-                "  `orderBy` int(11) NOT NULL,\n" +
-                "  PRIMARY KEY (`recipeIngredientId`),\n" +
-                "  KEY `RecipeIngredient_Recipe` (`recipeId`),\n" +
-                "  CONSTRAINT `RecipeIngredient_Recipe` FOREIGN KEY (`recipeId`) REFERENCES `recipe` (`recipeId`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
-                ") ENGINE=InnoDB DEFAULT CHARSET=utf8;").executeUpdate();
-            connection.query("insert into `recipeingredient` (`recipeIngredientId`, `recipeId`, `isRequired`, `quantity`, `quantityUnit`, `quantityDetail`, `name`, `preparation`, `orderBy`) values\n" +
+            connection.query("DROP TABLE IF EXISTS recipeingredient").executeUpdate();
+            connection.query("CREATE TABLE recipeingredient (\n" +
+                "  recipeIngredientId binary(16) NOT NULL,\n" +
+                "  recipeId binary(16) NOT NULL,\n" +
+                "  isRequired tinyint(1) NOT NULL,\n" +
+                "  quantity varchar(64) DEFAULT NULL,\n" +
+                "  quantityUnit varchar(64) DEFAULT NULL,\n" +
+                "  quantityDetail varchar(64) DEFAULT NULL,\n" +
+                "  name varchar(128) NOT NULL,\n" +
+                "  preparation varchar(128) DEFAULT NULL,\n" +
+                "  orderBy int(11) NOT NULL,\n" +
+                "  PRIMARY KEY (recipeIngredientId),\n" +
+                "  CONSTRAINT RecipeIngredient_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+                ")").executeUpdate();
+            connection.query("insert into recipeingredient (recipeIngredientId, recipeId, isRequired, quantity, quantityUnit, quantityDetail, name, preparation, orderBy) values\n" +
                 "(X'0AA82E11E97346BFA537C7EE34C65D87',X'3E03CB62A9B611E6AB830A0027000010','1',NULL,NULL,'','salt','to taste','8'),\n" +
                 "(X'0CB17026B38A4C1B990AF626495581B9',X'3DFFC3B3A9B611E6AB830A0027000010','1','1/2',NULL,NULL,'red bell pepper','deseeded and diced','6'),\n" +
                 "(X'154EE28CFF694ED189A76686BC38AAF2',X'28D8B2D490A7467C93A159D1493C0D16','0','1/3',NULL,NULL,'a',NULL,'0'),\n" +
@@ -183,17 +168,16 @@ public class MySQLRecipeTests extends RecipeTests
                 "(X'DF5EBAB85E6A4694B539B7610CA8DB86',X'3DFFC3B3A9B611E6AB830A0027000010','1','1',NULL,NULL,'medium onion','diced','5'),\n" +
                 "(X'E01AE10E897C49E897CE38D89460610C',X'3E03CB62A9B611E6AB830A0027000010','1','1.0000','teaspoon',NULL,'worcestershire sauce',NULL,'10');").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS `recipeinstruction`").executeUpdate();
-            connection.query("CREATE TABLE `recipeinstruction` (\n" +
-                "  `recipeInstructionId` binary(16) NOT NULL,\n" +
-                "  `recipeId` binary(16) NOT NULL,\n" +
-                "  `stepNumber` int(10) unsigned NOT NULL,\n" +
-                "  `description` text NOT NULL,\n" +
-                "  PRIMARY KEY (`recipeInstructionId`),\n" +
-                "  KEY `RecipeInstruction_Recipe` (`recipeId`),\n" +
-                "  CONSTRAINT `RecipeInstruction_Recipe` FOREIGN KEY (`recipeId`) REFERENCES `recipe` (`recipeId`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+            connection.query("DROP TABLE IF EXISTS recipeinstruction").executeUpdate();
+            connection.query("CREATE TABLE recipeinstruction (\n" +
+                "  recipeInstructionId binary(16) NOT NULL,\n" +
+                "  recipeId binary(16) NOT NULL,\n" +
+                "  stepNumber int(10) unsigned NOT NULL,\n" +
+                "  description text NOT NULL,\n" +
+                "  PRIMARY KEY (recipeInstructionId),\n" +
+                "  CONSTRAINT RecipeInstruction_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
                 ")").executeUpdate();
-            connection.query("insert into `recipeInstruction` (`recipeInstructionId`, `recipeId`, `stepNumber`, `description`) values\n" +
+            connection.query("insert into recipeInstruction (recipeInstructionId, recipeId, stepNumber, description) values\n" +
                 "(X'3771A1B61EBD4E14BEC0A9BD90C6E02C',X'3E03CB62A9B611E6AB830A0027000010','2','Heat a large skillet to medium-high heat. Add the olive oil. Mince and add the remaining garlic. Add the bread cubes. Cook them until they turn crusty and brown (like croutons!).'),\n" +
                 "(X'3AD748177FF549029A0133D55083FE52',X'3DFFC3B3A9B611E6AB830A0027000010','4','Stir in soy sauce and pepper. Stir in cashews. Stir in green onion. Taste and add seasoning if desired.'),\n" +
                 "(X'4C61288ACF58458FB5017D6872661D7A',X'3DFFC3B3A9B611E6AB830A0027000010','3','Add rice in the middle of the pan. Stir until heated through (about 2 minutes);, using a spatula to turn and move the rice around the pan.'),\n" +
@@ -230,23 +214,7 @@ public class MySQLRecipeTests extends RecipeTests
                 "(X'D2A36443A94B11E6AB830A0027000010',X'3E038307A9B611E6AB830A0027000010','6','Serve the sauce over noodles. Sprinkle with basil and parmesan-style cheese.'),\n" +
                 "(X'F018A06DC36343BC8C62340E8A3F011A',X'3DFFC3B3A9B611E6AB830A0027000010','1','Heat oil in preheated wok on medium-high heat. Add ginger, stir until fragrant. Add onion, stir-fry for about 2 minutes until softened.')").executeUpdate();
         }
-    }
 
-    @Test
-    public void aggregateQuery_fetchById_validSingleAggregateAndQuery_ReturnsCorrectAggregate()
-    {
-        super.aggregateQuery_fetchById_validSingleAggregateAndQuery_ReturnsCorrectAggregate();
-    }
-
-    @Test
-    public void aggregateQuery_fetchById_SingleAggregateWithEmptyChildLists_ReturnsAggregateWithEmptyChildLists()
-    {
-        super.aggregateQuery_fetchById_SingleAggregateWithEmptyChildLists_ReturnsAggregateWithEmptyChildLists();
-    }
-
-    @Test
-    public void aggregateQuery_fetchByIds_validAggregateAndQuery_ReturnsCorrectAggregates()
-    {
-        super.aggregateQuery_fetchByIds_validAggregateAndQuery_ReturnsCorrectAggregates();
+        return photon;
     }
 }

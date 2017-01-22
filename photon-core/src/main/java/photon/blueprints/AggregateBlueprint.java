@@ -1,7 +1,6 @@
 package photon.blueprints;
 
 import photon.exceptions.PhotonException;
-import photon.query.SelectSqlBuilderService;
 
 import java.util.*;
 
@@ -18,11 +17,6 @@ public class AggregateBlueprint
     public Class getAggregateRootClass()
     {
         return aggregateRootEntityBlueprint.getEntityClass();
-    }
-
-    public String getAggregateRootClassName()
-    {
-        return aggregateRootEntityBlueprint.getEntityClassName();
     }
 
     public Map<EntityBlueprint, String> getEntitySelectSqlTemplates()

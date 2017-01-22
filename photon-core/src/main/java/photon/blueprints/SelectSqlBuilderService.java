@@ -1,4 +1,4 @@
-package photon.query;
+package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
 import photon.blueprints.ColumnBlueprint;
@@ -38,8 +38,8 @@ public class SelectSqlBuilderService
             .getFields()
             .values()
             .stream()
-            .filter(entityField -> entityField.entityBlueprint != null)
-            .forEach(entityField -> buildSelectSqlRecursive(entityField.entityBlueprint, aggregateRootEntityBlueprint, childrenParentEntities, entitySelectSqlMap));
+            .filter(entityField -> entityField.getChildEntityBlueprint() != null)
+            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childrenParentEntities, entitySelectSqlMap));
     }
 
     private void buildSelectClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint entityBlueprint)

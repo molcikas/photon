@@ -1,4 +1,4 @@
-package photon.tests;
+package photon.tests.databaseintegrations.h2;
 
 public class H2TestUtil
 {

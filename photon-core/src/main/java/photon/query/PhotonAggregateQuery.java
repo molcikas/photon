@@ -51,25 +51,20 @@ public class PhotonAggregateQuery<T>
     private List<PopulatedEntity> getPopulatedAggregateRoots(List ids)
     {
         Map<EntityBlueprint, String> entitySelectSqlTemplates = aggregateBlueprint.getEntitySelectSqlTemplates();
-        Map<Class, List<PopulatedEntity>> entityOrphans = new HashMap<>();
+        PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
         for(Map.Entry<EntityBlueprint, String> entityAndSelectSql : entitySelectSqlTemplates.entrySet())
         {
             EntityBlueprint entityBlueprint = entityAndSelectSql.getKey();
-            entityOrphans.put(
-                entityBlueprint.getEntityClass(),
-                queryAndCreateEntityOrphans(entityBlueprint, entityAndSelectSql.getValue(), ids));
+            executeQueryAndCreateEntityOrphans(populatedEntityMap, entityBlueprint, entityAndSelectSql.getValue(), ids);
         }
 
-        for(Class entityClass : entityOrphans.keySet())
-        {
-            connectEntityOrphans(entityClass, entityOrphans);
-        }
+        populatedEntityMap.mapEntityInstanceChildren();
 
-        return entityOrphans.get(aggregateBlueprint.getAggregateRootClass());
+        return populatedEntityMap.getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass());
     }
 
-    private List<PopulatedEntity> queryAndCreateEntityOrphans(EntityBlueprint entityBlueprint, String sqlTemplate, List ids)
+    private void executeQueryAndCreateEntityOrphans(PopulatedEntityMap populatedEntityMap, EntityBlueprint entityBlueprint, String sqlTemplate, List ids)
     {
         ColumnBlueprint primaryKeyColumnBlueprint = entityBlueprint.getPrimaryKeyColumn();
 
@@ -77,7 +72,7 @@ public class PhotonAggregateQuery<T>
         {
             try (ResultSet resultSet = executeJdbcQuery(statement, entityBlueprint.getEntityClassName()))
             {
-                return createEntityOrphans(resultSet, entityBlueprint);
+                createEntityOrphans(populatedEntityMap, resultSet, entityBlueprint);
             }
         }
         catch(Exception ex)
@@ -86,13 +81,11 @@ public class PhotonAggregateQuery<T>
         }
     }
 
-    private List<PopulatedEntity> createEntityOrphans(
+    private void createEntityOrphans(
+        PopulatedEntityMap populatedEntityMap,
         ResultSet resultSet,
         EntityBlueprint entityBlueprint)
     {
-        // 50 is the typical max length for an aggregate sub entity list.
-        List<PopulatedEntity> populatedEntities = new ArrayList<>(50);
-
         try
         {
             while (resultSet.next())
@@ -106,92 +99,13 @@ public class PhotonAggregateQuery<T>
                         databaseValues.put(columnBlueprint.getColumnName(), databaseValue);
                     }
                 }
-                populatedEntities.add(new PopulatedEntity(entityBlueprint, databaseValues));
+                populatedEntityMap.createPopulatedEntity(entityBlueprint, databaseValues);
             }
         }
         catch (Exception ex)
         {
             throw new PhotonException(String.format("Error parsing SELECT results for entity %s.", entityBlueprint.getEntityClassName()), ex);
         }
-
-        return populatedEntities;
-    }
-
-    private void connectEntityOrphans(Class rootEntityClass, Map<Class, List<PopulatedEntity>> entityOrphans)
-    {
-        Map<EntityFieldBlueprint, Integer> childIndexes = new HashMap<>();
-
-        for(PopulatedEntity entityOrphan : entityOrphans.get(rootEntityClass))
-        {
-            Object primaryKey = entityOrphan.getPrimaryKeyValue();
-
-            for(EntityFieldBlueprint entityFieldBlueprint : entityOrphan.getEntityBlueprint().getFields().values())
-            {
-                if(entityFieldBlueprint.entityBlueprint != null)
-                {
-                    if(Collection.class.isAssignableFrom(entityFieldBlueprint.fieldClass))
-                    {
-                        Collection collection = createCompatibleCollection(entityFieldBlueprint.fieldClass);
-
-                        List<PopulatedEntity> allChildOrphans = entityOrphans.get(entityFieldBlueprint.entityBlueprint.getEntityClass());
-                        Integer childIndex = childIndexes.get(entityFieldBlueprint);
-                        if (childIndex == null)
-                        {
-                            childIndex = 0;
-                        }
-                        while (childIndex < allChildOrphans.size() && keysAreEqual(primaryKey, allChildOrphans.get(childIndex).getForeignKeyToParentValue()))
-                        {
-                            collection.add(allChildOrphans.get(childIndex).getEntityInstance());
-                            childIndex++;
-                        }
-                        childIndexes.put(entityFieldBlueprint, childIndex);
-
-                        try
-                        {
-                            Field field = entityOrphan.getEntityBlueprint().getEntityClass().getDeclaredField(entityFieldBlueprint.fieldName);
-                            field.setAccessible(true);
-                            field.set(entityOrphan.getEntityInstance(), collection);
-                        }
-                        catch(Exception ex)
-                        {
-                            throw new PhotonException(String.format("Error setting field '%s' on entity '%s'.", entityFieldBlueprint.fieldName, entityOrphan.getEntityBlueprint().getEntityClassName()), ex);
-                        }
-                    }
-
-                    // TODO: Handle entity as field, i.e. one-to-one relationship.
-                }
-            }
-        }
-    }
-
-    private Collection createCompatibleCollection(Class<? extends Collection> collectionClass)
-    {
-        if(List.class.isAssignableFrom(collectionClass))
-        {
-            return new ArrayList();
-        }
-        else if(Set.class.isAssignableFrom(collectionClass))
-        {
-            return new HashSet();
-        }
-
-        throw new PhotonException(String.format("Unable to create instance of collection type '%s'.", collectionClass.getName()));
-    }
-
-
-    private boolean keysAreEqual(Object primaryKey, Object foreignKey)
-    {
-        if(primaryKey.equals(foreignKey))
-        {
-            return true;
-        }
-
-        if (primaryKey instanceof byte[] && foreignKey instanceof byte[])
-        {
-            return Arrays.equals((byte[]) primaryKey, (byte[]) foreignKey);
-        }
-
-        return false;
     }
 
     private PreparedStatement prepareStatementAndSetParameters(String sqlTemplate, ColumnBlueprint primaryKeyColumnBlueprint, List ids, String entityClassName)

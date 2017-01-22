@@ -102,7 +102,7 @@ public class EntityBlueprint
             EntityFieldBlueprint entityFieldBlueprint = fields.get(entityFieldName);
             Integer columnDataType = customColumnDataTypes.containsKey(entityFieldName) ?
                 customColumnDataTypes.get(entityFieldName) :
-                ColumnDataType.defaultForFieldType(entityFieldBlueprint.fieldClass);
+                ColumnDataType.defaultForFieldType(entityFieldBlueprint.getFieldClass());
             if(columnDataType != null)
             {
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
@@ -138,7 +138,7 @@ public class EntityBlueprint
         {
             if(!customColumnDataTypes.containsKey(foreignKeyToParentColumnName))
             {
-                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParent, entityClass.getName()));
+                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParentColumnName, entityClass.getName()));
             }
             columns.put(foreignKeyToParentColumnName, new ColumnBlueprint(
                 foreignKeyToParentColumnName,
@@ -179,5 +179,14 @@ public class EntityBlueprint
     public EntityFieldBlueprint getFieldForColumnName(String columnName)
     {
         return fields.get(columnName);
+    }
+
+    public List<EntityFieldBlueprint> getFieldsWithChildEntities()
+    {
+        return fields
+            .values()
+            .stream()
+            .filter(f -> f.getChildEntityBlueprint() != null)
+            .collect(Collectors.toList());
     }
 }
