@@ -1,7 +1,7 @@
 package photon.blueprints;
 
 import photon.exceptions.PhotonException;
-import photon.transaction.SelectSqlBuilderService;
+import photon.query.SelectSqlBuilderService;
 
 import java.util.*;
 
@@ -38,8 +38,5 @@ public class AggregateBlueprint
         }
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
         this.entitySelectSql = selectSqlBuilderService.buildSelectSql(aggregateRootEntityBlueprint);
-        System.out.println(entitySelectSql);
     }
-
-
 }

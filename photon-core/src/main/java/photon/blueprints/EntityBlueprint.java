@@ -112,7 +112,7 @@ public class EntityBlueprint
                     entityFieldBlueprint
                 );
                 columns.put(entityFieldName, columnBlueprint);
-                if(columnBlueprint.isPrimaryKeyColumn)
+                if(columnBlueprint.isPrimaryKeyColumn())
                 {
                     primaryKeyColumn = columnBlueprint;
                 }
@@ -168,12 +168,12 @@ public class EntityBlueprint
 
     public String getPrimaryKeyColumnName()
     {
-        return primaryKeyColumn != null ? primaryKeyColumn.columnName : null;
+        return primaryKeyColumn != null ? primaryKeyColumn.getColumnName() : null;
     }
 
     public String getForeignKeyToParentColumnName()
     {
-        return foreignKeyToParent != null ? foreignKeyToParent.columnName : null;
+        return foreignKeyToParent != null ? foreignKeyToParent.getColumnName() : null;
     }
 
     public EntityFieldBlueprint getFieldForColumnName(String columnName)

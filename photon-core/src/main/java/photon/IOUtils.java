@@ -4,15 +4,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.nio.ByteBuffer;
+import java.util.UUID;
 
-/**
- * User: lars
- * Date: 6/14/13
- * Time: 12:02 AM
- */
 public class IOUtils
 {
-
     private static final int EOF = -1;
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 4;
 
@@ -36,5 +32,11 @@ public class IOUtils
         return output.toString();
     }
 
-
+    public static byte[] uuidToBytes(UUID uuid)
+    {
+        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+        bb.putLong(uuid.getMostSignificantBits());
+        bb.putLong(uuid.getLeastSignificantBits());
+        return bb.array();
+    }
 }

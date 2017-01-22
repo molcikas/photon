@@ -1,4 +1,4 @@
-package photon.transaction;
+package photon.query;
 
 import org.apache.commons.lang3.StringUtils;
 import photon.blueprints.ColumnBlueprint;
@@ -53,7 +53,7 @@ public class SelectSqlBuilderService
         {
             selectSqlBuilder.append(String.format("`%s`.`%s`%s",
                 entityBlueprint.getTableName(),
-                columnBlueprint.columnName,
+                columnBlueprint.getColumnName(),
                 columnIndex < columns.size() - 1 ? ", " : ""
             ));
             columnIndex++;

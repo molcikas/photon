@@ -1,4 +1,4 @@
-package photon.tests.entities;
+package photon.tests.entities.recipe;
 
 import java.util.Collections;
 import java.util.List;

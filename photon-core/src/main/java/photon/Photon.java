@@ -4,8 +4,7 @@ import photon.exceptions.PhotonException;
 import photon.blueprints.AggregateBlueprint;
 import photon.blueprints.EntityBlueprint;
 import photon.blueprints.EntityBlueprintBuilder;
-import photon.transaction.PhotonTransaction;
-import photon.transaction.SelectSqlBuilderService;
+import photon.query.SelectSqlBuilderService;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -27,17 +26,19 @@ public class Photon
         this.selectSqlBuilderService = new SelectSqlBuilderService();
     }
 
-    public PhotonTransaction beginTransaction()
+    public Photon(String url, String user, String password)
     {
-        try
-        {
-            Connection connection = dataSource.getConnection();
-            return new PhotonTransaction(connection, registeredAggregates);
-        }
-        catch(Exception ex)
-        {
-            throw new PhotonException("Error getting connection.", ex);
-        }
+        this(new GenericDataSource(url, user, password));
+    }
+
+    public PhotonConnection open()
+    {
+        return new PhotonConnection(getConnection(), false, registeredAggregates);
+    }
+
+    public PhotonConnection beginTransaction()
+    {
+        return new PhotonConnection(getConnection(), true, registeredAggregates);
     }
 
     public EntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
@@ -56,5 +57,17 @@ public class Photon
             throw new PhotonException(String.format("The aggregate '%s' is already registered with this instance of Photon.", aggregateRootEntityBlueprint.getEntityClassName()));
         }
         registeredAggregates.put(aggregateRootEntityBlueprint.getEntityClass(), new AggregateBlueprint(aggregateRootEntityBlueprint, selectSqlBuilderService));
+    }
+
+    private Connection getConnection()
+    {
+        try
+        {
+            return dataSource.getConnection();
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException("Error getting connection.", ex);
+        }
     }
 }
