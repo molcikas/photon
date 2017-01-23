@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import photon.exceptions.PhotonException;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -62,6 +62,7 @@ public class EntityBlueprint
         String orderByColumnName,
         SortDirection orderByDirection,
         Map<String, Integer> customColumnDataTypes,
+        Map<String, String> customFieldToColumnMappings,
         Map<String, EntityBlueprint> childEntities)
     {
         if(entityClass == null)
@@ -79,20 +80,20 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.idFieldName = idFieldName;
-        this.orderByColumnName = orderByColumnName;
         this.orderByDirection = orderByDirection;
 
-        List<Field> privateFields = Arrays.stream(entityClass.getDeclaredFields())
-            .filter(field -> Modifier.isPrivate(field.getModifiers()) || Modifier.isProtected(field.getModifiers()))
-            .collect(Collectors.toList());
+        List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
 
         fields = new HashMap<>();
-        for(Field privateField : privateFields)
+        for(Field reflectedField : reflectedFields)
         {
-            fields.put(privateField.getName(), new EntityFieldBlueprint(
-                privateField.getName(),
-                privateField.getType(),
-                childEntities.get(privateField.getName())
+            fields.put(reflectedField.getName(), new EntityFieldBlueprint(
+                reflectedField.getName(),
+                reflectedField.getType(),
+                customFieldToColumnMappings.containsKey(reflectedField.getName()) ?
+                    customFieldToColumnMappings.get(reflectedField.getName()) :
+                    reflectedField.getName(),
+                childEntities.get(reflectedField.getName())
             ));
         }
 
@@ -102,16 +103,16 @@ public class EntityBlueprint
             EntityFieldBlueprint entityFieldBlueprint = fields.get(entityFieldName);
             Integer columnDataType = customColumnDataTypes.containsKey(entityFieldName) ?
                 customColumnDataTypes.get(entityFieldName) :
-                ColumnDataType.defaultForFieldType(entityFieldBlueprint.getFieldClass());
+                defaultColumnDataTypeForField(entityFieldBlueprint.getFieldClass());
             if(columnDataType != null)
             {
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                    entityFieldName,
+                    entityFieldBlueprint.getColumnName(),
                     columnDataType,
                     entityFieldName.equals(idFieldName),
                     entityFieldBlueprint
                 );
-                columns.put(entityFieldName, columnBlueprint);
+                columns.put(entityFieldBlueprint.getColumnName(), columnBlueprint);
                 if(columnBlueprint.isPrimaryKeyColumn())
                 {
                     primaryKeyColumn = columnBlueprint;
@@ -119,7 +120,7 @@ public class EntityBlueprint
             }
         }
 
-        if(!columns.containsKey(idFieldName))
+        if(primaryKeyColumn == null)
         {
             if(!customColumnDataTypes.containsKey(idFieldName))
             {
@@ -148,7 +149,13 @@ public class EntityBlueprint
             ));
         }
 
-        if(StringUtils.isNotBlank(orderByColumnName) && !columns.containsKey(orderByColumnName))
+        if(StringUtils.isBlank(orderByColumnName))
+        {
+            orderByColumnName = primaryKeyColumn.getColumnName();
+        }
+        this.orderByColumnName = orderByColumnName;
+
+        if(!columns.containsKey(orderByColumnName))
         {
             throw new PhotonException(String.format("The order by column '%s' is not a column for the entity '%s'.", orderByColumnName, entityClass.getName()));
         }
@@ -178,7 +185,12 @@ public class EntityBlueprint
 
     public EntityFieldBlueprint getFieldForColumnName(String columnName)
     {
-        return fields.get(columnName);
+        return fields
+            .values()
+            .stream()
+            .filter(f -> StringUtils.equals(f.getColumnName(), columnName))
+            .findFirst()
+            .orElse(null);
     }
 
     public List<EntityFieldBlueprint> getFieldsWithChildEntities()
@@ -188,5 +200,45 @@ public class EntityBlueprint
             .stream()
             .filter(f -> f.getChildEntityBlueprint() != null)
             .collect(Collectors.toList());
+    }
+
+    private Integer defaultColumnDataTypeForField(Class fieldType)
+    {
+        if(fieldType.equals(int.class) || fieldType.equals(Integer.class))
+        {
+            return Types.INTEGER;
+        }
+
+        if(fieldType.equals(long.class) || fieldType.equals(Long.class))
+        {
+            return Types.BIGINT;
+        }
+
+        if(fieldType.equals(float.class) || fieldType.equals(Float.class))
+        {
+            return Types.FLOAT;
+        }
+
+        if(fieldType.equals(double.class) || fieldType.equals(Double.class))
+        {
+            return Types.DOUBLE;
+        }
+
+        if(fieldType.equals(boolean.class) || fieldType.equals(Boolean.class))
+        {
+            return Types.BOOLEAN;
+        }
+
+        if(fieldType.equals(UUID.class))
+        {
+            return Types.BINARY;
+        }
+
+        if(fieldType.equals(java.lang.String.class))
+        {
+            return Types.VARCHAR;
+        }
+
+        return null;
     }
 }

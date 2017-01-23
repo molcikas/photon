@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.blueprints.SortDirection;
 import photon.tests.databaseintegrations.h2.setup.MyTableDbSetup;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
@@ -60,10 +61,11 @@ public class MyTableTests
     }
 
     @Test
-    public void aggregateQuery_fetchByIds_returnsAggregates()
+    public void aggregateQuery_fetchByIdsAndSortRootDescending_returnsAggregates()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
+            .withOrderBy("id", SortDirection.Descending)
             .register();
 
         try(PhotonConnection connection = photon.open())
@@ -74,23 +76,17 @@ public class MyTableTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(2, myTables.get(0).getId());
-            assertEquals("my2dbvalue", myTables.get(0).getMyvalue());
-            assertEquals(4, myTables.get(1).getId());
-            assertEquals("my4dbvalue", myTables.get(1).getMyvalue());
+            assertEquals(4, myTables.get(0).getId());
+            assertEquals("my4dbvalue", myTables.get(0).getMyvalue());
+            assertEquals(2, myTables.get(1).getId());
+            assertEquals("my2dbvalue", myTables.get(1).getMyvalue());
         }
     }
 
     @Test
     public void aggregateQuery_fetchById_oneToOneWithNoMatch_returnsNullChild()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withChild(MyOtherTable.class)
-                .withId("id")
-                .withForeignKeyToParent("id")
-                .addAsChild("myOtherTable")
-            .register();
+        registerMyTableAggregate();
 
         try(PhotonConnection connection = photon.open())
         {
@@ -109,13 +105,7 @@ public class MyTableTests
     @Test
     public void aggregateQuery_fetchById_oneToOneWithMatch_returnsChild()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withChild(MyOtherTable.class)
-                .withId("id")
-                .withForeignKeyToParent("id")
-                .addAsChild("myOtherTable")
-            .register();
+        registerMyTableAggregate();
 
         try(PhotonConnection connection = photon.open())
         {
@@ -130,20 +120,14 @@ public class MyTableTests
             MyOtherTable myOtherTable = myTable.getMyOtherTable();
             assertNotNull(myOtherTable);
             assertEquals(5, myOtherTable.getId());
-            assertEquals("my5otherdbvalue", myOtherTable.getMyothervalue());
+            assertEquals("my5otherdbvalue", myOtherTable.getMyOtherValueWithDiffName());
         }
     }
 
     @Test
     public void aggregateQuery_fetchByIds_oneToOnesWithMatches_returnsChild()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withChild(MyOtherTable.class)
-            .withId("id")
-            .withForeignKeyToParent("id")
-            .addAsChild("myOtherTable")
-            .register();
+        registerMyTableAggregate();
 
         try(PhotonConnection connection = photon.open())
         {
@@ -166,5 +150,17 @@ public class MyTableTests
             assertEquals(4, myTables.get(3).getId());
             assertEquals(4, myTables.get(3).getMyOtherTable().getId());
         }
+    }
+
+    private void registerMyTableAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withChild(MyOtherTable.class)
+                .withId("id")
+                .withForeignKeyToParent("id")
+                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .addAsChild("myOtherTable")
+            .register();
     }
 }

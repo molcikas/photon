@@ -18,28 +18,28 @@ public class SelectSqlBuilderService
     private void buildSelectSqlRecursive(
         EntityBlueprint entityBlueprint,
         EntityBlueprint aggregateRootEntityBlueprint,
-        List<EntityBlueprint> parentEntities,
+        List<EntityBlueprint> parentBlueprints,
         Map<EntityBlueprint, String> entitySelectSqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder selectSqlBuilder = new StringBuilder(initialCapacity);
 
         buildSelectClauseSql(selectSqlBuilder, entityBlueprint);
-        buildFromAndJoinClauseSql(selectSqlBuilder, entityBlueprint, parentEntities);
+        buildFromAndJoinClauseSql(selectSqlBuilder, entityBlueprint, parentBlueprints);
         buildWhereClauseSql(selectSqlBuilder, aggregateRootEntityBlueprint);
-        buildOrderBySql(selectSqlBuilder, entityBlueprint, aggregateRootEntityBlueprint, parentEntities);
+        buildOrderBySql(selectSqlBuilder, entityBlueprint, parentBlueprints);
 
         entitySelectSqlMap.put(entityBlueprint, selectSqlBuilder.toString());
 
-        final List<EntityBlueprint> childrenParentEntities = new ArrayList<>(parentEntities.size() + 1);
-        childrenParentEntities.addAll(parentEntities);
-        childrenParentEntities.add(entityBlueprint);
+        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        childParentBlueprints.addAll(parentBlueprints);
+        childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFields()
             .values()
             .stream()
             .filter(entityField -> entityField.getChildEntityBlueprint() != null)
-            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childrenParentEntities, entitySelectSqlMap));
+            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints, entitySelectSqlMap));
     }
 
     private void buildSelectClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint entityBlueprint)
@@ -87,44 +87,36 @@ public class SelectSqlBuilderService
         ));
     }
 
-    private void buildOrderBySql(StringBuilder selectSqlBuilder, EntityBlueprint entityBlueprint, EntityBlueprint aggregateRootEntityBlueprint, List<EntityBlueprint> parentEntities)
+    private void buildOrderBySql(
+        StringBuilder selectSqlBuilder,
+        EntityBlueprint childBlueprint,
+        List<EntityBlueprint> parentBlueprints)
     {
-        StringBuilder orderByParentKeys = new StringBuilder();
-        if(entityBlueprint.equals(aggregateRootEntityBlueprint))
+        List<EntityBlueprint> entityBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        entityBlueprints.addAll(parentBlueprints);
+        entityBlueprints.add(childBlueprint);
+
+        selectSqlBuilder.append("\nORDER BY ");
+
+        for (EntityBlueprint entityBlueprint : entityBlueprints)
         {
-            orderByParentKeys.append(String.format("`%s`.`%s`",
+            boolean isPrimaryKeySort = StringUtils.equals(entityBlueprint.getOrderByColumnName(), entityBlueprint.getPrimaryKeyColumnName());
+            selectSqlBuilder.append(String.format("`%s`.`%s` %s%s",
                 entityBlueprint.getTableName(),
-                entityBlueprint.getPrimaryKeyColumnName()
+                entityBlueprint.getOrderByColumnName(),
+                entityBlueprint.getOrderByDirection().sqlSortDirection,
+                isPrimaryKeySort && entityBlueprint.equals(childBlueprint) ? "" : ", "
             ));
-        }
-        else
-        {
-            for (EntityBlueprint parentEntityBlueprint : parentEntities)
+            if(!isPrimaryKeySort)
             {
-                orderByParentKeys.append(String.format("`%s`.`%s`%s",
-                    parentEntityBlueprint.getTableName(),
-                    parentEntityBlueprint.getPrimaryKeyColumnName(),
-                    parentEntityBlueprint.equals(aggregateRootEntityBlueprint) ? "" : ", "
+                // If it's not a primary key sort, we need to add the primary key as a secondary sort, otherwise the
+                // building might fail because it expects entities to be grouped by parent.
+                selectSqlBuilder.append(String.format("`%s`.`%s`%s",
+                    entityBlueprint.getTableName(),
+                    entityBlueprint.getPrimaryKeyColumnName(),
+                    entityBlueprint.equals(childBlueprint) ? "" : ", "
                 ));
             }
         }
-
-        selectSqlBuilder.append(String.format("\nORDER BY %s%s",
-            orderByParentKeys.toString(),
-            getOrderByColumnSql(entityBlueprint)
-        ));
-    }
-
-    private String getOrderByColumnSql(EntityBlueprint entityBlueprint)
-    {
-        if(StringUtils.isBlank(entityBlueprint.getOrderByColumnName()))
-        {
-            return "";
-        }
-        return String.format(", `%s`.`%s` %s",
-            entityBlueprint.getTableName(),
-            entityBlueprint.getOrderByColumnName(),
-            entityBlueprint.getOrderByDirection().sqlSortDirection
-        );
     }
 }

@@ -18,23 +18,26 @@ public class EntityBlueprintBuilder
     private SortDirection orderByDirection;
     private final Map<String, Integer> customColumnDataTypes;
     private final Map<String, EntityBlueprint> childEntities;
+    private final Map<String, String> customFieldToColumnMappings;
 
     public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder)
     {
-        this.entityClass = entityClass;
-        this.photon = null;
-        this.parentBuilder = parentBuilder;
-        this.customColumnDataTypes = new HashMap<>();
-        this.childEntities = new HashMap<>();
+        this(entityClass, parentBuilder, null);
     }
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
+        this(entityClass, null, photon);
+    }
+
+    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon)
+    {
         this.entityClass = entityClass;
         this.photon = photon;
-        this.parentBuilder = null;
+        this.parentBuilder = parentBuilder;
         this.customColumnDataTypes = new HashMap<>();
         this.childEntities = new HashMap<>();
+        this.customFieldToColumnMappings = new HashMap<>();
     }
 
     public EntityBlueprintBuilder withId(String idFieldName)
@@ -52,6 +55,12 @@ public class EntityBlueprintBuilder
     public EntityBlueprintBuilder withColumnDataType(String columnName, Integer columnDataType)
     {
         customColumnDataTypes.put(columnName, columnDataType);
+        return this;
+    }
+
+    public EntityBlueprintBuilder withFieldToColmnnMapping(String fieldName, String columnName)
+    {
+        customFieldToColumnMappings.put(fieldName, columnName);
         return this;
     }
 
@@ -104,6 +113,7 @@ public class EntityBlueprintBuilder
             orderByColumnName,
             orderByDirection,
             customColumnDataTypes,
+            customFieldToColumnMappings,
             childEntities
         );
     }

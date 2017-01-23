@@ -4,15 +4,15 @@ public class MyOtherTable
 {
     private int id;
 
-    private String myothervalue;
+    private String myOtherValueWithDiffName;
 
     public int getId()
     {
         return id;
     }
 
-    public String getMyothervalue()
+    public String getMyOtherValueWithDiffName()
     {
-        return myothervalue;
+        return myOtherValueWithDiffName;
     }
 }

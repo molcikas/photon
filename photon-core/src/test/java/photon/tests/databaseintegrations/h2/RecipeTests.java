@@ -129,7 +129,41 @@ public class RecipeTests
         }
     }
 
+    @Test
+    public void aggregateQuery_fetchById_validAggregateAndQueryWithDescendingSort_ReturnsCorrectAggregate()
+    {
+        registerRecipeAggregate(SortDirection.Descending);
+
+        try (PhotonConnection connection = photon.open())
+        {
+            Recipe recipe = connection
+                .aggregateQuery(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            assertNotNull(recipe);
+            assertEquals(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"), recipe.getRecipeId());
+            assertEquals("Spaghetti with Lentil and Tomato Sauce", recipe.getName());
+            assertEquals(17, recipe.getIngredients().size());
+            assertEquals(6, recipe.getInstructions().size());
+
+            for(int i = 0; i < recipe.getIngredients().size(); i++)
+            {
+                assertEquals((Integer) (recipe.getIngredients().size() - i - 1), recipe.getIngredients().get(i).getOrderBy());
+            }
+
+            for(int i = 0; i < recipe.getInstructions().size(); i++)
+            {
+                assertEquals(i + 1, recipe.getInstructions().get(i).getStepNumber());
+            }
+        }
+    }
+
     private void registerRecipeAggregate()
+    {
+        registerRecipeAggregate(SortDirection.Ascending);
+    }
+
+    private void registerRecipeAggregate(SortDirection ingredientSortDirection)
     {
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
@@ -138,14 +172,14 @@ public class RecipeTests
                 .withColumnDataType("recipeInstructionId", Types.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("stepNumber", SortDirection.Ascending)
+                .withOrderBy("stepNumber")
             .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
                 .withId("recipeIngredientId")
                 .withColumnDataType("recipeIngredientId", Types.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("orderBy")
+                .withOrderBy("orderBy", ingredientSortDirection)
                 .addAsChild("ingredients")
             .register();
     }
