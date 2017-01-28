@@ -11,11 +11,10 @@ import java.util.stream.Collectors;
 public class EntityBlueprint
 {
     private final Class entityClass;
-    private final String idFieldName;
     private final String orderByColumnName;
     private final SortDirection orderByDirection;
-    private final Map<String, EntityFieldBlueprint> fields;
-    private final Map<String, ColumnBlueprint> columns;
+    private final Map<String, FieldBlueprint> fields;
+    private List<ColumnBlueprint> columns;
 
     private ColumnBlueprint primaryKeyColumn;
     private ColumnBlueprint foreignKeyToParent;
@@ -23,11 +22,6 @@ public class EntityBlueprint
     public Class getEntityClass()
     {
         return entityClass;
-    }
-
-    public String getIdFieldName()
-    {
-        return idFieldName;
     }
 
     public String getOrderByColumnName()
@@ -40,14 +34,14 @@ public class EntityBlueprint
         return orderByDirection;
     }
 
-    public Map<String, EntityFieldBlueprint> getFields()
+    public Map<String, FieldBlueprint> getFields()
     {
         return Collections.unmodifiableMap(fields);
     }
 
-    public Map<String, ColumnBlueprint> getColumns()
+    public List<ColumnBlueprint> getColumns()
     {
-        return Collections.unmodifiableMap(columns);
+        return Collections.unmodifiableList(columns);
     }
 
     public ColumnBlueprint getPrimaryKeyColumn()
@@ -79,7 +73,6 @@ public class EntityBlueprint
         }
 
         this.entityClass = entityClass;
-        this.idFieldName = idFieldName;
         this.orderByDirection = orderByDirection;
 
         List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
@@ -87,7 +80,7 @@ public class EntityBlueprint
         fields = new HashMap<>();
         for(Field reflectedField : reflectedFields)
         {
-            fields.put(reflectedField.getName(), new EntityFieldBlueprint(
+            fields.put(reflectedField.getName(), new FieldBlueprint(
                 reflectedField.getName(),
                 reflectedField.getType(),
                 customFieldToColumnMappings.containsKey(reflectedField.getName()) ?
@@ -97,22 +90,24 @@ public class EntityBlueprint
             ));
         }
 
-        columns = new HashMap<>();
+        columns = new ArrayList<>(fields.size() + 2); // 2 extra for primary key and foreign key to parent.
+
         for(String entityFieldName : fields.keySet())
         {
-            EntityFieldBlueprint entityFieldBlueprint = fields.get(entityFieldName);
+            FieldBlueprint fieldBlueprint = fields.get(entityFieldName);
             Integer columnDataType = customColumnDataTypes.containsKey(entityFieldName) ?
                 customColumnDataTypes.get(entityFieldName) :
-                defaultColumnDataTypeForField(entityFieldBlueprint.getFieldClass());
+                defaultColumnDataTypeForField(fieldBlueprint.getFieldClass());
             if(columnDataType != null)
             {
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                    entityFieldBlueprint.getColumnName(),
+                    fieldBlueprint.getColumnName(),
                     columnDataType,
                     entityFieldName.equals(idFieldName),
-                    entityFieldBlueprint
+                    fieldBlueprint,
+                    columns.size()
                 );
-                columns.put(entityFieldBlueprint.getColumnName(), columnBlueprint);
+                columns.add(columnBlueprint);
                 if(columnBlueprint.isPrimaryKeyColumn())
                 {
                     primaryKeyColumn = columnBlueprint;
@@ -130,22 +125,24 @@ public class EntityBlueprint
                 idFieldName,
                 customColumnDataTypes.get(idFieldName),
                 true,
-                null
+                null,
+                columns.size()
             );
-            columns.put(idFieldName, primaryKeyColumn);
+            columns.add(primaryKeyColumn);
         }
 
-        if(StringUtils.isNotBlank(foreignKeyToParentColumnName) && !columns.containsKey(foreignKeyToParentColumnName))
+        if(StringUtils.isNotBlank(foreignKeyToParentColumnName) && !getColumn(foreignKeyToParentColumnName).isPresent())
         {
             if(!customColumnDataTypes.containsKey(foreignKeyToParentColumnName))
             {
                 throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParentColumnName, entityClass.getName()));
             }
-            columns.put(foreignKeyToParentColumnName, new ColumnBlueprint(
+            columns.add(new ColumnBlueprint(
                 foreignKeyToParentColumnName,
                 customColumnDataTypes.get(foreignKeyToParentColumnName),
                 false,
-                null
+                null,
+                columns.size()
             ));
         }
 
@@ -155,12 +152,14 @@ public class EntityBlueprint
         }
         this.orderByColumnName = orderByColumnName;
 
-        if(!columns.containsKey(orderByColumnName))
+        if(!getColumn(orderByColumnName).isPresent())
         {
             throw new PhotonException(String.format("The order by column '%s' is not a column for the entity '%s'.", orderByColumnName, entityClass.getName()));
         }
 
-        foreignKeyToParent = columns.get(foreignKeyToParentColumnName);
+        foreignKeyToParent = getColumn(foreignKeyToParentColumnName).orElse(null);
+
+        normalizeColumnOrder();
     }
 
     public String getEntityClassName()
@@ -183,7 +182,7 @@ public class EntityBlueprint
         return foreignKeyToParent != null ? foreignKeyToParent.getColumnName() : null;
     }
 
-    public EntityFieldBlueprint getFieldForColumnName(String columnName)
+    public FieldBlueprint getFieldForColumnName(String columnName)
     {
         return fields
             .values()
@@ -193,13 +192,38 @@ public class EntityBlueprint
             .orElse(null);
     }
 
-    public List<EntityFieldBlueprint> getFieldsWithChildEntities()
+    public List<FieldBlueprint> getFieldsWithChildEntities()
     {
         return fields
             .values()
             .stream()
             .filter(f -> f.getChildEntityBlueprint() != null)
             .collect(Collectors.toList());
+    }
+
+    public Optional<ColumnBlueprint> getColumn(String columnName)
+    {
+        return columns
+            .stream()
+            .filter(c -> c.getColumnName().equals(columnName))
+            .findFirst();
+    }
+
+    private void normalizeColumnOrder()
+    {
+        // Sort columns by putting primary key columns at the end, then sort by current column index.
+        columns = columns
+            .stream()
+            .sorted((c1, c2) -> c1.getColumnIndex() - c2.getColumnIndex())
+            .sorted((c1, c2) -> c1.isPrimaryKeyColumn() == c2.isPrimaryKeyColumn() ? 0 : c1.isPrimaryKeyColumn() ? 1 : -1)
+            .collect(Collectors.toList());
+
+        int i = 0;
+        for(ColumnBlueprint columnBlueprint : columns)
+        {
+            columnBlueprint.moveColumnToIndex(i);
+            i++;
+        }
     }
 
     private Integer defaultColumnDataTypeForField(Class fieldType)

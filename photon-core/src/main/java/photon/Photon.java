@@ -1,10 +1,11 @@
 package photon;
 
+import photon.blueprints.*;
 import photon.exceptions.PhotonException;
-import photon.blueprints.AggregateBlueprint;
-import photon.blueprints.EntityBlueprint;
-import photon.blueprints.EntityBlueprintBuilder;
-import photon.blueprints.SelectSqlBuilderService;
+import photon.sqlbuilders.InsertSqlBuilderService;
+import photon.sqlbuilders.SelectSqlBuilderService;
+import photon.sqlbuilders.SqlJoinClauseBuilderService;
+import photon.sqlbuilders.UpdateSqlBuilderService;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -17,13 +18,18 @@ public class Photon
     private final Map<Class, AggregateBlueprint> registeredAggregates;
 
     private final SelectSqlBuilderService selectSqlBuilderService;
+    private final UpdateSqlBuilderService updateSqlBuilderService;
+    private final InsertSqlBuilderService insertSqlBuilderService;
 
     public Photon(DataSource dataSource)
     {
         this.dataSource = dataSource;
         this.registeredAggregates = new HashMap<>();
 
-        this.selectSqlBuilderService = new SelectSqlBuilderService();
+        SqlJoinClauseBuilderService sqlJoinClauseBuilderService = new SqlJoinClauseBuilderService();
+        this.selectSqlBuilderService = new SelectSqlBuilderService(sqlJoinClauseBuilderService);
+        this.updateSqlBuilderService = new UpdateSqlBuilderService();
+        this.insertSqlBuilderService = new InsertSqlBuilderService();
     }
 
     public Photon(String url, String user, String password)
@@ -56,7 +62,9 @@ public class Photon
         {
             throw new PhotonException(String.format("The aggregate '%s' is already registered with this instance of Photon.", aggregateRootEntityBlueprint.getEntityClassName()));
         }
-        registeredAggregates.put(aggregateRootEntityBlueprint.getEntityClass(), new AggregateBlueprint(aggregateRootEntityBlueprint, selectSqlBuilderService));
+        registeredAggregates.put(
+            aggregateRootEntityBlueprint.getEntityClass(),
+            new AggregateBlueprint(aggregateRootEntityBlueprint, selectSqlBuilderService, updateSqlBuilderService, insertSqlBuilderService));
     }
 
     private Connection getConnection()

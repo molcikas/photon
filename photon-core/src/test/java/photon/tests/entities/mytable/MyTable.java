@@ -20,4 +20,15 @@ public class MyTable
     {
         return myOtherTable;
     }
+
+    private MyTable()
+    {
+    }
+
+    public MyTable(int id, String myvalue, MyOtherTable myOtherTable)
+    {
+        this.id = id;
+        this.myvalue = myvalue;
+        this.myOtherTable = myOtherTable;
+    }
 }

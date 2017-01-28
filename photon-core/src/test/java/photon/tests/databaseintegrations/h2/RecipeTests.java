@@ -36,7 +36,7 @@ public class RecipeTests
         try (PhotonConnection connection = photon.open())
         {
             Recipe recipe = connection
-                .aggregateQuery(Recipe.class)
+                .aggregate(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
             assertNotNull(recipe);
@@ -77,7 +77,7 @@ public class RecipeTests
         try (PhotonConnection connection = photon.open())
         {
             Recipe recipe = connection
-                .aggregateQuery(Recipe.class)
+                .aggregate(Recipe.class)
                 .fetchById(UUID.fromString("28d8b2d4-90a7-467c-93a1-59d1493c0d15"));
 
             assertNotNull(recipe);
@@ -96,7 +96,7 @@ public class RecipeTests
         try (PhotonConnection connection = photon.open())
         {
             List<Recipe> recipes = connection
-                .aggregateQuery(Recipe.class)
+                .aggregate(Recipe.class)
                 .fetchByIds(Arrays.asList(UUID.fromString("3e0378c5-a9b6-11e6-ab83-0a0027000010"), UUID.fromString("3e03cb62-a9b6-11e6-ab83-0a0027000010")));
 
             assertNotNull(recipes);
@@ -137,7 +137,7 @@ public class RecipeTests
         try (PhotonConnection connection = photon.open())
         {
             Recipe recipe = connection
-                .aggregateQuery(Recipe.class)
+                .aggregate(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
             assertNotNull(recipe);

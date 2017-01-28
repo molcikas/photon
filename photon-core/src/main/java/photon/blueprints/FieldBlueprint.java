@@ -1,6 +1,6 @@
 package photon.blueprints;
 
-public class EntityFieldBlueprint
+public class FieldBlueprint
 {
     private final String fieldName;
     private final Class fieldClass;
@@ -27,7 +27,7 @@ public class EntityFieldBlueprint
         return childEntityBlueprint;
     }
 
-    public EntityFieldBlueprint(String fieldName, Class fieldClass, String columnName, EntityBlueprint childEntityBlueprint)
+    public FieldBlueprint(String fieldName, Class fieldClass, String columnName, EntityBlueprint childEntityBlueprint)
     {
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;

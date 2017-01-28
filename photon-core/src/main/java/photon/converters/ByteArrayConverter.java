@@ -1,11 +1,11 @@
 package photon.converters;
 
-import photon.IOUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.UUID;
 
 public class ByteArrayConverter extends ConverterBase<byte[]> {
 
@@ -42,6 +42,15 @@ public class ByteArrayConverter extends ConverterBase<byte[]> {
 
         if (val instanceof byte[]){
             return (byte[])val;
+        }
+
+        if(val instanceof UUID)
+        {
+            UUID uuid = (UUID) val;
+            ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
+            bb.putLong(uuid.getMostSignificantBits());
+            bb.putLong(uuid.getLeastSignificantBits());
+            return bb.array();
         }
 
         throw new RuntimeException("could not convert " + val.getClass().getName() + " to byte[]");

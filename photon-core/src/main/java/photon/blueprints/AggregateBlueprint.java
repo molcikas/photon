@@ -1,6 +1,9 @@
 package photon.blueprints;
 
 import photon.exceptions.PhotonException;
+import photon.sqlbuilders.InsertSqlBuilderService;
+import photon.sqlbuilders.SelectSqlBuilderService;
+import photon.sqlbuilders.UpdateSqlBuilderService;
 
 import java.util.*;
 
@@ -8,6 +11,8 @@ public class AggregateBlueprint
 {
     private final EntityBlueprint aggregateRootEntityBlueprint;
     private final Map<EntityBlueprint, String> entitySelectSqlTemplates;
+    private final Map<EntityBlueprint, String> entityUpdateSqlTemplates;
+    private final Map<EntityBlueprint, String> entityInsertSqlTemplates;
 
     public EntityBlueprint getAggregateRootEntityBlueprint()
     {
@@ -24,13 +29,29 @@ public class AggregateBlueprint
         return Collections.unmodifiableMap(entitySelectSqlTemplates);
     }
 
-    public AggregateBlueprint(EntityBlueprint aggregateRootEntityBlueprint, SelectSqlBuilderService selectSqlBuilderService)
+    public String getEntityUpdateSqlTemplate(EntityBlueprint entityBlueprint)
+    {
+        return entityUpdateSqlTemplates.get(entityBlueprint);
+    }
+
+    public String getEntityInsertSqlTemplate(EntityBlueprint entityBlueprint)
+    {
+        return entityInsertSqlTemplates.get(entityBlueprint);
+    }
+
+    public AggregateBlueprint(
+        EntityBlueprint aggregateRootEntityBlueprint,
+        SelectSqlBuilderService selectSqlBuilderService,
+        UpdateSqlBuilderService updateSqlBuilderService,
+        InsertSqlBuilderService insertSqlBuilderService)
     {
         if(aggregateRootEntityBlueprint == null)
         {
-            throw new PhotonException("AggregateBlueprint root entityBlueprint cannot be null.");
+            throw new PhotonException("Aggregate root entity cannot be null.");
         }
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
         this.entitySelectSqlTemplates = selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
+        this.entityUpdateSqlTemplates = updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
+        this.entityInsertSqlTemplates = insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
     }
 }

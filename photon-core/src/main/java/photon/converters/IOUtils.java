@@ -1,4 +1,4 @@
-package photon;
+package photon.converters;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,13 +30,5 @@ public class IOUtils
             output.append(buffer, 0, n);
         }
         return output.toString();
-    }
-
-    public static byte[] uuidToBytes(UUID uuid)
-    {
-        ByteBuffer bb = ByteBuffer.wrap(new byte[16]);
-        bb.putLong(uuid.getMostSignificantBits());
-        bb.putLong(uuid.getLeastSignificantBits());
-        return bb.array();
     }
 }

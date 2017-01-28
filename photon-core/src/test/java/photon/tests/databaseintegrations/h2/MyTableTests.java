@@ -25,7 +25,7 @@ public class MyTableTests
     }
 
     @Test
-    public void aggregateQuery_fetchById_simple_returnsEntity()
+    public void aggregateQuery_fetchById_simpleEntity_returnsEntity()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
@@ -34,7 +34,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTable);
@@ -53,7 +53,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchById(7);
 
             assertNull(myTable);
@@ -71,7 +71,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             List<MyTable> myTables = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchByIds(Arrays.asList(2, 4));
 
             assertNotNull(myTables);
@@ -91,7 +91,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTable);
@@ -110,7 +110,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchById(5);
 
             assertNotNull(myTable);
@@ -132,7 +132,7 @@ public class MyTableTests
         try(PhotonConnection connection = photon.open())
         {
             List<MyTable> myTables = connection
-                .aggregateQuery(MyTable.class)
+                .aggregate(MyTable.class)
                 .fetchByIds(Arrays.asList(1, 2, 3, 4));
 
             assertNotNull(myTables);
@@ -149,6 +149,91 @@ public class MyTableTests
 
             assertEquals(4, myTables.get(3).getId());
             assertEquals(4, myTables.get(3).getMyOtherTable().getId());
+        }
+    }
+
+    @Test
+    public void aggregateQuery_save_simpleEntity_savesEntity()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(2, "MySavedValue", null);
+            connection
+                .aggregate(MyTable.class)
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .aggregate(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(2, myTableRetrieved.getId());
+            assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregateQuery_save_insertSimpleEntity_savesEntity()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(1111, "MyInsertedSavedValue", null);
+            connection
+                .aggregate(MyTable.class)
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .aggregate(MyTable.class)
+                .fetchById(1111);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregateQuery_save_updateEntityWithChild_savesEntity()
+    {
+        registerMyTableAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(3, "MySavedValue", new MyOtherTable(3, "MyOtherSavedValue"));
+
+            connection
+                .aggregate(MyTable.class)
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .aggregate(MyTable.class)
+                .fetchById(3);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(3, myTableRetrieved.getId());
+            assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+
+            MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
+            assertNotNull(myOtherTableRetrieved);
+            assertEquals(3, myOtherTableRetrieved.getId());
+            assertEquals("MyOtherSavedValue", myOtherTableRetrieved.getMyOtherValueWithDiffName());
         }
     }
 

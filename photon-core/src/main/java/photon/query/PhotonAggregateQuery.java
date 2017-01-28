@@ -1,17 +1,14 @@
 package photon.query;
 
-import photon.IOUtils;
 import photon.exceptions.PhotonException;
 import photon.blueprints.AggregateBlueprint;
 import photon.blueprints.ColumnBlueprint;
 import photon.blueprints.EntityBlueprint;
-import photon.blueprints.EntityFieldBlueprint;
+import photon.blueprints.FieldBlueprint;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Types;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -20,7 +17,9 @@ public class PhotonAggregateQuery<T>
     private final AggregateBlueprint aggregateBlueprint;
     private final Connection connection;
 
-    public PhotonAggregateQuery(AggregateBlueprint aggregateBlueprint, Connection connection)
+    public PhotonAggregateQuery(
+        AggregateBlueprint aggregateBlueprint,
+        Connection connection)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
@@ -48,6 +47,83 @@ public class PhotonAggregateQuery<T>
             .collect(Collectors.toList());
     }
 
+    public void save(T aggregate)
+    {
+        saveEntityRecursive(Collections.singletonList(aggregate), aggregateBlueprint.getAggregateRootEntityBlueprint());
+    }
+
+    private void saveEntityRecursive(Collection<Object> entityInstances, EntityBlueprint entityBlueprint)
+    {
+        String updateSqlTemplate = aggregateBlueprint.getEntityUpdateSqlTemplate(entityBlueprint);
+        String insertSqlTemplate = aggregateBlueprint.getEntityInsertSqlTemplate(entityBlueprint);
+
+        // TODO: Need to delete any orphan entities in the database.
+
+        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(connection, updateSqlTemplate);
+            PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(connection, insertSqlTemplate))
+        {
+            updateStatement.resetParameterCounter();
+            insertStatement.resetParameterCounter();
+
+            for(Object entityInstance : entityInstances)
+            {
+                for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+                {
+                    FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
+                    Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
+                    field.setAccessible(true);
+                    Object fieldValue = field.get(entityInstance);
+
+                    updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
+                }
+
+                // TODO: What if foreign key to parent is not in the entity?
+                // TODO: What if id is not in the entity?
+
+                int rowsUpdated = updateStatement.executeUpdate();
+                if(rowsUpdated == 0)
+                {
+                    for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+                    {
+                        FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
+                        Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
+                        field.setAccessible(true);
+                        Object fieldValue = field.get(entityInstance);
+
+                        insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
+                    }
+
+                    insertStatement.executeUpdate();
+                }
+
+                for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
+                {
+                    Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
+                    field.setAccessible(true);
+                    Object fieldValue = field.get(entityInstance);
+
+                    if(fieldValue == null)
+                    {
+                        // TODO: Delete the entity to prevent orphaned database values.
+                        continue;
+                    }
+                    if(Collection.class.isAssignableFrom(fieldValue.getClass()))
+                    {
+                        saveEntityRecursive((Collection) fieldValue, fieldBlueprint.getChildEntityBlueprint());
+                    }
+                    else
+                    {
+                        saveEntityRecursive(Collections.singletonList(fieldValue), fieldBlueprint.getChildEntityBlueprint());
+                    }
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException("Error executing SQL UPDATE query.", ex);
+        }
+    }
+
     private List<PopulatedEntity> getPopulatedAggregateRoots(List ids)
     {
         Map<EntityBlueprint, String> entitySelectSqlTemplates = aggregateBlueprint.getEntitySelectSqlTemplates();
@@ -59,7 +135,7 @@ public class PhotonAggregateQuery<T>
             executeQueryAndCreateEntityOrphans(populatedEntityMap, entityBlueprint, entityAndSelectSql.getValue(), ids);
         }
 
-        populatedEntityMap.mapEntityInstanceChildren();
+        populatedEntityMap.mapAllEntityInstanceChildren();
 
         return populatedEntityMap.getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass());
     }
@@ -68,16 +144,16 @@ public class PhotonAggregateQuery<T>
     {
         ColumnBlueprint primaryKeyColumnBlueprint = entityBlueprint.getPrimaryKeyColumn();
 
-        try (PreparedStatement statement = prepareStatementAndSetParameters(sqlTemplate, primaryKeyColumnBlueprint, ids, entityBlueprint.getEntityClassName()))
+        try (PhotonPreparedStatement statement = prepareStatementAndSetParameters(sqlTemplate, primaryKeyColumnBlueprint, ids, entityBlueprint.getEntityClassName()))
         {
-            try (ResultSet resultSet = executeJdbcQuery(statement, entityBlueprint.getEntityClassName()))
+            try (ResultSet resultSet = statement.executeQuery())
             {
                 createEntityOrphans(populatedEntityMap, resultSet, entityBlueprint);
             }
-        }
-        catch(Exception ex)
-        {
-            throw new PhotonException("Error executing query.", ex);
+            catch (Exception ex)
+            {
+                throw new RuntimeException(ex);
+            }
         }
     }
 
@@ -91,7 +167,7 @@ public class PhotonAggregateQuery<T>
             while (resultSet.next())
             {
                 Map<String, Object> databaseValues = new HashMap<>();
-                for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns().values())
+                for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
                 {
                     Object databaseValue = resultSet.getObject(columnBlueprint.getColumnName());
                     if(databaseValue != null)
@@ -108,40 +184,23 @@ public class PhotonAggregateQuery<T>
         }
     }
 
-    private PreparedStatement prepareStatementAndSetParameters(String sqlTemplate, ColumnBlueprint primaryKeyColumnBlueprint, List ids, String entityClassName)
+    private PhotonPreparedStatement prepareStatementAndSetParameters(String sqlTemplate, ColumnBlueprint primaryKeyColumnBlueprint, List ids, String entityClassName)
     {
         try
         {
             String sqlWithQuestionMarks = String.format(sqlTemplate, getQuestionMarks(ids.size()));
-            PreparedStatement statement = connection.prepareStatement(sqlWithQuestionMarks);
+            PhotonPreparedStatement statement = new PhotonPreparedStatement(connection, sqlWithQuestionMarks);
 
-            int i = 1;
             for(Object id : ids)
             {
-                if (primaryKeyColumnBlueprint.getColumnDataType() != null)
-                {
-                    if (primaryKeyColumnBlueprint.getColumnDataType() == Types.BINARY && id.getClass().equals(UUID.class))
-                    {
-                        statement.setObject(i, IOUtils.uuidToBytes((UUID) id), primaryKeyColumnBlueprint.getColumnDataType());
-                    }
-                    else
-                    {
-                        statement.setObject(i, id, primaryKeyColumnBlueprint.getColumnDataType());
-                    }
-                }
-                else
-                {
-                    statement.setObject(i, id);
-                }
-
-                i++;
+                statement.setNextParameter(id, primaryKeyColumnBlueprint.getColumnDataType());
             }
 
             return statement;
         }
         catch (Exception ex)
         {
-            throw new PhotonException(String.format("Error preparing SELECT for entityBlueprint '%s'.", entityClassName), ex);
+            throw new PhotonException(String.format("Error preparing SELECT for entity '%s'.", entityClassName), ex);
         }
     }
 
@@ -160,17 +219,5 @@ public class PhotonAggregateQuery<T>
             }
         }
         return questionMarks.toString();
-    }
-
-    private ResultSet executeJdbcQuery(PreparedStatement statement, String entityClassName)
-    {
-        try
-        {
-            return statement.executeQuery();
-        }
-        catch (Exception ex)
-        {
-            throw new PhotonException(String.format("Error executing SELECT for entityBlueprint '%s'.", entityClassName), ex);
-        }
     }
 }

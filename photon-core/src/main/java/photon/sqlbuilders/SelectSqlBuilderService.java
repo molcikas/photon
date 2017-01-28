@@ -1,4 +1,4 @@
-package photon.blueprints;
+package photon.sqlbuilders;
 
 import org.apache.commons.lang3.StringUtils;
 import photon.blueprints.ColumnBlueprint;
@@ -8,6 +8,13 @@ import java.util.*;
 
 public class SelectSqlBuilderService
 {
+    private final SqlJoinClauseBuilderService sqlJoinClauseBuilderService;
+
+    public SelectSqlBuilderService(SqlJoinClauseBuilderService sqlJoinClauseBuilderService)
+    {
+        this.sqlJoinClauseBuilderService = sqlJoinClauseBuilderService;
+    }
+
     public Map<EntityBlueprint, String> buildSelectSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
     {
         Map<EntityBlueprint, String> entitySelectSqlMap = new HashMap<>();
@@ -22,14 +29,15 @@ public class SelectSqlBuilderService
         Map<EntityBlueprint, String> entitySelectSqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
-        StringBuilder selectSqlBuilder = new StringBuilder(initialCapacity);
+        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildSelectClauseSql(selectSqlBuilder, entityBlueprint);
-        buildFromAndJoinClauseSql(selectSqlBuilder, entityBlueprint, parentBlueprints);
-        buildWhereClauseSql(selectSqlBuilder, aggregateRootEntityBlueprint);
-        buildOrderBySql(selectSqlBuilder, entityBlueprint, parentBlueprints);
+        buildSelectClauseSql(sqlBuilder, entityBlueprint);
+        buildFromClauseSql(sqlBuilder, entityBlueprint);
+        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentBlueprints);
+        buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
+        buildOrderBySql(sqlBuilder, entityBlueprint, parentBlueprints);
 
-        entitySelectSqlMap.put(entityBlueprint, selectSqlBuilder.toString());
+        entitySelectSqlMap.put(entityBlueprint, sqlBuilder.toString());
 
         final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
@@ -42,45 +50,28 @@ public class SelectSqlBuilderService
             .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints, entitySelectSqlMap));
     }
 
-    private void buildSelectClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildSelectClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
     {
-        Map<String, ColumnBlueprint> columns = entityBlueprint.getColumns();
+        sqlBuilder.append("SELECT " );
 
-        selectSqlBuilder.append("SELECT " );
-
-        int columnIndex = 0;
-        for(ColumnBlueprint columnBlueprint : entityBlueprint.getColumns().values())
+        for(ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
         {
-            selectSqlBuilder.append(String.format("`%s`.`%s`%s",
+            sqlBuilder.append(String.format("`%s`.`%s`%s",
                 entityBlueprint.getTableName(),
                 columnBlueprint.getColumnName(),
-                columnIndex < columns.size() - 1 ? ", " : ""
+                columnBlueprint.getColumnIndex() < entityBlueprint.getColumns().size() - 1 ? ", " : ""
             ));
-            columnIndex++;
         }
     }
 
-    private void buildFromAndJoinClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint entityBlueprint, List<EntityBlueprint> parentEntities)
+    private void buildFromClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
     {
-        selectSqlBuilder.append("\nFROM `").append(entityBlueprint.getEntityClass().getSimpleName().toLowerCase()).append("`");
-
-        EntityBlueprint childEntityBlueprint = entityBlueprint;
-        for(EntityBlueprint parentEntityBlueprint : parentEntities)
-        {
-            selectSqlBuilder.append(String.format("\nJOIN `%s` ON `%s`.`%s` = `%s`.`%s`",
-                parentEntityBlueprint.getTableName(),
-                parentEntityBlueprint.getTableName(),
-                parentEntityBlueprint.getPrimaryKeyColumnName(),
-                childEntityBlueprint.getTableName(),
-                childEntityBlueprint.getForeignKeyToParentColumnName()
-            ));
-            childEntityBlueprint = parentEntityBlueprint;
-        }
+        sqlBuilder.append(String.format("\nFROM `%s`", entityBlueprint.getTableName()));
     }
 
-    private void buildWhereClauseSql(StringBuilder selectSqlBuilder, EntityBlueprint aggregateRootEntityBlueprint)
+    private void buildWhereClauseSql(StringBuilder sqlBuilder, EntityBlueprint aggregateRootEntityBlueprint)
     {
-        selectSqlBuilder.append(String.format("\nWHERE `%s`.`%s` IN (%s)",
+        sqlBuilder.append(String.format("\nWHERE `%s`.`%s` IN (%s)",
             aggregateRootEntityBlueprint.getTableName(),
             aggregateRootEntityBlueprint.getPrimaryKeyColumnName(),
             "%s" // Leave a marker for JDBC question marks to be inserted.
@@ -88,7 +79,7 @@ public class SelectSqlBuilderService
     }
 
     private void buildOrderBySql(
-        StringBuilder selectSqlBuilder,
+        StringBuilder sqlBuilder,
         EntityBlueprint childBlueprint,
         List<EntityBlueprint> parentBlueprints)
     {
@@ -96,12 +87,12 @@ public class SelectSqlBuilderService
         entityBlueprints.addAll(parentBlueprints);
         entityBlueprints.add(childBlueprint);
 
-        selectSqlBuilder.append("\nORDER BY ");
+        sqlBuilder.append("\nORDER BY ");
 
         for (EntityBlueprint entityBlueprint : entityBlueprints)
         {
             boolean isPrimaryKeySort = StringUtils.equals(entityBlueprint.getOrderByColumnName(), entityBlueprint.getPrimaryKeyColumnName());
-            selectSqlBuilder.append(String.format("`%s`.`%s` %s%s",
+            sqlBuilder.append(String.format("`%s`.`%s` %s%s",
                 entityBlueprint.getTableName(),
                 entityBlueprint.getOrderByColumnName(),
                 entityBlueprint.getOrderByDirection().sqlSortDirection,
@@ -110,8 +101,8 @@ public class SelectSqlBuilderService
             if(!isPrimaryKeySort)
             {
                 // If it's not a primary key sort, we need to add the primary key as a secondary sort, otherwise the
-                // building might fail because it expects entities to be grouped by parent.
-                selectSqlBuilder.append(String.format("`%s`.`%s`%s",
+                // entity connecting might fail because it expects entities to be sorted by parent.
+                sqlBuilder.append(String.format("`%s`.`%s`%s",
                     entityBlueprint.getTableName(),
                     entityBlueprint.getPrimaryKeyColumnName(),
                     entityBlueprint.equals(childBlueprint) ? "" : ", "

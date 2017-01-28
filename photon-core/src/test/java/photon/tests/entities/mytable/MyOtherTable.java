@@ -15,4 +15,14 @@ public class MyOtherTable
     {
         return myOtherValueWithDiffName;
     }
+
+    private MyOtherTable()
+    {
+    }
+
+    public MyOtherTable(int id, String myOtherValueWithDiffName)
+    {
+        this.id = id;
+        this.myOtherValueWithDiffName = myOtherValueWithDiffName;
+    }
 }

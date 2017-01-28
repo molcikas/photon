@@ -32,7 +32,7 @@ public class PhotonConnection implements Closeable
         }
     }
 
-    public <T> PhotonAggregateQuery<T> aggregateQuery(Class<T> aggregateClass)
+    public <T> PhotonAggregateQuery<T> aggregate(Class<T> aggregateClass)
     {
         AggregateBlueprint aggregateBlueprint = registeredAggregates.get(aggregateClass);
         if(aggregateBlueprint == null)

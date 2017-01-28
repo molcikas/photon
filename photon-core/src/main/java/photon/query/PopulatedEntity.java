@@ -5,7 +5,7 @@ import photon.converters.Convert;
 import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 import photon.blueprints.EntityBlueprint;
-import photon.blueprints.EntityFieldBlueprint;
+import photon.blueprints.FieldBlueprint;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -48,39 +48,39 @@ public class PopulatedEntity
     {
         Object primaryKey = getPrimaryKeyValue();
 
-        for(EntityFieldBlueprint entityFieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
         {
-            Class childEntityClass = entityFieldBlueprint.getChildEntityBlueprint().getEntityClass();
+            Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
-            if(Collection.class.isAssignableFrom(entityFieldBlueprint.getFieldClass()))
+            if(Collection.class.isAssignableFrom(fieldBlueprint.getFieldClass()))
             {
-                Collection collection = createCompatibleCollection(entityFieldBlueprint.getFieldClass());
+                Collection collection = createCompatibleCollection(fieldBlueprint.getFieldClass());
                 populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
 
                 try
                 {
-                    Field field = entityBlueprint.getEntityClass().getDeclaredField(entityFieldBlueprint.getFieldName());
+                    Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
                     field.setAccessible(true);
                     field.set(constructedEntityInstance, collection);
                 }
                 catch(Exception ex)
                 {
-                    throw new PhotonException(String.format("Error setting collection field '%s' on entity '%s'.", entityFieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
+                    throw new PhotonException(String.format("Error setting collection field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
                 }
             }
-            else if(entityFieldBlueprint.getFieldClass().equals(entityFieldBlueprint.getChildEntityBlueprint().getEntityClass()))
+            else if(fieldBlueprint.getFieldClass().equals(fieldBlueprint.getChildEntityBlueprint().getEntityClass()))
             {
                 Object childInstance = populatedEntityMap.getNextInstanceWithClassAndForeignKeyToParent(childEntityClass, primaryKey);
                 if(childInstance != null)
                 {
                     try
                     {
-                        Field field = entityBlueprint.getEntityClass().getDeclaredField(entityFieldBlueprint.getFieldName());
+                        Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
                         field.setAccessible(true);
                         field.set(constructedEntityInstance, childInstance);
                     } catch (Exception ex)
                     {
-                        throw new PhotonException(String.format("Error setting one-to-one field '%s' on entity '%s'.", entityFieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
+                        throw new PhotonException(String.format("Error setting one-to-one field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
                     }
                 }
             }
@@ -93,26 +93,29 @@ public class PopulatedEntity
 
         try
         {
-            Constructor constructor = entityBlueprint.getEntityClass().getConstructor();
+            Constructor constructor = entityBlueprint.getEntityClass().getDeclaredConstructor(new Class[0]);
             constructor.setAccessible(true);
             entityInstance = constructor.newInstance();
         }
         catch (Exception ex)
         {
-            throw new PhotonException(String.format("Error constructing entity '%s'.", entityBlueprint.getEntityClassName()), ex);
+            throw new PhotonException(
+                String.format("Error constructing entity '%s'. Make sure the entity has a parameterless constructor (private is ok).",
+                    entityBlueprint.getEntityClassName()),
+                ex);
         }
 
         for(Map.Entry<String, Object> entry : databaseValues.entrySet())
         {
-            setDatabaseValueOnEntityInstance(entityInstance, entry.getKey(), entry.getValue());
+            setEntityInstanceFieldToDatabaseValue(entityInstance, entry.getKey(), entry.getValue());
         }
 
         return entityInstance;
     }
 
-    private void setDatabaseValueOnEntityInstance(Object entityInstance, String columnName, Object databaseValue)
+    private void setEntityInstanceFieldToDatabaseValue(Object entityInstance, String columnName, Object databaseValue)
     {
-        EntityFieldBlueprint entityFieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
+        FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
 
         if(StringUtils.equals(columnName, entityBlueprint.getPrimaryKeyColumnName()))
         {
@@ -123,12 +126,12 @@ public class PopulatedEntity
             foreignKeyToParentValue = databaseValue;
         }
 
-        if(entityFieldBlueprint == null)
+        if(fieldBlueprint == null)
         {
             return;
         }
 
-        Converter converter = Convert.getConverterIfExists(entityFieldBlueprint.getFieldClass());
+        Converter converter = Convert.getConverterIfExists(fieldBlueprint.getFieldClass());
 
         if(converter == null)
         {
@@ -139,13 +142,13 @@ public class PopulatedEntity
 
         try
         {
-            Field field = entityBlueprint.getEntityClass().getDeclaredField(entityFieldBlueprint.getFieldName());
+            Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
             field.setAccessible(true);
             field.set(entityInstance, fieldValue);
         }
         catch (Exception ex)
         {
-            throw new PhotonException(String.format("Failed to set value for field '%s' to '%s' on entity '%s'.", entityFieldBlueprint.getFieldName(), fieldValue, entityBlueprint.getEntityClassName()), ex);
+            throw new PhotonException(String.format("Failed to set value for field '%s' to '%s' on entity '%s'.", fieldBlueprint.getFieldName(), fieldValue, entityBlueprint.getEntityClassName()), ex);
         }
     }
 

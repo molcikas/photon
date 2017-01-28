@@ -16,12 +16,12 @@ public class PhotonQuery
         this.sqlText = sqlText;
     }
 
-    public void executeUpdate()
+    public int executeUpdate()
     {
         try
         {
             PreparedStatement preparedStatement = connection.prepareStatement(this.sqlText);
-            preparedStatement.executeUpdate();
+            return preparedStatement.executeUpdate();
         }
         catch(Exception ex)
         {

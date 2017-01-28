@@ -74,7 +74,7 @@ public class PopulatedEntityMap
         return null;
     }
 
-    public void mapEntityInstanceChildren()
+    public void mapAllEntityInstanceChildren()
     {
         populatedEntityMap
             .values()
