@@ -14,7 +14,7 @@ import java.util.*;
 public class PopulatedEntity
 {
     private final EntityBlueprint entityBlueprint;
-    private final Object constructedEntityInstance;
+    private final Object entityInstance;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
 
@@ -25,7 +25,7 @@ public class PopulatedEntity
 
     public Object getEntityInstance()
     {
-        return constructedEntityInstance;
+        return entityInstance;
     }
 
     public Object getPrimaryKeyValue()
@@ -41,7 +41,7 @@ public class PopulatedEntity
     public PopulatedEntity(EntityBlueprint entityBlueprint, Map<String, Object> databaseValues)
     {
         this.entityBlueprint = entityBlueprint;
-        this.constructedEntityInstance = constructOrphanEntityInstance(databaseValues);
+        this.entityInstance = constructOrphanEntityInstance(databaseValues);
     }
 
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
@@ -61,7 +61,7 @@ public class PopulatedEntity
                 {
                     Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
                     field.setAccessible(true);
-                    field.set(constructedEntityInstance, collection);
+                    field.set(entityInstance, collection);
                 }
                 catch(Exception ex)
                 {
@@ -77,7 +77,7 @@ public class PopulatedEntity
                     {
                         Field field = entityBlueprint.getEntityClass().getDeclaredField(fieldBlueprint.getFieldName());
                         field.setAccessible(true);
-                        field.set(constructedEntityInstance, childInstance);
+                        field.set(entityInstance, childInstance);
                     } catch (Exception ex)
                     {
                         throw new PhotonException(String.format("Error setting one-to-one field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);

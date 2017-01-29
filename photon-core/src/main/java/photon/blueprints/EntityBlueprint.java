@@ -17,8 +17,9 @@ public class EntityBlueprint
     private List<ColumnBlueprint> columns;
 
     private ColumnBlueprint primaryKeyColumn;
-    private ColumnBlueprint foreignKeyToParent;
+    private ColumnBlueprint foreignKeyToParentColumn;
 
+    // TODO: Add getter for getEntityClass().getDeclaredField()
     public Class getEntityClass()
     {
         return entityClass;
@@ -104,6 +105,7 @@ public class EntityBlueprint
                     fieldBlueprint.getColumnName(),
                     columnDataType,
                     entityFieldName.equals(idFieldName),
+                    entityFieldName.equals(foreignKeyToParentColumnName),
                     fieldBlueprint,
                     columns.size()
                 );
@@ -111,6 +113,10 @@ public class EntityBlueprint
                 if(columnBlueprint.isPrimaryKeyColumn())
                 {
                     primaryKeyColumn = columnBlueprint;
+                }
+                if(columnBlueprint.isForeignKeyToParentColumn())
+                {
+                    foreignKeyToParentColumn = columnBlueprint;
                 }
             }
         }
@@ -125,25 +131,28 @@ public class EntityBlueprint
                 idFieldName,
                 customColumnDataTypes.get(idFieldName),
                 true,
+                idFieldName.equals(foreignKeyToParentColumnName),
                 null,
                 columns.size()
             );
             columns.add(primaryKeyColumn);
         }
 
-        if(StringUtils.isNotBlank(foreignKeyToParentColumnName) && !getColumn(foreignKeyToParentColumnName).isPresent())
+        if(StringUtils.isNotBlank(foreignKeyToParentColumnName) && foreignKeyToParentColumn == null)
         {
             if(!customColumnDataTypes.containsKey(foreignKeyToParentColumnName))
             {
                 throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParentColumnName, entityClass.getName()));
             }
-            columns.add(new ColumnBlueprint(
+            foreignKeyToParentColumn = new ColumnBlueprint(
                 foreignKeyToParentColumnName,
                 customColumnDataTypes.get(foreignKeyToParentColumnName),
                 false,
+                true,
                 null,
                 columns.size()
-            ));
+            );
+            columns.add(foreignKeyToParentColumn);
         }
 
         if(StringUtils.isBlank(orderByColumnName))
@@ -156,8 +165,6 @@ public class EntityBlueprint
         {
             throw new PhotonException(String.format("The order by column '%s' is not a column for the entity '%s'.", orderByColumnName, entityClass.getName()));
         }
-
-        foreignKeyToParent = getColumn(foreignKeyToParentColumnName).orElse(null);
 
         normalizeColumnOrder();
     }
@@ -179,7 +186,7 @@ public class EntityBlueprint
 
     public String getForeignKeyToParentColumnName()
     {
-        return foreignKeyToParent != null ? foreignKeyToParent.getColumnName() : null;
+        return foreignKeyToParentColumn != null ? foreignKeyToParentColumn.getColumnName() : null;
     }
 
     public FieldBlueprint getFieldForColumnName(String columnName)

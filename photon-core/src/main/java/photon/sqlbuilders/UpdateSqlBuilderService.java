@@ -28,7 +28,7 @@ public class UpdateSqlBuilderService
         buildWhereClauseSql(sqlBuilder, entityBlueprint);
 
         entityUpdateSqlMap.put(entityBlueprint, sqlBuilder.toString());
-        
+
         final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);

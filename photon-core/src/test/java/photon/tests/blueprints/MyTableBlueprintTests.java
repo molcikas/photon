@@ -33,4 +33,6 @@ public class MyTableBlueprintTests
             assertTrue(ex.getMessage().contains("foreign key"));
         }
     }
+
+    // TODO: Entity without a primary key field cannot have child entities.
 }

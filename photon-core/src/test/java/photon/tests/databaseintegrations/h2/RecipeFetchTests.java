@@ -18,7 +18,7 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class RecipeTests
+public class RecipeFetchTests
 {
     private Photon photon;
 
@@ -29,7 +29,7 @@ public class RecipeTests
     }
 
     @Test
-    public void aggregateQuery_fetchById_validSingleAggregateAndQuery_ReturnsCorrectAggregate()
+    public void aggregate_fetchById_validSingleAggregateAndQuery_returnsCorrectAggregate()
     {
         registerRecipeAggregate();
 
@@ -70,7 +70,7 @@ public class RecipeTests
     }
 
     @Test
-    public void aggregateQuery_fetchById_SingleAggregateWithEmptyChildLists_ReturnsAggregateWithEmptyChildLists()
+    public void aggregate_fetchById_SingleAggregateWithEmptyChildLists_returnsAggregateWithEmptyChildLists()
     {
         registerRecipeAggregate();
 
@@ -89,7 +89,7 @@ public class RecipeTests
     }
 
     @Test
-    public void aggregateQuery_fetchByIds_validAggregateAndQuery_ReturnsCorrectAggregates()
+    public void aggregate_fetchByIds_validAggregateAndQuery_returnsCorrectAggregates()
     {
         registerRecipeAggregate();
 
@@ -130,7 +130,7 @@ public class RecipeTests
     }
 
     @Test
-    public void aggregateQuery_fetchById_validAggregateAndQueryWithDescendingSort_ReturnsCorrectAggregate()
+    public void aggregate_fetchById_validAggregateAndQueryWithDescendingSort_returnsCorrectAggregate()
     {
         registerRecipeAggregate(SortDirection.Descending);
 

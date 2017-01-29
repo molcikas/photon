@@ -8,6 +8,7 @@ public class ColumnBlueprint
     private final String columnName;
     private final Integer columnDataType;
     private final boolean isPrimaryKeyColumn;
+    private final boolean isForeignKeyToParentColumn;
 
     // Reference to the entity field that this database column is mapped to. This can (but does not have to)
     // be null if this column is an unmapped primary key or a foreign key to the parent.
@@ -30,6 +31,11 @@ public class ColumnBlueprint
         return isPrimaryKeyColumn;
     }
 
+    public boolean isForeignKeyToParentColumn()
+    {
+        return isForeignKeyToParentColumn;
+    }
+
     public FieldBlueprint getMappedFieldBlueprint()
     {
         return mappedFieldBlueprint;
@@ -44,6 +50,7 @@ public class ColumnBlueprint
         String columnName,
         Integer columnDataType,
         boolean isPrimaryKeyColumn,
+        boolean isForeignKeyToParentColumn,
         FieldBlueprint mappedFieldBlueprint,
         int columnIndex)
     {
@@ -58,6 +65,7 @@ public class ColumnBlueprint
         this.columnName = columnName;
         this.columnDataType = columnDataType;
         this.isPrimaryKeyColumn = isPrimaryKeyColumn;
+        this.isForeignKeyToParentColumn = isForeignKeyToParentColumn;
         this.mappedFieldBlueprint = mappedFieldBlueprint;
         this.columnIndex = columnIndex;
     }
