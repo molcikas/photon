@@ -29,14 +29,13 @@ public class MyTableSaveTests
         {
             MyTable myTable = new MyTable(2, "MySavedValue", null);
             connection
-                .aggregate(MyTable.class)
                 .save(myTable);
         }
 
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTableRetrieved = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
@@ -54,14 +53,13 @@ public class MyTableSaveTests
         {
             MyTable myTable = new MyTable(1111, "MyInsertedSavedValue", null);
             connection
-                .aggregate(MyTable.class)
                 .save(myTable);
         }
 
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTableRetrieved = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
@@ -80,14 +78,13 @@ public class MyTableSaveTests
             MyTable myTable = new MyTable(3, "MySavedValue", new MyOtherTable(3, "MyOtherSavedValue"));
 
             connection
-                .aggregate(MyTable.class)
                 .save(myTable);
         }
 
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTableRetrieved = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(3);
 
             assertNotNull(myTableRetrieved);

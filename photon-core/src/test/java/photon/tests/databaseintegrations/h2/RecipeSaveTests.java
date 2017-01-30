@@ -51,14 +51,13 @@ public class RecipeSaveTests
         try (PhotonConnection connection = photon.open())
         {
             connection
-                .aggregate(Recipe.class)
                 .save(recipe);
         }
 
         try (PhotonConnection connection = photon.open())
         {
             Recipe fetchedRecipe = connection
-                .aggregate(Recipe.class)
+                .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
             assertNotNull(fetchedRecipe);
@@ -105,14 +104,13 @@ public class RecipeSaveTests
         try (PhotonConnection connection = photon.open())
         {
             connection
-                .aggregate(Recipe.class)
                 .save(recipe);
         }
 
         try (PhotonConnection connection = photon.open())
         {
             Recipe fetchedRecipe = connection
-                .aggregate(Recipe.class)
+                .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
             assertNotNull(fetchedRecipe);
@@ -176,14 +174,13 @@ public class RecipeSaveTests
         try (PhotonConnection connection = photon.open())
         {
             connection
-                .aggregate(Recipe.class)
                 .save(recipe);
         }
 
         try (PhotonConnection connection = photon.open())
         {
             Recipe fetchedRecipe = connection
-                .aggregate(Recipe.class)
+                .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
             assertNotNull(fetchedRecipe);
@@ -250,14 +247,13 @@ public class RecipeSaveTests
         try (PhotonConnection connection = photon.open())
         {
             connection
-                .aggregate(Recipe.class)
                 .save(recipe);
         }
 
         try (PhotonConnection connection = photon.open())
         {
             Recipe fetchedRecipe = connection
-                .aggregate(Recipe.class)
+                .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
             assertNotNull(fetchedRecipe);

@@ -2,10 +2,7 @@ package photon;
 
 import photon.blueprints.*;
 import photon.exceptions.PhotonException;
-import photon.sqlbuilders.InsertSqlBuilderService;
-import photon.sqlbuilders.SelectSqlBuilderService;
-import photon.sqlbuilders.SqlJoinClauseBuilderService;
-import photon.sqlbuilders.UpdateSqlBuilderService;
+import photon.sqlbuilders.*;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -20,6 +17,7 @@ public class Photon
     private final SelectSqlBuilderService selectSqlBuilderService;
     private final UpdateSqlBuilderService updateSqlBuilderService;
     private final InsertSqlBuilderService insertSqlBuilderService;
+    private final DeleteSqlBuilderService deleteSqlBuilderService;
 
     public Photon(DataSource dataSource)
     {
@@ -30,6 +28,7 @@ public class Photon
         this.selectSqlBuilderService = new SelectSqlBuilderService(sqlJoinClauseBuilderService);
         this.updateSqlBuilderService = new UpdateSqlBuilderService();
         this.insertSqlBuilderService = new InsertSqlBuilderService();
+        this.deleteSqlBuilderService = new DeleteSqlBuilderService();
     }
 
     public Photon(String url, String user, String password)
@@ -64,7 +63,14 @@ public class Photon
         }
         registeredAggregates.put(
             aggregateRootEntityBlueprint.getEntityClass(),
-            new AggregateBlueprint(aggregateRootEntityBlueprint, selectSqlBuilderService, updateSqlBuilderService, insertSqlBuilderService));
+            new AggregateBlueprint(
+                aggregateRootEntityBlueprint,
+                selectSqlBuilderService,
+                updateSqlBuilderService,
+                insertSqlBuilderService,
+                deleteSqlBuilderService
+            )
+        );
     }
 
     private Connection getConnection()

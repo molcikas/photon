@@ -32,7 +32,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTable);
@@ -49,7 +49,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(7);
 
             assertNull(myTable);
@@ -67,7 +67,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             List<MyTable> myTables = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchByIds(Arrays.asList(2, 4));
 
             assertNotNull(myTables);
@@ -87,7 +87,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTable);
@@ -106,7 +106,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             MyTable myTable = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchById(5);
 
             assertNotNull(myTable);
@@ -128,7 +128,7 @@ public class MyTableFetchTests
         try(PhotonConnection connection = photon.open())
         {
             List<MyTable> myTables = connection
-                .aggregate(MyTable.class)
+                .query(MyTable.class)
                 .fetchByIds(Arrays.asList(1, 2, 3, 4));
 
             assertNotNull(myTables);

@@ -1,6 +1,7 @@
 package photon.blueprints;
 
 import photon.exceptions.PhotonException;
+import photon.sqlbuilders.DeleteSqlBuilderService;
 import photon.sqlbuilders.InsertSqlBuilderService;
 import photon.sqlbuilders.SelectSqlBuilderService;
 import photon.sqlbuilders.UpdateSqlBuilderService;
@@ -13,6 +14,8 @@ public class AggregateBlueprint
     private final Map<EntityBlueprint, String> entitySelectSqlTemplates;
     private final Map<EntityBlueprint, String> entityUpdateSqlTemplates;
     private final Map<EntityBlueprint, String> entityInsertSqlTemplates;
+    private final Map<EntityBlueprint, String>  deleteAllChildrenSqlTemplates;
+    private final Map<EntityBlueprint, String>  deleteChildrenExceptSqlTemplates;
 
     public EntityBlueprint getAggregateRootEntityBlueprint()
     {
@@ -39,11 +42,22 @@ public class AggregateBlueprint
         return entityInsertSqlTemplates.get(entityBlueprint);
     }
 
+    public String getDeleteAllChildrenSqlTemplate(EntityBlueprint entityBlueprint)
+    {
+        return deleteAllChildrenSqlTemplates.get(entityBlueprint);
+    }
+
+    public String getDeleteChildrenExceptSqlTemplate(EntityBlueprint entityBlueprint)
+    {
+        return deleteChildrenExceptSqlTemplates.get(entityBlueprint);
+    }
+
     public AggregateBlueprint(
         EntityBlueprint aggregateRootEntityBlueprint,
         SelectSqlBuilderService selectSqlBuilderService,
         UpdateSqlBuilderService updateSqlBuilderService,
-        InsertSqlBuilderService insertSqlBuilderService)
+        InsertSqlBuilderService insertSqlBuilderService,
+        DeleteSqlBuilderService deleteSqlBuilderService)
     {
         if(aggregateRootEntityBlueprint == null)
         {
@@ -53,5 +67,7 @@ public class AggregateBlueprint
         this.entitySelectSqlTemplates = selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
         this.entityUpdateSqlTemplates = updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
         this.entityInsertSqlTemplates = insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
+        this.deleteAllChildrenSqlTemplates = deleteSqlBuilderService.buildDeleteAllChildrenSqlTemplates(aggregateRootEntityBlueprint);
+        this.deleteChildrenExceptSqlTemplates = deleteSqlBuilderService.buildDeleteChildrenExceptSqlTemplates(aggregateRootEntityBlueprint);
     }
 }

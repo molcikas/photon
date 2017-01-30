@@ -19,7 +19,6 @@ public class EntityBlueprint
     private ColumnBlueprint primaryKeyColumn;
     private ColumnBlueprint foreignKeyToParentColumn;
 
-    // TODO: Add getter for getEntityClass().getDeclaredField()
     public Class getEntityClass()
     {
         return entityClass;
@@ -48,6 +47,11 @@ public class EntityBlueprint
     public ColumnBlueprint getPrimaryKeyColumn()
     {
         return primaryKeyColumn;
+    }
+
+    public ColumnBlueprint getForeignKeyToParentColumn()
+    {
+        return foreignKeyToParentColumn;
     }
 
     public EntityBlueprint(
@@ -167,6 +171,18 @@ public class EntityBlueprint
         }
 
         normalizeColumnOrder();
+    }
+
+    public Field getDeclaredField(String fieldName)
+    {
+        try
+        {
+            return entityClass.getDeclaredField(fieldName);
+        }
+        catch(Exception ex)
+        {
+            throw new RuntimeException(ex);
+        }
     }
 
     public String getEntityClassName()
