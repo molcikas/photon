@@ -2,7 +2,7 @@ package photon.query;
 
 import photon.blueprints.AggregateBlueprint;
 import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 import photon.blueprints.FieldBlueprint;
 
 import java.sql.Connection;
@@ -35,12 +35,12 @@ public class PhotonAggregateSave
             return;
         }
 
-        EntityBlueprint entityBlueprint = populatedEntities.get(0).getEntityBlueprint();
+        AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
         String updateSqlTemplate = aggregateBlueprint.getEntityUpdateSqlTemplate(entityBlueprint);
         String insertSqlTemplate = aggregateBlueprint.getEntityInsertSqlTemplate(entityBlueprint);
 
-        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(connection, updateSqlTemplate);
-            PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(connection, insertSqlTemplate))
+        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSqlTemplate, connection);
+            PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(insertSqlTemplate, connection))
         {
             for(PopulatedEntity populatedEntity : populatedEntities)
             {
@@ -93,7 +93,7 @@ public class PhotonAggregateSave
         if(childPrimaryKeyColumn.getMappedFieldBlueprint() == null || fieldPopulatedEntities.size() == 0)
         {
             String deleteAllChildrenSql = aggregateBlueprint.getDeleteAllChildrenSqlTemplate(fieldBlueprint.getChildEntityBlueprint());
-            PhotonPreparedStatement deleteAllOrphans = new PhotonPreparedStatement(connection, deleteAllChildrenSql);
+            PhotonPreparedStatement deleteAllOrphans = new PhotonPreparedStatement(deleteAllChildrenSql, connection);
             deleteAllOrphans.setNextParameter(primaryKeyValue, primaryKeyDataType);
             deleteAllOrphans.executeUpdate();
         }
@@ -109,7 +109,7 @@ public class PhotonAggregateSave
                 getQuestionMarks(childPrimaryKeyValues.size())
             );
 
-            PhotonPreparedStatement deleteChildrenExcept = new PhotonPreparedStatement(connection, deleteChildrenExceptSql);
+            PhotonPreparedStatement deleteChildrenExcept = new PhotonPreparedStatement(deleteChildrenExceptSql, connection);
             deleteChildrenExcept.setNextParameter(primaryKeyValue, primaryKeyDataType);
             childPrimaryKeyValues.forEach(p -> deleteChildrenExcept.setNextParameter(p, childPrimaryKeyColumn.getColumnDataType()));
             deleteChildrenExcept.executeUpdate();

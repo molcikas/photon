@@ -1,10 +1,9 @@
-package photon.tests.databaseintegrations.h2;
+package photon.tests.databaseintegrations.h2.myonetomanytable;
 
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
-import photon.tests.databaseintegrations.h2.setup.MyOneToManyTableDbSetup;
 import photon.tests.entities.myonetomanytable.MyManyTable;
 import photon.tests.entities.myonetomanytable.MyOneToManyTable;
 
@@ -59,7 +58,7 @@ public class MyOneToManyTableSaveTests
 //            MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
 //            assertNotNull(myOtherTableRetrieved);
 //            assertEquals(6, myOtherTableRetrieved.getId());
-//            assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+//            assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValue());
         }
     }
 

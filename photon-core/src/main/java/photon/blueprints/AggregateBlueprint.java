@@ -10,14 +10,14 @@ import java.util.*;
 
 public class AggregateBlueprint
 {
-    private final EntityBlueprint aggregateRootEntityBlueprint;
-    private final Map<EntityBlueprint, String> entitySelectSqlTemplates;
-    private final Map<EntityBlueprint, String> entityUpdateSqlTemplates;
-    private final Map<EntityBlueprint, String> entityInsertSqlTemplates;
-    private final Map<EntityBlueprint, String>  deleteAllChildrenSqlTemplates;
-    private final Map<EntityBlueprint, String>  deleteChildrenExceptSqlTemplates;
+    private final AggregateEntityBlueprint aggregateRootEntityBlueprint;
+    private final Map<AggregateEntityBlueprint, String> entitySelectSqlTemplates;
+    private final Map<AggregateEntityBlueprint, String> entityUpdateSqlTemplates;
+    private final Map<AggregateEntityBlueprint, String> entityInsertSqlTemplates;
+    private final Map<AggregateEntityBlueprint, String>  deleteAllChildrenSqlTemplates;
+    private final Map<AggregateEntityBlueprint, String>  deleteChildrenExceptSqlTemplates;
 
-    public EntityBlueprint getAggregateRootEntityBlueprint()
+    public AggregateEntityBlueprint getAggregateRootEntityBlueprint()
     {
         return aggregateRootEntityBlueprint;
     }
@@ -27,33 +27,33 @@ public class AggregateBlueprint
         return aggregateRootEntityBlueprint.getEntityClass();
     }
 
-    public Map<EntityBlueprint, String> getEntitySelectSqlTemplates()
+    public Map<AggregateEntityBlueprint, String> getEntitySelectSqlTemplates()
     {
         return Collections.unmodifiableMap(entitySelectSqlTemplates);
     }
 
-    public String getEntityUpdateSqlTemplate(EntityBlueprint entityBlueprint)
+    public String getEntityUpdateSqlTemplate(AggregateEntityBlueprint entityBlueprint)
     {
         return entityUpdateSqlTemplates.get(entityBlueprint);
     }
 
-    public String getEntityInsertSqlTemplate(EntityBlueprint entityBlueprint)
+    public String getEntityInsertSqlTemplate(AggregateEntityBlueprint entityBlueprint)
     {
         return entityInsertSqlTemplates.get(entityBlueprint);
     }
 
-    public String getDeleteAllChildrenSqlTemplate(EntityBlueprint entityBlueprint)
+    public String getDeleteAllChildrenSqlTemplate(AggregateEntityBlueprint entityBlueprint)
     {
         return deleteAllChildrenSqlTemplates.get(entityBlueprint);
     }
 
-    public String getDeleteChildrenExceptSqlTemplate(EntityBlueprint entityBlueprint)
+    public String getDeleteChildrenExceptSqlTemplate(AggregateEntityBlueprint entityBlueprint)
     {
         return deleteChildrenExceptSqlTemplates.get(entityBlueprint);
     }
 
     public AggregateBlueprint(
-        EntityBlueprint aggregateRootEntityBlueprint,
+        AggregateEntityBlueprint aggregateRootEntityBlueprint,
         SelectSqlBuilderService selectSqlBuilderService,
         UpdateSqlBuilderService updateSqlBuilderService,
         InsertSqlBuilderService insertSqlBuilderService,

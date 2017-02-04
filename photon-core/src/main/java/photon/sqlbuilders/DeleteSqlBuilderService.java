@@ -1,31 +1,29 @@
 package photon.sqlbuilders;
 
-import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class DeleteSqlBuilderService
 {
-    public Map<EntityBlueprint, String> buildDeleteAllChildrenSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
+    public Map<AggregateEntityBlueprint, String> buildDeleteAllChildrenSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<EntityBlueprint, String> entityDeleteAllChildrenSqlMap = new HashMap<>();
+        Map<AggregateEntityBlueprint, String> entityDeleteAllChildrenSqlMap = new HashMap<>();
         buildDeleteAllChildrenSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityDeleteAllChildrenSqlMap);
         return entityDeleteAllChildrenSqlMap;
     }
 
-    public Map<EntityBlueprint, String> buildDeleteChildrenExceptSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
+    public Map<AggregateEntityBlueprint, String> buildDeleteChildrenExceptSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<EntityBlueprint, String> entityDeleteChildrenExceptSqlMap = new HashMap<>();
+        Map<AggregateEntityBlueprint, String> entityDeleteChildrenExceptSqlMap = new HashMap<>();
         buildDeleteChildrenExceptSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityDeleteChildrenExceptSqlMap);
         return entityDeleteChildrenExceptSqlMap;
     }
 
     private void buildDeleteAllChildrenSqlRecursive(
-        EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entityDeleteAllChildrenSqlMap)
+        AggregateEntityBlueprint entityBlueprint,
+        List<AggregateEntityBlueprint> parentBlueprints,
+        Map<AggregateEntityBlueprint, String> entityDeleteAllChildrenSqlMap)
     {
         String sql = String.format("DELETE FROM `%s` WHERE `%s`.`%s` = ?",
             entityBlueprint.getTableName(),
@@ -35,7 +33,7 @@ public class DeleteSqlBuilderService
 
         entityDeleteAllChildrenSqlMap.put(entityBlueprint, sql);
 
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
@@ -44,9 +42,9 @@ public class DeleteSqlBuilderService
     }
 
     private void buildDeleteChildrenExceptSqlRecursive(
-        EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entityChildrenExceptSqlMap)
+        AggregateEntityBlueprint entityBlueprint,
+        List<AggregateEntityBlueprint> parentBlueprints,
+        Map<AggregateEntityBlueprint, String> entityChildrenExceptSqlMap)
     {
         String sql = String.format("DELETE FROM `%s` WHERE `%s`.`%s` = ? AND `%s`.`%s` NOT IN (%s)",
             entityBlueprint.getTableName(),
@@ -59,7 +57,7 @@ public class DeleteSqlBuilderService
 
         entityChildrenExceptSqlMap.put(entityBlueprint, sql);
 
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint

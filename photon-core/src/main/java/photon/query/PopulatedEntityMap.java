@@ -1,6 +1,6 @@
 package photon.query;
 
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 
 import java.util.*;
 
@@ -15,9 +15,9 @@ public class PopulatedEntityMap
         this.childIndexes = new HashMap<>();
     }
 
-    public void createPopulatedEntity(EntityBlueprint entityBlueprint, Map<String, Object> databaseValues)
+    public void createPopulatedEntity(AggregateEntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
-        PopulatedEntity populatedEntity = new PopulatedEntity(entityBlueprint, databaseValues);
+        PopulatedEntity populatedEntity = new PopulatedEntity(entityBlueprint, queryResultRow);
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
         if(populatedEntities == null)
         {

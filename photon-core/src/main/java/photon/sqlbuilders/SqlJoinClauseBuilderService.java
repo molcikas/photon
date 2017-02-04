@@ -1,15 +1,15 @@
 package photon.sqlbuilders;
 
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 
 import java.util.*;
 
 public class SqlJoinClauseBuilderService
 {
-    public void buildJoinClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint, List<EntityBlueprint> parentEntities)
+    public void buildJoinClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint, List<AggregateEntityBlueprint> parentEntities)
     {
-        EntityBlueprint childEntityBlueprint = entityBlueprint;
-        for(EntityBlueprint parentEntityBlueprint : parentEntities)
+        AggregateEntityBlueprint childEntityBlueprint = entityBlueprint;
+        for(AggregateEntityBlueprint parentEntityBlueprint : parentEntities)
         {
             sqlBuilder.append(String.format("\nJOIN `%s` ON `%s`.`%s` = `%s`.`%s`",
                 parentEntityBlueprint.getTableName(),

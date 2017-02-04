@@ -1,11 +1,10 @@
-package photon.tests.databaseintegrations.h2;
+package photon.tests.databaseintegrations.h2.mytable;
 
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
 import photon.blueprints.SortDirection;
-import photon.tests.databaseintegrations.h2.setup.MyTableDbSetup;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
 

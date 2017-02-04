@@ -2,10 +2,11 @@ package photon.query;
 
 import org.apache.commons.lang3.StringUtils;
 import photon.blueprints.ColumnBlueprint;
+import photon.blueprints.EntityBlueprint;
 import photon.converters.Convert;
 import photon.converters.Converter;
 import photon.exceptions.PhotonException;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 import photon.blueprints.FieldBlueprint;
 
 import java.lang.reflect.Constructor;
@@ -13,10 +14,11 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PopulatedEntity
+public class PopulatedEntity<T>
 {
     private final EntityBlueprint entityBlueprint;
-    private final Object entityInstance;
+    private final AggregateEntityBlueprint aggregateEntityBlueprint;
+    private final T entityInstance;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
 
@@ -25,7 +27,7 @@ public class PopulatedEntity
         return entityBlueprint;
     }
 
-    public Object getEntityInstance()
+    public T getEntityInstance()
     {
         return entityInstance;
     }
@@ -40,18 +42,38 @@ public class PopulatedEntity
         return foreignKeyToParentValue;
     }
 
-    public PopulatedEntity(EntityBlueprint entityBlueprint, Map<String, Object> databaseValues)
+    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         this.entityBlueprint = entityBlueprint;
-        this.entityInstance = constructOrphanEntityInstance(databaseValues);
+        if(AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
+        {
+            this.aggregateEntityBlueprint = (AggregateEntityBlueprint) entityBlueprint;
+        }
+        else
+        {
+            this.aggregateEntityBlueprint = null;
+        }
+        this.entityInstance = constructOrphanEntityInstance(queryResultRow);
     }
 
-    public PopulatedEntity(EntityBlueprint entityBlueprint, Object entityInstance)
+    public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
     {
         this.entityBlueprint = entityBlueprint;
+        if(AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
+        {
+            this.aggregateEntityBlueprint = (AggregateEntityBlueprint) entityBlueprint;
+        }
+        else
+        {
+            this.aggregateEntityBlueprint = null;
+        }
         this.entityInstance = entityInstance;
         this.primaryKeyValue = getInstanceValue(entityBlueprint.getPrimaryKeyColumn());
-        this.foreignKeyToParentValue = getInstanceValue(entityBlueprint.getForeignKeyToParentColumn());
+
+        if(aggregateEntityBlueprint != null)
+        {
+            this.foreignKeyToParentValue = getInstanceValue(aggregateEntityBlueprint.getForeignKeyToParentColumn());
+        }
     }
 
     public Object getInstanceValue(ColumnBlueprint columnBlueprint)
@@ -112,15 +134,26 @@ public class PopulatedEntity
 
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
     {
+        if(!AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
+        {
+            throw new PhotonException("Cannot set foreign key to parent value because the entity is not an aggregate entity.");
+        }
+        AggregateEntityBlueprint aggregateEntityBlueprint = (AggregateEntityBlueprint) this.entityBlueprint;
+
         this.foreignKeyToParentValue = foreignKeyToParentValue;
-        setEntityInstanceFieldToDatabaseValue(entityInstance, this.entityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        setEntityInstanceFieldToDatabaseValue(entityInstance, aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
     }
 
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
     {
+        if(aggregateEntityBlueprint == null)
+        {
+            throw new PhotonException("Cannot map entity instance to children because the entity is not an aggregate entity.");
+        }
+
         Object primaryKey = getPrimaryKeyValue();
 
-        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
+        for(FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getFieldsWithChildEntities())
         {
             Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
@@ -242,13 +275,13 @@ public class PopulatedEntity
         }
     }
 
-    private Object constructOrphanEntityInstance(Map<String, Object> databaseValues)
+    private T constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
     {
-        Object entityInstance;
+        T entityInstance;
 
         try
         {
-            Constructor constructor = entityBlueprint.getEntityClass().getDeclaredConstructor(new Class[0]);
+            Constructor<T> constructor = entityBlueprint.getEntityClass().getDeclaredConstructor();
             constructor.setAccessible(true);
             entityInstance = constructor.newInstance();
         }
@@ -260,7 +293,7 @@ public class PopulatedEntity
                 ex);
         }
 
-        for(Map.Entry<String, Object> entry : databaseValues.entrySet())
+        for(Map.Entry<String, Object> entry : queryResultRow.getValues())
         {
             setEntityInstanceFieldToDatabaseValue(entityInstance, entry.getKey(), entry.getValue());
         }
@@ -268,7 +301,7 @@ public class PopulatedEntity
         return entityInstance;
     }
 
-    private void setEntityInstanceFieldToDatabaseValue(Object entityInstance, String columnName, Object databaseValue)
+    private void setEntityInstanceFieldToDatabaseValue(T entityInstance, String columnName, Object databaseValue)
     {
         FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
 
@@ -276,7 +309,7 @@ public class PopulatedEntity
         {
             primaryKeyValue = databaseValue;
         }
-        if(StringUtils.equals(columnName, entityBlueprint.getForeignKeyToParentColumnName()))
+        if(aggregateEntityBlueprint != null && StringUtils.equals(columnName, aggregateEntityBlueprint.getForeignKeyToParentColumnName()))
         {
             foreignKeyToParentValue = databaseValue;
         }

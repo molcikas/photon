@@ -1,10 +1,9 @@
-package photon.tests.databaseintegrations.h2;
+package photon.tests.databaseintegrations.h2.mytable;
 
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
-import photon.tests.databaseintegrations.h2.setup.MyTableDbSetup;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
 
@@ -84,10 +83,10 @@ public class MyTableSaveTests
         {
             MyTable myTableRetrieved = connection
                 .query(MyTable.class)
-                .fetchById(6);
+                .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(6, myTableRetrieved.getId());
+            assertEquals(7, myTableRetrieved.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTableRetrieved.getMyvalue());
         }
     }
@@ -139,15 +138,15 @@ public class MyTableSaveTests
         {
             MyTable myTableRetrieved = connection
                 .query(MyTable.class)
-                .fetchById(6);
+                .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(6, myTableRetrieved.getId());
+            assertEquals(7, myTableRetrieved.getId());
             assertEquals("MySavedValueAutoInc", myTableRetrieved.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
             assertNotNull(myOtherTableRetrieved);
-            assertEquals(6, myOtherTableRetrieved.getId());
+            assertEquals(7, myOtherTableRetrieved.getId());
             assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValueWithDiffName());
         }
     }
@@ -174,7 +173,6 @@ public class MyTableSaveTests
             .withPrimaryKeyAutoIncrement()
             .withChild(MyOtherTable.class)
                 .withId("id")
-                .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("id")
                 .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")

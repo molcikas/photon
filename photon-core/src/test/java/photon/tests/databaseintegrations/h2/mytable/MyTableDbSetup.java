@@ -1,4 +1,4 @@
-package photon.tests.databaseintegrations.h2.setup;
+package photon.tests.databaseintegrations.h2.mytable;
 
 import photon.Photon;
 import photon.PhotonConnection;
@@ -23,10 +23,11 @@ public class MyTableDbSetup
             connection.query("insert into `mytable` (`id`, `myvalue`) values (3, 'my3dbvalue')").executeUpdate();
             connection.query("insert into `mytable` (`id`, `myvalue`) values (4, 'my4dbvalue')").executeUpdate();
             connection.query("insert into `mytable` (`id`, `myvalue`) values (5, 'my5dbvalue')").executeUpdate();
+            connection.query("insert into `mytable` (`id`, `myvalue`) values (6, NULL)").executeUpdate();
 
             connection.query("DROP TABLE IF EXISTS `myothertable`").executeUpdate();
             connection.query("CREATE TABLE `myothertable` (\n" +
-                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `id` int(11) NOT NULL,\n" +
                 "  `myothervalue` varchar(255) DEFAULT 'oops',\n" +
                 "  PRIMARY KEY (`id`),\n" +
                 "  CONSTRAINT `MyOtherTable_MyTable` FOREIGN KEY (`id`) REFERENCES `mytable` (`id`)\n" +

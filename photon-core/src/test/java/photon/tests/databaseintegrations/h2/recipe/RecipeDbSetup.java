@@ -1,4 +1,4 @@
-package photon.tests.databaseintegrations.h2.setup;
+package photon.tests.databaseintegrations.h2.recipe;
 
 import photon.Photon;
 import photon.PhotonConnection;

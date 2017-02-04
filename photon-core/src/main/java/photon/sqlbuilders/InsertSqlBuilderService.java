@@ -1,23 +1,23 @@
 package photon.sqlbuilders;
 
 import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 
 import java.util.*;
 
 public class InsertSqlBuilderService
 {
-    public Map<EntityBlueprint, String> buildInsertSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
+    public Map<AggregateEntityBlueprint, String> buildInsertSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<EntityBlueprint, String> entityUpdateSqlMap = new HashMap<>();
+        Map<AggregateEntityBlueprint, String> entityUpdateSqlMap = new HashMap<>();
         buildInsertSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityUpdateSqlMap);
         return entityUpdateSqlMap;
     }
 
     private void buildInsertSqlRecursive(
-        EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entitySqlMap)
+        AggregateEntityBlueprint entityBlueprint,
+        List<AggregateEntityBlueprint> parentBlueprints,
+        Map<AggregateEntityBlueprint, String> entitySqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -29,7 +29,7 @@ public class InsertSqlBuilderService
 
         //System.out.println(sqlBuilder.toString());
 
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
@@ -37,12 +37,12 @@ public class InsertSqlBuilderService
             .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entitySqlMap));
     }
 
-    private void buildInsertClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildInsertClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
     {
         sqlBuilder.append(String.format("INSERT INTO `%s`", entityBlueprint.getTableName()));
     }
 
-    private void buildValuesClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildValuesClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
     {
         sqlBuilder.append("\n(");
         List<ColumnBlueprint> columnBlueprints = entityBlueprint.getColumnsForInsertStatement();

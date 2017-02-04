@@ -10,6 +10,7 @@ import java.util.Map;
 public class EntityBlueprintBuilder
 {
     private final Photon photon;
+    private final EntityBlueprintConstructorService entityBlueprintConstructorService;
     private final EntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
     private String idFieldName;
@@ -18,23 +19,25 @@ public class EntityBlueprintBuilder
     private String orderByColumnName;
     private SortDirection orderByDirection;
     private final Map<String, Integer> customColumnDataTypes;
-    private final Map<String, EntityBlueprint> childEntities;
+    private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
 
-    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder)
+    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
-        this(entityClass, parentBuilder, null);
+        this(entityClass, parentBuilder, null, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder(Class entityClass, Photon photon)
+    public EntityBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
-        this(entityClass, null, photon);
+        this(entityClass, null, photon, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon)
+    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon,
+                                  EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.entityClass = entityClass;
         this.photon = photon;
+        this.entityBlueprintConstructorService = entityBlueprintConstructorService;
         this.parentBuilder = parentBuilder;
         this.isPrimaryKeyAutoIncrement = false;
         this.customColumnDataTypes = new HashMap<>();
@@ -86,7 +89,7 @@ public class EntityBlueprintBuilder
 
     public EntityBlueprintBuilder withChild(Class childClass)
     {
-        return new EntityBlueprintBuilder(childClass, this);
+        return new EntityBlueprintBuilder(childClass, this, entityBlueprintConstructorService);
     }
 
     public EntityBlueprintBuilder addAsChild(String fieldName)
@@ -112,9 +115,9 @@ public class EntityBlueprintBuilder
         photon.registerAggregate(buildEntity());
     }
 
-    private EntityBlueprint buildEntity()
+    private AggregateEntityBlueprint buildEntity()
     {
-        return new EntityBlueprint(
+        return new AggregateEntityBlueprint(
             entityClass,
             idFieldName,
             isPrimaryKeyAutoIncrement,
@@ -123,11 +126,12 @@ public class EntityBlueprintBuilder
             orderByDirection,
             customColumnDataTypes,
             customFieldToColumnMappings,
-            childEntities
+            childEntities,
+            entityBlueprintConstructorService
         );
     }
 
-    private void addChild(String fieldName, EntityBlueprint childEntityBlueprint)
+    private void addChild(String fieldName, AggregateEntityBlueprint childEntityBlueprint)
     {
         if(childEntities.containsKey(fieldName))
         {

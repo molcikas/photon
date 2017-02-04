@@ -1,11 +1,10 @@
-package photon.tests.databaseintegrations.h2;
+package photon.tests.databaseintegrations.h2.recipe;
 
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
 import photon.blueprints.SortDirection;
-import photon.tests.databaseintegrations.h2.setup.RecipeDbSetup;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
 import photon.tests.entities.recipe.RecipeInstruction;

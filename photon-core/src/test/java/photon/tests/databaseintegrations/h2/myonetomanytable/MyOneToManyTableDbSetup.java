@@ -1,4 +1,4 @@
-package photon.tests.databaseintegrations.h2.setup;
+package photon.tests.databaseintegrations.h2.myonetomanytable;
 
 import photon.Photon;
 import photon.PhotonConnection;

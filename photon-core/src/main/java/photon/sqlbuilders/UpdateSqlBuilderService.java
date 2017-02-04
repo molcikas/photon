@@ -1,24 +1,24 @@
 package photon.sqlbuilders;
 
 import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.AggregateEntityBlueprint;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class UpdateSqlBuilderService
 {
-    public Map<EntityBlueprint, String> buildUpdateSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint)
+    public Map<AggregateEntityBlueprint, String> buildUpdateSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<EntityBlueprint, String> entityUpdateSqlMap = new HashMap<>();
+        Map<AggregateEntityBlueprint, String> entityUpdateSqlMap = new HashMap<>();
         buildUpdateSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityUpdateSqlMap);
         return entityUpdateSqlMap;
     }
 
     private void buildUpdateSqlRecursive(
-        EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entitySqlMap)
+        AggregateEntityBlueprint entityBlueprint,
+        List<AggregateEntityBlueprint> parentBlueprints,
+        Map<AggregateEntityBlueprint, String> entitySqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -31,7 +31,7 @@ public class UpdateSqlBuilderService
 
         System.out.println(sqlBuilder.toString());
 
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
@@ -39,12 +39,12 @@ public class UpdateSqlBuilderService
             .forEach(entityField -> buildUpdateSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entitySqlMap));
     }
 
-    private void buildUpdateClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildUpdateClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
     {
         sqlBuilder.append(String.format("UPDATE `%s`", entityBlueprint.getTableName()));
     }
 
-    private void buildSetClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildSetClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
     {
         sqlBuilder.append("\nSET ");
 
@@ -67,7 +67,7 @@ public class UpdateSqlBuilderService
         }
     }
 
-    private void buildWhereClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
+    private void buildWhereClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
     {
         sqlBuilder.append(String.format("\nWHERE `%s`.`%s` = ?",
             entityBlueprint.getTableName(),

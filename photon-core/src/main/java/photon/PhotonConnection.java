@@ -1,5 +1,6 @@
 package photon;
 
+import photon.blueprints.EntityBlueprintConstructorService;
 import photon.exceptions.PhotonException;
 import photon.blueprints.AggregateBlueprint;
 import photon.query.PhotonAggregateQuery;
@@ -14,14 +15,17 @@ public class PhotonConnection implements Closeable
 {
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
+    private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     public PhotonConnection(
         Connection connection,
         boolean isTransaction,
-        Map<Class, AggregateBlueprint> registeredAggregates)
+        Map<Class, AggregateBlueprint> registeredAggregates,
+        EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.connection = connection;
         this.registeredAggregates = registeredAggregates;
+        this.entityBlueprintConstructorService = entityBlueprintConstructorService;
 
         if(isTransaction)
         {
@@ -34,6 +38,11 @@ public class PhotonConnection implements Closeable
                 throw new PhotonException("Error starting query.", ex);
             }
         }
+    }
+
+    public PhotonQuery query(String sqlText)
+    {
+        return new PhotonQuery(sqlText, connection, entityBlueprintConstructorService);
     }
 
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)
@@ -57,11 +66,6 @@ public class PhotonConnection implements Closeable
         }
 
         new PhotonAggregateSave(aggregateBlueprint, connection).save(aggregate);
-    }
-
-    public PhotonQuery query(String sqlText)
-    {
-        return new PhotonQuery(connection, sqlText);
     }
 
     public void close()

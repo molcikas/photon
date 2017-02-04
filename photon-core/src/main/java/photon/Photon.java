@@ -18,6 +18,7 @@ public class Photon
     private final UpdateSqlBuilderService updateSqlBuilderService;
     private final InsertSqlBuilderService insertSqlBuilderService;
     private final DeleteSqlBuilderService deleteSqlBuilderService;
+    private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     public Photon(DataSource dataSource)
     {
@@ -29,6 +30,7 @@ public class Photon
         this.updateSqlBuilderService = new UpdateSqlBuilderService();
         this.insertSqlBuilderService = new InsertSqlBuilderService();
         this.deleteSqlBuilderService = new DeleteSqlBuilderService();
+        this.entityBlueprintConstructorService = new EntityBlueprintConstructorService();
     }
 
     public Photon(String url, String user, String password)
@@ -38,20 +40,20 @@ public class Photon
 
     public PhotonConnection open()
     {
-        return new PhotonConnection(getConnection(), false, registeredAggregates);
+        return new PhotonConnection(getConnection(), false, registeredAggregates, entityBlueprintConstructorService);
     }
 
     public PhotonConnection beginTransaction()
     {
-        return new PhotonConnection(getConnection(), true, registeredAggregates);
+        return new PhotonConnection(getConnection(), true, registeredAggregates, entityBlueprintConstructorService);
     }
 
     public EntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
     {
-        return new EntityBlueprintBuilder(aggregateRootClass, this);
+        return new EntityBlueprintBuilder(aggregateRootClass, this, entityBlueprintConstructorService);
     }
 
-    public void registerAggregate(EntityBlueprint aggregateRootEntityBlueprint)
+    public void registerAggregate(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
         if(aggregateRootEntityBlueprint == null)
         {

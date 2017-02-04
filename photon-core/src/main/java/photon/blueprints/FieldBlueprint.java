@@ -8,7 +8,7 @@ public class FieldBlueprint
     private final String fieldName;
     private final Class fieldClass;
     private final String columnName;
-    private final EntityBlueprint childEntityBlueprint;
+    private final AggregateEntityBlueprint childEntityBlueprint;
 
     public Field getReflectedField()
     {
@@ -30,12 +30,12 @@ public class FieldBlueprint
         return columnName;
     }
 
-    public EntityBlueprint getChildEntityBlueprint()
+    public AggregateEntityBlueprint getChildEntityBlueprint()
     {
         return childEntityBlueprint;
     }
 
-    public FieldBlueprint(Field reflectedField, String columnName, EntityBlueprint childEntityBlueprint)
+    public FieldBlueprint(Field reflectedField, String columnName, AggregateEntityBlueprint childEntityBlueprint)
     {
         reflectedField.setAccessible(true);
 

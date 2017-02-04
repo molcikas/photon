@@ -35,4 +35,6 @@ public class MyTableBlueprintTests
     }
 
     // TODO: Entity without a primary key field cannot have child entities.
+
+    // TODO: Cannot set withForeignKeyToParent to the primary key and also set primaryKeyAutoIncrement to true.
 }
