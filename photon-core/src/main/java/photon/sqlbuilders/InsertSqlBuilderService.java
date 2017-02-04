@@ -17,7 +17,7 @@ public class InsertSqlBuilderService
     private void buildInsertSqlRecursive(
         EntityBlueprint entityBlueprint,
         List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entityUpdateSqlMap)
+        Map<EntityBlueprint, String> entitySqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -25,7 +25,7 @@ public class InsertSqlBuilderService
         buildInsertClauseSql(sqlBuilder, entityBlueprint);
         buildValuesClauseSql(sqlBuilder, entityBlueprint);
 
-        entityUpdateSqlMap.put(entityBlueprint, sqlBuilder.toString());
+        entitySqlMap.put(entityBlueprint, sqlBuilder.toString());
 
         //System.out.println(sqlBuilder.toString());
 
@@ -33,11 +33,8 @@ public class InsertSqlBuilderService
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
-            .getFields()
-            .values()
-            .stream()
-            .filter(entityField -> entityField.getChildEntityBlueprint() != null)
-            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entityUpdateSqlMap));
+            .getFieldsWithChildEntities()
+            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entitySqlMap));
     }
 
     private void buildInsertClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
@@ -48,22 +45,27 @@ public class InsertSqlBuilderService
     private void buildValuesClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)
     {
         sqlBuilder.append("\n(");
+        List<ColumnBlueprint> columnBlueprints = entityBlueprint.getColumnsForInsertStatement();
+        int index = 0;
 
-        for(ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+        for(ColumnBlueprint columnBlueprint : columnBlueprints)
         {
             sqlBuilder.append(String.format("`%s`%s",
                 columnBlueprint.getColumnName(),
-                columnBlueprint.getColumnIndex() < entityBlueprint.getColumns().size() - 1 ? ", " : ""
+                index < columnBlueprints.size() - 1 ? ", " : ""
             ));
+            index++;
         }
 
         sqlBuilder.append(")\nVALUES\n(");
+        index = 0;
 
-        for(ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+        for(ColumnBlueprint columnBlueprint : columnBlueprints)
         {
             sqlBuilder.append(String.format("?%s",
-                columnBlueprint.getColumnIndex() < entityBlueprint.getColumns().size() - 1 ? ", " : ""
+                index < columnBlueprints.size() - 1 ? ", " : ""
             ));
+            index++;
         }
 
         sqlBuilder.append(")");

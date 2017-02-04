@@ -122,6 +122,27 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
+    public Object executeInsert()
+    {
+        try
+        {
+            preparedStatement.executeUpdate();
+
+            try(ResultSet generatedKeys = preparedStatement.getGeneratedKeys())
+            {
+                if (generatedKeys.next())
+                {
+                    return generatedKeys.getLong(1);
+                }
+                return null;
+            }
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException(String.format("Error executing insert for statement with SQL: \n%s", sql), ex);
+        }
+    }
+
     public void resetParameterCounter()
     {
         this.parameterIndex = 1;

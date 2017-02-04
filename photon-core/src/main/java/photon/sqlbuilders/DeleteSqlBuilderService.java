@@ -39,10 +39,7 @@ public class DeleteSqlBuilderService
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
-            .getFields()
-            .values()
-            .stream()
-            .filter(entityField -> entityField.getChildEntityBlueprint() != null)
+            .getFieldsWithChildEntities()
             .forEach(entityField -> buildDeleteAllChildrenSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entityDeleteAllChildrenSqlMap));
     }
 
@@ -66,10 +63,7 @@ public class DeleteSqlBuilderService
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
-            .getFields()
-            .values()
-            .stream()
-            .filter(entityField -> entityField.getChildEntityBlueprint() != null)
+            .getFieldsWithChildEntities()
             .forEach(entityField -> buildDeleteChildrenExceptSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entityChildrenExceptSqlMap));
     }
 

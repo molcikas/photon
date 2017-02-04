@@ -8,6 +8,7 @@ public class ColumnBlueprint
     private final String columnName;
     private final Integer columnDataType;
     private final boolean isPrimaryKeyColumn;
+    private final boolean isAutoIncrementColumn;
     private final boolean isForeignKeyToParentColumn;
 
     // Reference to the entity field that this database column is mapped to. This can (but does not have to)
@@ -31,6 +32,11 @@ public class ColumnBlueprint
         return isPrimaryKeyColumn;
     }
 
+    public boolean isAutoIncrementColumn()
+    {
+        return isAutoIncrementColumn;
+    }
+
     public boolean isForeignKeyToParentColumn()
     {
         return isForeignKeyToParentColumn;
@@ -50,6 +56,7 @@ public class ColumnBlueprint
         String columnName,
         Integer columnDataType,
         boolean isPrimaryKeyColumn,
+        boolean isAutoIncrementColumn,
         boolean isForeignKeyToParentColumn,
         FieldBlueprint mappedFieldBlueprint,
         int columnIndex)
@@ -62,9 +69,14 @@ public class ColumnBlueprint
         {
             throw new PhotonException(String.format("The data type for column '%s' was null.", columnName));
         }
+        if(isAutoIncrementColumn && !isPrimaryKeyColumn)
+        {
+            throw new PhotonException(String.format("The column '%s' cannot be auto-increment because it is not the primary key.", columnName));
+        }
         this.columnName = columnName;
         this.columnDataType = columnDataType;
         this.isPrimaryKeyColumn = isPrimaryKeyColumn;
+        this.isAutoIncrementColumn = isAutoIncrementColumn;
         this.isForeignKeyToParentColumn = isForeignKeyToParentColumn;
         this.mappedFieldBlueprint = mappedFieldBlueprint;
         this.columnIndex = columnIndex;

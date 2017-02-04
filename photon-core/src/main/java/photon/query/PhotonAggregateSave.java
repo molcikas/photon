@@ -56,11 +56,25 @@ public class PhotonAggregateSave
                 for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
                 {
                     List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                    deleteEntityOrphansForField(
-                        fieldBlueprint,
-                        fieldPopulatedEntities,
-                        populatedEntity.getPrimaryKeyValue(),
-                        populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+
+                    if(rowsUpdated == 0 &&
+                        populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() &&
+                        populatedEntity.getPrimaryKeyValue() != null)
+                    {
+                        for(PopulatedEntity fieldPopulatedEntity : fieldPopulatedEntities)
+                        {
+                            fieldPopulatedEntity.setForeignKeyToParentValue(populatedEntity.getPrimaryKeyValue());
+                        }
+                    }
+
+                    if(rowsUpdated > 0)
+                    {
+                        deleteEntityOrphansForField(
+                            fieldBlueprint,
+                            fieldPopulatedEntities,
+                            populatedEntity.getPrimaryKeyValue(),
+                            populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                    }
 
                     saveEntitiesRecursive(fieldPopulatedEntities, populatedEntity);
                 }

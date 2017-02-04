@@ -13,6 +13,7 @@ public class EntityBlueprintBuilder
     private final EntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
     private String idFieldName;
+    private boolean isPrimaryKeyAutoIncrement;
     private String foreignKeyToParent;
     private String orderByColumnName;
     private SortDirection orderByDirection;
@@ -35,6 +36,7 @@ public class EntityBlueprintBuilder
         this.entityClass = entityClass;
         this.photon = photon;
         this.parentBuilder = parentBuilder;
+        this.isPrimaryKeyAutoIncrement = false;
         this.customColumnDataTypes = new HashMap<>();
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
@@ -43,6 +45,12 @@ public class EntityBlueprintBuilder
     public EntityBlueprintBuilder withId(String idFieldName)
     {
         this.idFieldName = idFieldName;
+        return this;
+    }
+
+    public EntityBlueprintBuilder withPrimaryKeyAutoIncrement()
+    {
+        this.isPrimaryKeyAutoIncrement = true;
         return this;
     }
 
@@ -109,6 +117,7 @@ public class EntityBlueprintBuilder
         return new EntityBlueprint(
             entityClass,
             idFieldName,
+            isPrimaryKeyAutoIncrement,
             foreignKeyToParent,
             orderByColumnName,
             orderByDirection,

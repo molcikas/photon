@@ -26,7 +26,7 @@ public class SelectSqlBuilderService
         EntityBlueprint entityBlueprint,
         EntityBlueprint aggregateRootEntityBlueprint,
         List<EntityBlueprint> parentBlueprints,
-        Map<EntityBlueprint, String> entitySelectSqlMap)
+        Map<EntityBlueprint, String> entitySqlMap)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -37,17 +37,16 @@ public class SelectSqlBuilderService
         buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
         buildOrderBySql(sqlBuilder, entityBlueprint, parentBlueprints);
 
-        entitySelectSqlMap.put(entityBlueprint, sqlBuilder.toString());
+        entitySqlMap.put(entityBlueprint, sqlBuilder.toString());
+
+        System.out.println(sqlBuilder.toString());
 
         final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
-            .getFields()
-            .values()
-            .stream()
-            .filter(entityField -> entityField.getChildEntityBlueprint() != null)
-            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints, entitySelectSqlMap));
+            .getFieldsWithChildEntities()
+            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints, entitySqlMap));
     }
 
     private void buildSelectClauseSql(StringBuilder sqlBuilder, EntityBlueprint entityBlueprint)

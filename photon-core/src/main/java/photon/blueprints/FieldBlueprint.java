@@ -1,11 +1,19 @@
 package photon.blueprints;
 
+import java.lang.reflect.Field;
+
 public class FieldBlueprint
 {
+    private final Field reflectedField;
     private final String fieldName;
     private final Class fieldClass;
     private final String columnName;
     private final EntityBlueprint childEntityBlueprint;
+
+    public Field getReflectedField()
+    {
+        return reflectedField;
+    }
 
     public String getFieldName()
     {
@@ -27,10 +35,13 @@ public class FieldBlueprint
         return childEntityBlueprint;
     }
 
-    public FieldBlueprint(String fieldName, Class fieldClass, String columnName, EntityBlueprint childEntityBlueprint)
+    public FieldBlueprint(Field reflectedField, String columnName, EntityBlueprint childEntityBlueprint)
     {
-        this.fieldName = fieldName;
-        this.fieldClass = fieldClass;
+        reflectedField.setAccessible(true);
+
+        this.reflectedField = reflectedField;
+        this.fieldName = reflectedField.getName();
+        this.fieldClass = reflectedField.getType();
         this.columnName = columnName;
         this.childEntityBlueprint = childEntityBlueprint;
     }

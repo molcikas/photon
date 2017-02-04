@@ -69,6 +69,30 @@ public class MyTableSaveTests
     }
 
     @Test
+    public void aggregate_save_insertSimpleEntityWithAutoIncrement_savesEntity()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, "MyAutoIncrementedInsertedSavedValue", null);
+            connection
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .query(MyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(6, myTableRetrieved.getId());
+            assertEquals("MyAutoIncrementedInsertedSavedValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
     public void aggregate_save_updateEntityWithChild_savesEntity()
     {
         registerMyTableAggregate();
@@ -98,10 +122,62 @@ public class MyTableSaveTests
         }
     }
 
+    @Test
+    public void aggregate_save_insertAutoIncrementEntityAndChild_savesEntity()
+    {
+        registerMyTableWithAutoIncrementAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
+
+            connection
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .query(MyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(6, myTableRetrieved.getId());
+            assertEquals("MySavedValueAutoInc", myTableRetrieved.getMyvalue());
+
+            MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
+            assertNotNull(myOtherTableRetrieved);
+            assertEquals(6, myOtherTableRetrieved.getId());
+            assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
+            .register();
+    }
+
+    private void registerMyTableOnlyWithAutoIncrementAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+    }
+
+    private void registerMyTableWithAutoIncrementAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withChild(MyOtherTable.class)
+                .withId("id")
+                .withPrimaryKeyAutoIncrement()
+                .withForeignKeyToParent("id")
+                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .addAsChild("myOtherTable")
             .register();
     }
 

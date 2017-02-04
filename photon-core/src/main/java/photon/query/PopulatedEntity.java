@@ -78,8 +78,7 @@ public class PopulatedEntity
     {
         try
         {
-            Field field = entityBlueprint.getDeclaredField(fieldName);
-            field.setAccessible(true);
+            Field field = entityBlueprint.getReflectedField(fieldName);
             return field.get(entityInstance);
         }
         catch(Exception ex)
@@ -111,6 +110,12 @@ public class PopulatedEntity
             .collect(Collectors.toList());
     }
 
+    public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
+    {
+        this.foreignKeyToParentValue = foreignKeyToParentValue;
+        setEntityInstanceFieldToDatabaseValue(entityInstance, this.entityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+    }
+
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
     {
         Object primaryKey = getPrimaryKeyValue();
@@ -126,8 +131,7 @@ public class PopulatedEntity
 
                 try
                 {
-                    Field field = entityBlueprint.getDeclaredField(fieldBlueprint.getFieldName());
-                    field.setAccessible(true);
+                    Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
                     field.set(entityInstance, collection);
                 }
                 catch(Exception ex)
@@ -142,8 +146,7 @@ public class PopulatedEntity
                 {
                     try
                     {
-                        Field field = entityBlueprint.getDeclaredField(fieldBlueprint.getFieldName());
-                        field.setAccessible(true);
+                        Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
                         field.set(entityInstance, childInstance);
                     }
                     catch (Exception ex)
@@ -158,6 +161,11 @@ public class PopulatedEntity
     public int performUpdate(PhotonPreparedStatement updateStatement, PopulatedEntity parentPopulatedEntity)
     {
         if(primaryKeyValue == null)
+        {
+            return 0;
+        }
+
+        if(entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
             return 0;
         }
@@ -194,9 +202,9 @@ public class PopulatedEntity
         return updateStatement.executeUpdate();
     }
 
-    public int performInsert(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
+    public void performInsert(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
     {
-        for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+        for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumnsForInsertStatement())
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
@@ -211,7 +219,7 @@ public class PopulatedEntity
             }
             else if(columnBlueprint.isPrimaryKeyColumn())
             {
-                // TODO: Need to have options to set what type of primary key this is (UUID, identity, something else?).
+                // If the primary key is not mapped to a field and is not auto increment, assume it's a UUID column.
                 fieldValue = UUID.randomUUID();
             }
             else
@@ -225,7 +233,13 @@ public class PopulatedEntity
             insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
         }
 
-        return insertStatement.executeUpdate();
+        Object generatedKey = insertStatement.executeInsert();
+
+        if(generatedKey != null)
+        {
+            primaryKeyValue = generatedKey;
+            setEntityInstanceFieldToDatabaseValue(entityInstance, entityBlueprint.getPrimaryKeyColumnName(), generatedKey);
+        }
     }
 
     private Object constructOrphanEntityInstance(Map<String, Object> databaseValues)
@@ -283,8 +297,7 @@ public class PopulatedEntity
 
         try
         {
-            Field field = entityBlueprint.getDeclaredField(fieldBlueprint.getFieldName());
-            field.setAccessible(true);
+            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
             field.set(entityInstance, fieldValue);
         }
         catch (Exception ex)
