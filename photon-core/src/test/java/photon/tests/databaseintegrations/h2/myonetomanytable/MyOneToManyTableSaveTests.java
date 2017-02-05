@@ -54,11 +54,6 @@ public class MyOneToManyTableSaveTests
             assertEquals(Integer.valueOf(6), myOneToManyTableRetrieved.getId());
             assertEquals("MyOneToManyTableValue", myOneToManyTableRetrieved.getMyvalue());
             assertEquals(4, myOneToManyTableRetrieved.getMyManyTables().size());
-
-//            MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
-//            assertNotNull(myOtherTableRetrieved);
-//            assertEquals(6, myOtherTableRetrieved.getId());
-//            assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValue());
         }
     }
 

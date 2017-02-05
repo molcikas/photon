@@ -36,9 +36,9 @@ public class PhotonAggregateQuery<T>
     {
         List<PopulatedEntity> populatedAggregateRoots = getPopulatedAggregateRoots(ids);
 
-        return (List<T>) populatedAggregateRoots
+        return populatedAggregateRoots
             .stream()
-            .map(pe -> pe.getEntityInstance())
+            .map(pe -> (T) pe.getEntityInstance())
             .collect(Collectors.toList());
     }
 

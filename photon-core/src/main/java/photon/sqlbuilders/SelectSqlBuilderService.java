@@ -39,7 +39,7 @@ public class SelectSqlBuilderService
 
         entitySqlMap.put(entityBlueprint, sqlBuilder.toString());
 
-        System.out.println(sqlBuilder.toString());
+        //System.out.println(sqlBuilder.toString());
 
         final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);

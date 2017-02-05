@@ -14,7 +14,6 @@ public class AggregateBlueprint
     private final Map<AggregateEntityBlueprint, String> entitySelectSqlTemplates;
     private final Map<AggregateEntityBlueprint, String> entityUpdateSqlTemplates;
     private final Map<AggregateEntityBlueprint, String> entityInsertSqlTemplates;
-    private final Map<AggregateEntityBlueprint, String>  deleteAllChildrenSqlTemplates;
     private final Map<AggregateEntityBlueprint, String>  deleteChildrenExceptSqlTemplates;
 
     public AggregateEntityBlueprint getAggregateRootEntityBlueprint()
@@ -42,11 +41,6 @@ public class AggregateBlueprint
         return entityInsertSqlTemplates.get(entityBlueprint);
     }
 
-    public String getDeleteAllChildrenSqlTemplate(AggregateEntityBlueprint entityBlueprint)
-    {
-        return deleteAllChildrenSqlTemplates.get(entityBlueprint);
-    }
-
     public String getDeleteChildrenExceptSqlTemplate(AggregateEntityBlueprint entityBlueprint)
     {
         return deleteChildrenExceptSqlTemplates.get(entityBlueprint);
@@ -67,7 +61,6 @@ public class AggregateBlueprint
         this.entitySelectSqlTemplates = selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
         this.entityUpdateSqlTemplates = updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
         this.entityInsertSqlTemplates = insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
-        this.deleteAllChildrenSqlTemplates = deleteSqlBuilderService.buildDeleteAllChildrenSqlTemplates(aggregateRootEntityBlueprint);
         this.deleteChildrenExceptSqlTemplates = deleteSqlBuilderService.buildDeleteChildrenExceptSqlTemplates(aggregateRootEntityBlueprint);
     }
 }

@@ -20,6 +20,12 @@ public class PhotonQuery
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     private Map<String, PhotonSqlParameter> parameters;
+    private List<Long> generatedKeys;
+
+    public List<Long> getGeneratedKeys()
+    {
+        return generatedKeys;
+    }
 
     public PhotonQuery(String sqlText, Connection connection, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -58,31 +64,7 @@ public class PhotonQuery
 
     public <T> List<T> fetchList(Class<T> classToFetch)
     {
-        String sqlTextWithQuestionMarks = sqlText.replaceAll(parameterRegex, "?");
-
-        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(sqlTextWithQuestionMarks, connection);
-
-        List<PhotonSqlParameter> parametersInOrder = parameters
-            .values()
-            .stream()
-            .sorted((p1, p2) -> p1.getIndex() - p2.getIndex())
-            .collect(Collectors.toList());
-
-        for(PhotonSqlParameter parameter : parametersInOrder)
-        {
-            Integer dataType = parameter.getValue() != null ?
-                entityBlueprintConstructorService.defaultColumnDataTypeForField(parameter.getValue().getClass()) :
-                null;
-            Object value = parameter.getValue();
-            if(value != null && Collection.class.isAssignableFrom(value.getClass()))
-            {
-                photonPreparedStatement.setNextArrayParameter((Collection) value, dataType);
-            }
-            else
-            {
-                photonPreparedStatement.setNextParameter(parameter.getValue(), dataType);
-            }
-        }
+        PhotonPreparedStatement photonPreparedStatement = prepareStatement();
 
         // TODO: Cache this and try to re-use it rather than building it for every query.
         EntityBlueprint entityBlueprint = new EntityBlueprint(
@@ -110,14 +92,46 @@ public class PhotonQuery
 
     public int executeUpdate()
     {
-        try
+        PhotonPreparedStatement photonPreparedStatement = prepareStatement();
+        return photonPreparedStatement.executeUpdate();
+    }
+
+    public int executeInsert()
+    {
+        PhotonPreparedStatement photonPreparedStatement = prepareStatement();
+        int rowsUpdated = photonPreparedStatement.executeInsert();
+        generatedKeys = photonPreparedStatement.getGeneratedKeys();
+        return rowsUpdated;
+    }
+
+    private PhotonPreparedStatement prepareStatement()
+    {
+        String sqlTextWithQuestionMarks = sqlText.replaceAll(parameterRegex, "?");
+
+        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(sqlTextWithQuestionMarks, connection);
+
+        List<PhotonSqlParameter> parametersInOrder = parameters
+            .values()
+            .stream()
+            .sorted((p1, p2) -> p1.getIndex() - p2.getIndex())
+            .collect(Collectors.toList());
+
+        for(PhotonSqlParameter parameter : parametersInOrder)
         {
-            PreparedStatement preparedStatement = connection.prepareStatement(this.sqlText);
-            return preparedStatement.executeUpdate();
+            Integer dataType = parameter.getValue() != null ?
+                entityBlueprintConstructorService.defaultColumnDataTypeForField(parameter.getValue().getClass()) :
+                null;
+            Object value = parameter.getValue();
+            if(value != null && Collection.class.isAssignableFrom(value.getClass()))
+            {
+                photonPreparedStatement.setNextArrayParameter((Collection) value, dataType);
+            }
+            else
+            {
+                photonPreparedStatement.setNextParameter(parameter.getValue(), dataType);
+            }
         }
-        catch(Exception ex)
-        {
-            throw new PhotonException("Error executing update.", ex);
-        }
+
+        return photonPreparedStatement;
     }
 }

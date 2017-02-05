@@ -132,6 +132,12 @@ public class PopulatedEntity<T>
             .collect(Collectors.toList());
     }
 
+    public void setPrimaryKeyValue(Object primaryKeyValue)
+    {
+        this.primaryKeyValue = primaryKeyValue;
+        setEntityInstanceFieldToDatabaseValue(entityInstance, aggregateEntityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+    }
+
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
     {
         if(!AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
@@ -191,16 +197,16 @@ public class PopulatedEntity<T>
         }
     }
 
-    public int performUpdate(PhotonPreparedStatement updateStatement, PopulatedEntity parentPopulatedEntity)
+    public boolean addUpdateToBatch(PhotonPreparedStatement updateStatement, PopulatedEntity parentPopulatedEntity)
     {
         if(primaryKeyValue == null)
         {
-            return 0;
+            return false;
         }
 
         if(entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
-            return 0;
+            return false;
         }
 
         boolean canPerformUpdate = true;
@@ -229,13 +235,15 @@ public class PopulatedEntity<T>
 
         if(!canPerformUpdate)
         {
-            return 0;
+            return false;
         }
 
-        return updateStatement.executeUpdate();
+        updateStatement.addToBatch();
+
+        return true;
     }
 
-    public void performInsert(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
+    public void addInsertToBatch(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
     {
         for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumnsForInsertStatement())
         {
@@ -266,13 +274,7 @@ public class PopulatedEntity<T>
             insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
         }
 
-        Object generatedKey = insertStatement.executeInsert();
-
-        if(generatedKey != null)
-        {
-            primaryKeyValue = generatedKey;
-            setEntityInstanceFieldToDatabaseValue(entityInstance, entityBlueprint.getPrimaryKeyColumnName(), generatedKey);
-        }
+        insertStatement.addToBatch();
     }
 
     private T constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
