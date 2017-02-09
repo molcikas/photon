@@ -3,6 +3,8 @@ package photon.sqlbuilders;
 import org.apache.commons.lang3.StringUtils;
 import photon.blueprints.ColumnBlueprint;
 import photon.blueprints.AggregateEntityBlueprint;
+import photon.blueprints.FieldBlueprint;
+import photon.blueprints.ForeignKeyListBlueprint;
 
 import java.util.*;
 
@@ -15,18 +17,15 @@ public class SelectSqlBuilderService
         this.sqlJoinClauseBuilderService = sqlJoinClauseBuilderService;
     }
 
-    public Map<AggregateEntityBlueprint, String> buildSelectSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
+    public void buildSelectSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<AggregateEntityBlueprint, String> entitySelectSqlMap = new HashMap<>();
-        buildSelectSqlRecursive(aggregateRootEntityBlueprint, aggregateRootEntityBlueprint, Collections.emptyList(), entitySelectSqlMap);
-        return entitySelectSqlMap;
+        buildSelectSqlRecursive(aggregateRootEntityBlueprint, aggregateRootEntityBlueprint, Collections.emptyList());
     }
 
     private void buildSelectSqlRecursive(
         AggregateEntityBlueprint entityBlueprint,
         AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints,
-        Map<AggregateEntityBlueprint, String> entitySqlMap)
+        List<AggregateEntityBlueprint> parentBlueprints)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -37,16 +36,18 @@ public class SelectSqlBuilderService
         buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
         buildOrderBySql(sqlBuilder, entityBlueprint, parentBlueprints);
 
-        entitySqlMap.put(entityBlueprint, sqlBuilder.toString());
+        entityBlueprint.setSelectSql(sqlBuilder.toString());
 
         //System.out.println(sqlBuilder.toString());
+
+        entityBlueprint.getForeignKeyListFields().forEach(this::buildSelectKeysFromForeignTableSql);
 
         final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints, entitySqlMap));
+            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints));
     }
 
     private void buildSelectClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
@@ -107,5 +108,20 @@ public class SelectSqlBuilderService
                 ));
             }
         }
+    }
+
+    private void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint)
+    {
+        ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+
+        String sql = String.format("SELECT `%s`, `%s` FROM `%s` WHERE `%s` IN (?) ORDER BY `%s`",
+            foreignKeyListBlueprint.getForeignTableKeyColumnName(),
+            foreignKeyListBlueprint.getForeignTableJoinColumnName(),
+            foreignKeyListBlueprint.getForeignTableName(),
+            foreignKeyListBlueprint.getForeignTableJoinColumnName(),
+            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+        );
+
+        foreignKeyListBlueprint.setSelectSql(sql);
     }
 }

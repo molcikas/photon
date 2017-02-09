@@ -25,6 +25,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         Map<String, Integer> customColumnDataTypes,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
+        Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         if(entityClass == null)
@@ -42,7 +43,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName);
 
         for(ColumnBlueprint columnBlueprint : columns)
@@ -61,7 +62,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         {
             if(!customColumnDataTypes.containsKey(idFieldName))
             {
-                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is the id and is not in the entityBlueprint.", idFieldName));
+                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName));
             }
             primaryKeyColumn = new ColumnBlueprint(
                 idFieldName,
@@ -116,7 +117,15 @@ public class AggregateEntityBlueprint extends EntityBlueprint
     {
         return fields
             .stream()
-            .filter(f -> f.getChildEntityBlueprint() != null)
+            .filter(f -> f.getFieldType() == FieldType.Entity || f.getFieldType() == FieldType.EntityList)
+            .collect(Collectors.toList());
+    }
+
+    public List<FieldBlueprint> getForeignKeyListFields()
+    {
+        return fields
+            .stream()
+            .filter(f -> f.getFieldType() == FieldType.ForeignKeyList)
             .collect(Collectors.toList());
     }
 }

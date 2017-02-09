@@ -38,16 +38,13 @@ public class PhotonAggregateSave
 
         AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
         List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
-
         List<PopulatedEntity> updatedPopulatedEntities = updatePopulatedEntities(populatedEntities, parentPopulatedEntity);
-
         List<PopulatedEntity> populatedEntitiesToInsert = populatedEntities
             .stream()
             .filter(p -> !updatedPopulatedEntities.contains(p))
             .collect(Collectors.toList());
 
         insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity);
-
         List<PopulatedEntity> populatedEntitiesNeedingForeignKeyToParentSet = populatedEntitiesToInsert
             .stream()
             .filter(p -> p.getEntityBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() && p.getPrimaryKeyValue() != null)
@@ -69,11 +66,16 @@ public class PhotonAggregateSave
 
     private List<PopulatedEntity> updatePopulatedEntities(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
     {
-        String updateSqlTemplate = aggregateBlueprint.getEntityUpdateSqlTemplate((AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint());
+        if(populatedEntities == null || populatedEntities.isEmpty())
+        {
+            return Collections.emptyList();
+        }
+
+        String updateSql = populatedEntities.get(0).getEntityBlueprint().getUpdateSql();
         final List<PopulatedEntity> attemptedUpdatedPopulatedEntities = new ArrayList<>(populatedEntities.size());
         List<PopulatedEntity> updatedPopulatedEntities;
 
-        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSqlTemplate, connection))
+        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, connection))
         {
             for (PopulatedEntity populatedEntity : populatedEntities)
             {
@@ -98,15 +100,15 @@ public class PhotonAggregateSave
 
     private void insertPopulatedEntities(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
     {
-        if(populatedEntities.isEmpty())
+        if(populatedEntities == null || populatedEntities.isEmpty())
         {
             return;
         }
 
         AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
-        String insertSqlTemplate = aggregateBlueprint.getEntityInsertSqlTemplate(entityBlueprint);
+        String insertSql = entityBlueprint.getInsertSql();
 
-        try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(insertSqlTemplate, connection))
+        try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(insertSql, connection))
         {
             for (PopulatedEntity populatedEntity : populatedEntities)
             {
@@ -148,7 +150,7 @@ public class PhotonAggregateSave
     {
         for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
         {
-            String deleteChildrenExceptSql = aggregateBlueprint.getDeleteChildrenExceptSqlTemplate(fieldBlueprint.getChildEntityBlueprint());
+            String deleteChildrenExceptSql = fieldBlueprint.getChildEntityBlueprint().getDeleteChildrenExceptSql();
             ColumnBlueprint childPrimaryKeyColumn = fieldBlueprint.getChildEntityBlueprint().getPrimaryKeyColumn();
 
             try(PhotonPreparedStatement deleteAllChildrenExceptStatement = new PhotonPreparedStatement(deleteChildrenExceptSql, connection))

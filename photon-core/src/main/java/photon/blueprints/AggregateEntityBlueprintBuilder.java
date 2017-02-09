@@ -7,11 +7,11 @@ import photon.exceptions.PhotonException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class EntityBlueprintBuilder
+public class AggregateEntityBlueprintBuilder
 {
     private final Photon photon;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
-    private final EntityBlueprintBuilder parentBuilder;
+    private final AggregateEntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
     private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
@@ -21,19 +21,20 @@ public class EntityBlueprintBuilder
     private final Map<String, Integer> customColumnDataTypes;
     private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
+    private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
 
-    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public AggregateEntityBlueprintBuilder(Class entityClass, AggregateEntityBlueprintBuilder parentBuilder, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this(entityClass, parentBuilder, null, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public AggregateEntityBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this(entityClass, null, photon, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon,
-                                  EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public AggregateEntityBlueprintBuilder(Class entityClass, AggregateEntityBlueprintBuilder parentBuilder, Photon photon,
+                                           EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.entityClass = entityClass;
         this.photon = photon;
@@ -43,56 +44,75 @@ public class EntityBlueprintBuilder
         this.customColumnDataTypes = new HashMap<>();
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
+        this.foreignKeyListBlueprints = new HashMap<>();
     }
 
-    public EntityBlueprintBuilder withId(String idFieldName)
+    public AggregateEntityBlueprintBuilder withId(String idFieldName)
     {
         this.idFieldName = idFieldName;
         return this;
     }
 
-    public EntityBlueprintBuilder withPrimaryKeyAutoIncrement()
+    public AggregateEntityBlueprintBuilder withPrimaryKeyAutoIncrement()
     {
         this.isPrimaryKeyAutoIncrement = true;
         return this;
     }
 
-    public EntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent)
+    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent)
     {
         this.foreignKeyToParent = foreignKeyToParent;
         return this;
     }
 
-    public EntityBlueprintBuilder withColumnDataType(String columnName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withForeignKeyListToOtherAggregate(
+        String fieldName,
+        String foreignTableName,
+        String foreignTableJoinColumnName,
+        String foreignTableKeyColumnName,
+        Integer foreignTableKeyColumnType,
+        Class fieldListItemClass)
+    {
+        foreignKeyListBlueprints.put(fieldName, new ForeignKeyListBlueprint(
+            foreignTableName,
+            foreignTableJoinColumnName,
+            foreignTableKeyColumnName,
+            foreignTableKeyColumnType,
+            fieldListItemClass
+        ));
+        return this;
+    }
+
+    public AggregateEntityBlueprintBuilder withColumnDataType(String columnName, Integer columnDataType)
     {
         customColumnDataTypes.put(columnName, columnDataType);
         return this;
     }
 
-    public EntityBlueprintBuilder withFieldToColmnnMapping(String fieldName, String columnName)
+    public AggregateEntityBlueprintBuilder withFieldToColumnMapping(String fieldName, String columnName)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         return this;
     }
 
-    public EntityBlueprintBuilder withOrderBy(String orderByColumnName)
+    public AggregateEntityBlueprintBuilder withOrderBy(String orderByColumnName)
     {
         return withOrderBy(orderByColumnName, SortDirection.Ascending);
     }
 
-    public EntityBlueprintBuilder withOrderBy(String orderByColumnName, SortDirection orderByDirection)
+    public AggregateEntityBlueprintBuilder withOrderBy(String orderByColumnName, SortDirection orderByDirection)
     {
         this.orderByColumnName = orderByColumnName;
         this.orderByDirection = orderByDirection;
         return this;
     }
 
-    public EntityBlueprintBuilder withChild(Class childClass)
+    public AggregateEntityBlueprintBuilder withChild(Class childClass)
     {
-        return new EntityBlueprintBuilder(childClass, this, entityBlueprintConstructorService);
+        return new AggregateEntityBlueprintBuilder(childClass, this, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder addAsChild(String fieldName)
+    public AggregateEntityBlueprintBuilder addAsChild(String fieldName)
     {
         if(parentBuilder == null)
         {
@@ -127,6 +147,7 @@ public class EntityBlueprintBuilder
             customColumnDataTypes,
             customFieldToColumnMappings,
             childEntities,
+            foreignKeyListBlueprints,
             entityBlueprintConstructorService
         );
     }

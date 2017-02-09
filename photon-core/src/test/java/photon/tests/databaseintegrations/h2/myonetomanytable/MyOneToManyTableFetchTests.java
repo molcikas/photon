@@ -54,7 +54,7 @@ public class MyOneToManyTableFetchTests
                 .withColumnDataType("id", Types.INTEGER)
                 .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("parent")
-                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myManyTables")
             .register();
     }

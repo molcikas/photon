@@ -10,10 +10,12 @@ public class EntityBlueprintConstructorService
     public List<FieldBlueprint> getFieldsForEntity(
         Class entityClass,
         Map<String, String> customFieldToColumnMappings,
-        Map<String, AggregateEntityBlueprint> childEntities)
+        Map<String, AggregateEntityBlueprint> childEntities,
+        Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints)
     {
         final Map<String, String> customFieldToColumnMappingsFinal = customFieldToColumnMappings != null ? customFieldToColumnMappings : new HashMap<>();
         final Map<String, AggregateEntityBlueprint> childEntitiesFinal = childEntities != null ? childEntities : new HashMap<>();
+        final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
 
         List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
 
@@ -24,7 +26,8 @@ public class EntityBlueprintConstructorService
                 customFieldToColumnMappingsFinal.containsKey(reflectedField.getName()) ?
                     customFieldToColumnMappingsFinal.get(reflectedField.getName()) :
                     reflectedField.getName(),
-                childEntitiesFinal.get(reflectedField.getName())
+                childEntitiesFinal.get(reflectedField.getName()),
+                foreignKeyListBlueprintsFinal.get(reflectedField.getName())
             ))
             .collect(Collectors.toList());
 
@@ -43,9 +46,14 @@ public class EntityBlueprintConstructorService
             customColumnDataTypes = new HashMap<>();
         }
 
-        List<ColumnBlueprint> columns = new ArrayList<>(fields.size() + 2); // 2 extra for primary key and foreign key to parent.
+        List<FieldBlueprint> fieldsWithColumnMappings = fields
+            .stream()
+            .filter(f -> f.getFieldType() != FieldType.ForeignKeyList)
+            .collect(Collectors.toList());
 
-        for(FieldBlueprint fieldBlueprint : fields)
+        List<ColumnBlueprint> columns = new ArrayList<>(fieldsWithColumnMappings.size() + 2); // 2 extra for primary key and foreign key to parent.
+
+        for(FieldBlueprint fieldBlueprint : fieldsWithColumnMappings)
         {
             String fieldName = fieldBlueprint.getFieldName();
             Integer columnDataType = customColumnDataTypes.containsKey(fieldName) ?

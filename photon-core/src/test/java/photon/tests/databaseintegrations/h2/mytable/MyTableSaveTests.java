@@ -174,7 +174,7 @@ public class MyTableSaveTests
             .withChild(MyOtherTable.class)
                 .withId("id")
                 .withForeignKeyToParent("id")
-                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")
             .register();
     }
@@ -186,7 +186,7 @@ public class MyTableSaveTests
             .withChild(MyOtherTable.class)
                 .withId("id")
                 .withForeignKeyToParent("id")
-                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")
             .register();
     }

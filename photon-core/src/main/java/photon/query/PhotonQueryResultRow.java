@@ -13,6 +13,11 @@ public class PhotonQueryResultRow
         values.put(columnName, value);
     }
 
+    public Object getValue(String columnName)
+    {
+        return values.get(columnName);
+    }
+
     public Set<Map.Entry<String, Object>> getValues()
     {
         return values.entrySet();

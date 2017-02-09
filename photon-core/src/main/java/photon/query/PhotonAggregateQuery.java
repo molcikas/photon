@@ -1,7 +1,6 @@
 package photon.query;
 
-import photon.blueprints.AggregateBlueprint;
-import photon.blueprints.AggregateEntityBlueprint;
+import photon.blueprints.*;
 
 import java.sql.Connection;
 import java.util.*;
@@ -44,13 +43,11 @@ public class PhotonAggregateQuery<T>
 
     private List<PopulatedEntity> getPopulatedAggregateRoots(List ids)
     {
-        Map<AggregateEntityBlueprint, String> entitySelectSqlTemplates = aggregateBlueprint.getEntitySelectSqlTemplates();
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
-        for(Map.Entry<AggregateEntityBlueprint, String> entityAndSelectSql : entitySelectSqlTemplates.entrySet())
+        for(AggregateEntityBlueprint aggregateEntityBlueprint : aggregateBlueprint.getEntityBlueprints())
         {
-            AggregateEntityBlueprint entityBlueprint = entityAndSelectSql.getKey();
-            executeQueryAndCreateEntityOrphans(populatedEntityMap, entityBlueprint, entityAndSelectSql.getValue(), ids);
+            executeQueryAndCreateEntityOrphans(populatedEntityMap, aggregateEntityBlueprint, ids);
         }
 
         populatedEntityMap.mapAllEntityInstanceChildren();
@@ -58,14 +55,25 @@ public class PhotonAggregateQuery<T>
         return populatedEntityMap.getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass());
     }
 
-    private void executeQueryAndCreateEntityOrphans(PopulatedEntityMap populatedEntityMap, AggregateEntityBlueprint entityBlueprint, String sqlTemplate, List ids)
+    private void executeQueryAndCreateEntityOrphans(PopulatedEntityMap populatedEntityMap, AggregateEntityBlueprint entityBlueprint, List ids)
     {
-        try (PhotonPreparedStatement statement = new PhotonPreparedStatement(sqlTemplate, connection))
+        try (PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getSelectSql(), connection))
         {
             statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
-            List<String> columnNames = entityBlueprint.getColumnNames();
-            List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(columnNames);
+            List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
             queryResultRows.forEach(queryResultRow -> populatedEntityMap.createPopulatedEntity(entityBlueprint, queryResultRow));
+        }
+
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
+        {
+            ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), connection))
+            {
+                statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+                List<String> columnNames = Arrays.asList(foreignKeyListBlueprint.getForeignTableKeyColumnName(), foreignKeyListBlueprint.getForeignTableJoinColumnName());
+                List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(columnNames);
+                populatedEntityMap.setFieldValuesOnEntityInstances(queryResultRows, fieldBlueprint, entityBlueprint);
+            }
         }
     }
 }

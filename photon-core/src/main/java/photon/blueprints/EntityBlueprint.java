@@ -17,8 +17,12 @@ public class EntityBlueprint
     protected SortDirection orderByDirection;
     protected List<FieldBlueprint> fields;
     protected List<ColumnBlueprint> columns;
-
     protected ColumnBlueprint primaryKeyColumn;
+
+    protected String selectSql;
+    protected String updateSql;
+    protected String insertSql;
+    protected String deleteChildrenExceptSql;
 
     public Class getEntityClass()
     {
@@ -50,6 +54,26 @@ public class EntityBlueprint
         return primaryKeyColumn;
     }
 
+    public String getSelectSql()
+    {
+        return selectSql;
+    }
+
+    public String getUpdateSql()
+    {
+        return updateSql;
+    }
+
+    public String getInsertSql()
+    {
+        return insertSql;
+    }
+
+    public String getDeleteChildrenExceptSql()
+    {
+        return deleteChildrenExceptSql;
+    }
+
     protected EntityBlueprint()
     {
     }
@@ -75,7 +99,7 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null, null);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, null);
 
         for(ColumnBlueprint columnBlueprint : columns)
@@ -151,6 +175,42 @@ public class EntityBlueprint
             .stream()
             .map(ColumnBlueprint::getColumnName)
             .collect(Collectors.toList());
+    }
+
+    public void setSelectSql(String selectSql)
+    {
+        if(StringUtils.isBlank(selectSql))
+        {
+            throw new PhotonException("Select SQL cannot be blank.");
+        }
+        this.selectSql = selectSql;
+    }
+
+    public void setUpdateSql(String updateSql)
+    {
+        if(StringUtils.isBlank(updateSql))
+        {
+            throw new PhotonException("Update SQL cannot be blank.");
+        }
+        this.updateSql = updateSql;
+    }
+
+    public void setInsertSql(String insertSql)
+    {
+        if(StringUtils.isBlank(insertSql))
+        {
+            throw new PhotonException("Insert SQL cannot be blank.");
+        }
+        this.insertSql = insertSql;
+    }
+
+    public void setDeleteChildrenExceptSql(String deleteChildrenExceptSql)
+    {
+        if(StringUtils.isBlank(deleteChildrenExceptSql))
+        {
+            throw new PhotonException("Delete children SQL cannot be blank.");
+        }
+        this.deleteChildrenExceptSql = deleteChildrenExceptSql;
     }
 
     protected void normalizeColumnOrder()

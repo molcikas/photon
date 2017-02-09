@@ -7,17 +7,14 @@ import java.util.*;
 
 public class InsertSqlBuilderService
 {
-    public Map<AggregateEntityBlueprint, String> buildInsertSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
+    public void buildInsertSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<AggregateEntityBlueprint, String> entityUpdateSqlMap = new HashMap<>();
-        buildInsertSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityUpdateSqlMap);
-        return entityUpdateSqlMap;
+        buildInsertSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList());
     }
 
     private void buildInsertSqlRecursive(
         AggregateEntityBlueprint entityBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints,
-        Map<AggregateEntityBlueprint, String> entitySqlMap)
+        List<AggregateEntityBlueprint> parentBlueprints)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
@@ -25,7 +22,7 @@ public class InsertSqlBuilderService
         buildInsertClauseSql(sqlBuilder, entityBlueprint);
         buildValuesClauseSql(sqlBuilder, entityBlueprint);
 
-        entitySqlMap.put(entityBlueprint, sqlBuilder.toString());
+        entityBlueprint.setInsertSql(sqlBuilder.toString());
 
         //System.out.println(sqlBuilder.toString());
 
@@ -34,7 +31,7 @@ public class InsertSqlBuilderService
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entitySqlMap));
+            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints));
     }
 
     private void buildInsertClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)

@@ -6,17 +6,14 @@ import java.util.*;
 
 public class DeleteSqlBuilderService
 {
-    public Map<AggregateEntityBlueprint, String> buildDeleteChildrenExceptSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
+    public void buildDeleteChildrenExceptSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        Map<AggregateEntityBlueprint, String> entityDeleteChildrenExceptSqlMap = new HashMap<>();
-        buildDeleteChildrenExceptSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), entityDeleteChildrenExceptSqlMap);
-        return entityDeleteChildrenExceptSqlMap;
+        buildDeleteChildrenExceptSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList());
     }
 
     private void buildDeleteChildrenExceptSqlRecursive(
         AggregateEntityBlueprint entityBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints,
-        Map<AggregateEntityBlueprint, String> entityChildrenExceptSqlMap)
+        List<AggregateEntityBlueprint> parentBlueprints)
     {
         String sql = String.format("DELETE FROM `%s` WHERE `%s`.`%s` = ? AND `%s`.`%s` NOT IN (?)",
             entityBlueprint.getTableName(),
@@ -26,14 +23,14 @@ public class DeleteSqlBuilderService
             entityBlueprint.getPrimaryKeyColumnName()
         );
 
-        entityChildrenExceptSqlMap.put(entityBlueprint, sql);
+        entityBlueprint.setDeleteChildrenExceptSql(sql);
 
         final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
         childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildDeleteChildrenExceptSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, entityChildrenExceptSqlMap));
+            .forEach(entityField -> buildDeleteChildrenExceptSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints));
     }
 
 

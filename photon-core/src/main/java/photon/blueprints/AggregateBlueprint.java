@@ -11,39 +11,21 @@ import java.util.*;
 public class AggregateBlueprint
 {
     private final AggregateEntityBlueprint aggregateRootEntityBlueprint;
-    private final Map<AggregateEntityBlueprint, String> entitySelectSqlTemplates;
-    private final Map<AggregateEntityBlueprint, String> entityUpdateSqlTemplates;
-    private final Map<AggregateEntityBlueprint, String> entityInsertSqlTemplates;
-    private final Map<AggregateEntityBlueprint, String>  deleteChildrenExceptSqlTemplates;
+    private final List<AggregateEntityBlueprint> entityBlueprints;
 
     public AggregateEntityBlueprint getAggregateRootEntityBlueprint()
     {
         return aggregateRootEntityBlueprint;
     }
 
+    public List<AggregateEntityBlueprint> getEntityBlueprints()
+    {
+        return Collections.unmodifiableList(entityBlueprints);
+    }
+
     public Class getAggregateRootClass()
     {
         return aggregateRootEntityBlueprint.getEntityClass();
-    }
-
-    public Map<AggregateEntityBlueprint, String> getEntitySelectSqlTemplates()
-    {
-        return Collections.unmodifiableMap(entitySelectSqlTemplates);
-    }
-
-    public String getEntityUpdateSqlTemplate(AggregateEntityBlueprint entityBlueprint)
-    {
-        return entityUpdateSqlTemplates.get(entityBlueprint);
-    }
-
-    public String getEntityInsertSqlTemplate(AggregateEntityBlueprint entityBlueprint)
-    {
-        return entityInsertSqlTemplates.get(entityBlueprint);
-    }
-
-    public String getDeleteChildrenExceptSqlTemplate(AggregateEntityBlueprint entityBlueprint)
-    {
-        return deleteChildrenExceptSqlTemplates.get(entityBlueprint);
     }
 
     public AggregateBlueprint(
@@ -57,10 +39,23 @@ public class AggregateBlueprint
         {
             throw new PhotonException("Aggregate root entity cannot be null.");
         }
+
+        this.entityBlueprints = new ArrayList<>();
+        findAllAggregateEntityBlueprints(aggregateRootEntityBlueprint);
+
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
-        this.entitySelectSqlTemplates = selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
-        this.entityUpdateSqlTemplates = updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
-        this.entityInsertSqlTemplates = insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
-        this.deleteChildrenExceptSqlTemplates = deleteSqlBuilderService.buildDeleteChildrenExceptSqlTemplates(aggregateRootEntityBlueprint);
+        selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
+        updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
+        insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
+        deleteSqlBuilderService.buildDeleteChildrenExceptSqlTemplates(aggregateRootEntityBlueprint);
+    }
+
+    private void findAllAggregateEntityBlueprints(AggregateEntityBlueprint aggregateEntityBlueprint)
+    {
+        this.entityBlueprints.add(aggregateEntityBlueprint);
+        for(FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getFieldsWithChildEntities())
+        {
+            findAllAggregateEntityBlueprints(fieldBlueprint.getChildEntityBlueprint());
+        }
     }
 }

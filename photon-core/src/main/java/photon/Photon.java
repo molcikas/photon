@@ -48,9 +48,9 @@ public class Photon
         return new PhotonConnection(getConnection(), true, registeredAggregates, entityBlueprintConstructorService);
     }
 
-    public EntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
+    public AggregateEntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
     {
-        return new EntityBlueprintBuilder(aggregateRootClass, this, entityBlueprintConstructorService);
+        return new AggregateEntityBlueprintBuilder(aggregateRootClass, this, entityBlueprintConstructorService);
     }
 
     public void registerAggregate(AggregateEntityBlueprint aggregateRootEntityBlueprint)

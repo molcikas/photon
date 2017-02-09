@@ -68,6 +68,8 @@ public class PhotonConnection implements Closeable
         new PhotonAggregateSave(aggregateBlueprint, connection).save(aggregate);
     }
 
+    // TODO: public void save(List<Object> aggregates)
+
     public void close()
     {
         try

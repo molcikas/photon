@@ -1,6 +1,9 @@
 package photon.query;
 
 import photon.blueprints.AggregateEntityBlueprint;
+import photon.blueprints.ColumnBlueprint;
+import photon.blueprints.EntityBlueprint;
+import photon.blueprints.FieldBlueprint;
 
 import java.util.*;
 
@@ -54,7 +57,7 @@ public class PopulatedEntityMap
         childIndexes.put(entityClass, index);
     }
 
-    public Object getNextInstanceWithClassAndForeignKeyToParent(Class entityClass, Object key)
+    public Object getNextInstanceWithClassAndForeignKeyToParent(Class entityClass, Object foreignKeyToParentValue)
     {
         Integer index = childIndexes.get(entityClass);
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityClass);
@@ -66,7 +69,7 @@ public class PopulatedEntityMap
         {
             index = 0;
         }
-        if (index < populatedEntities.size() && keysAreEqual(key, populatedEntities.get(index).getForeignKeyToParentValue()))
+        if (index < populatedEntities.size() && keysAreEqual(foreignKeyToParentValue, populatedEntities.get(index).getForeignKeyToParentValue()))
         {
             childIndexes.put(entityClass, index + 1);
             return populatedEntities.get(index).getEntityInstance();
@@ -76,9 +79,35 @@ public class PopulatedEntityMap
 
     public void mapAllEntityInstanceChildren()
     {
+        // TODO: Refactor this method and populatedEntity.mapEntityInstanceChildren. Move most of the logic to here. PopulatedEntity should not
+        // not know about PopulatedEntityMap.
+
         populatedEntityMap
             .values()
             .forEach(populatedEntities -> populatedEntities.forEach(populatedEntity -> populatedEntity.mapEntityInstanceChildren(this)));
+    }
+
+    public void setFieldValuesOnEntityInstances(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
+    {
+        ColumnBlueprint primaryKeyColumn = entityBlueprint.getPrimaryKeyColumn();
+        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
+        String foreignTableKeyColumnName = fieldBlueprint.getForeignKeyListBlueprint().getForeignTableKeyColumnName();
+
+        int entityIndex = 0;
+        for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
+        {
+            Object primaryKeyValue = photonQueryResultRow.getValue(primaryKeyColumn.getColumnName());
+            while(entityIndex < populatedEntities.size() && !keysAreEqual(primaryKeyValue, populatedEntities.get(entityIndex).getPrimaryKeyValue()))
+            {
+                entityIndex++;
+            }
+            if(entityIndex >= populatedEntities.size())
+            {
+                break;
+            }
+            PopulatedEntity populatedEntity = populatedEntities.get(entityIndex);
+            populatedEntity.appendValueToForeignKeyListField(fieldBlueprint, photonQueryResultRow.getValue(foreignTableKeyColumnName));
+        }
     }
 
     private boolean keysAreEqual(Object primaryKey, Object foreignKey)

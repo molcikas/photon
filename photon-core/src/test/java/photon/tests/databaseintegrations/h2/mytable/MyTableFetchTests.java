@@ -161,7 +161,7 @@ public class MyTableFetchTests
             .withChild(MyOtherTable.class)
                 .withId("id")
                 .withForeignKeyToParent("id")
-                .withFieldToColmnnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")
             .register();
     }

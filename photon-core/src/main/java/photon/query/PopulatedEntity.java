@@ -1,13 +1,10 @@
 package photon.query;
 
 import org.apache.commons.lang3.StringUtils;
-import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.EntityBlueprint;
+import photon.blueprints.*;
 import photon.converters.Convert;
 import photon.converters.Converter;
 import photon.exceptions.PhotonException;
-import photon.blueprints.AggregateEntityBlueprint;
-import photon.blueprints.FieldBlueprint;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -18,7 +15,7 @@ public class PopulatedEntity<T>
 {
     private final EntityBlueprint entityBlueprint;
     private final AggregateEntityBlueprint aggregateEntityBlueprint;
-    private final T entityInstance;
+    private T entityInstance;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
 
@@ -53,7 +50,7 @@ public class PopulatedEntity<T>
         {
             this.aggregateEntityBlueprint = null;
         }
-        this.entityInstance = constructOrphanEntityInstance(queryResultRow);
+        constructOrphanEntityInstance(queryResultRow);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
@@ -127,15 +124,15 @@ public class PopulatedEntity<T>
             childEntityInstances = Collections.singletonList(fieldValue);
         }
 
-        return Arrays.stream(childEntityInstances.toArray())
-            .map(i -> new PopulatedEntity(fieldBlueprint.getChildEntityBlueprint(), i))
+        return Arrays
+            .stream(childEntityInstances.toArray())
+            .map(instance -> new PopulatedEntity(fieldBlueprint.getChildEntityBlueprint(), instance))
             .collect(Collectors.toList());
     }
 
     public void setPrimaryKeyValue(Object primaryKeyValue)
     {
-        this.primaryKeyValue = primaryKeyValue;
-        setEntityInstanceFieldToDatabaseValue(entityInstance, aggregateEntityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
     }
 
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
@@ -146,8 +143,21 @@ public class PopulatedEntity<T>
         }
         AggregateEntityBlueprint aggregateEntityBlueprint = (AggregateEntityBlueprint) this.entityBlueprint;
 
-        this.foreignKeyToParentValue = foreignKeyToParentValue;
-        setEntityInstanceFieldToDatabaseValue(entityInstance, aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+    }
+
+    public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
+    {
+        if(fieldBlueprint.getFieldType() != FieldType.ForeignKeyList)
+        {
+            throw new PhotonException(String.format("Field '%s' is not a foreign key list field.", fieldBlueprint.getFieldName()));
+        }
+
+        Object fieldCollection = getInstanceValue(fieldBlueprint);
+
+        Converter converter = Convert.getConverterIfExists(fieldBlueprint.getForeignKeyListBlueprint().getFieldListItemClass());
+        Object fieldValue = converter.convert(value);
+        ((Collection) fieldCollection).add(fieldValue);
     }
 
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
@@ -163,7 +173,7 @@ public class PopulatedEntity<T>
         {
             Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
-            if(Collection.class.isAssignableFrom(fieldBlueprint.getFieldClass()))
+            if(fieldBlueprint.getFieldType() == FieldType.EntityList)
             {
                 Collection collection = createCompatibleCollection(fieldBlueprint.getFieldClass());
                 populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
@@ -277,12 +287,11 @@ public class PopulatedEntity<T>
         insertStatement.addToBatch();
     }
 
-    private T constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
+    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
     {
-        T entityInstance;
-
         try
         {
+            // TODO: Cache constructor.
             Constructor<T> constructor = entityBlueprint.getEntityClass().getDeclaredConstructor();
             constructor.setAccessible(true);
             entityInstance = constructor.newInstance();
@@ -297,13 +306,20 @@ public class PopulatedEntity<T>
 
         for(Map.Entry<String, Object> entry : queryResultRow.getValues())
         {
-            setEntityInstanceFieldToDatabaseValue(entityInstance, entry.getKey(), entry.getValue());
+            setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue());
         }
 
-        return entityInstance;
+        if(aggregateEntityBlueprint != null)
+        {
+            for (FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getForeignKeyListFields())
+            {
+                Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
+                setInstanceFieldToValue(fieldBlueprint, fieldCollection);
+            }
+        }
     }
 
-    private void setEntityInstanceFieldToDatabaseValue(T entityInstance, String columnName, Object databaseValue)
+    private void setInstanceFieldToDatabaseValue(String columnName, Object databaseValue)
     {
         FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
 
@@ -329,15 +345,19 @@ public class PopulatedEntity<T>
         }
 
         Object fieldValue = converter.convert(databaseValue);
+        setInstanceFieldToValue(fieldBlueprint, fieldValue);
+    }
 
+    private void setInstanceFieldToValue(FieldBlueprint fieldBlueprint, Object value)
+    {
         try
         {
             Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-            field.set(entityInstance, fieldValue);
+            field.set(entityInstance, value);
         }
         catch (Exception ex)
         {
-            throw new PhotonException(String.format("Failed to set value for field '%s' to '%s' on entity '%s'.", fieldBlueprint.getFieldName(), fieldValue, entityBlueprint.getEntityClassName()), ex);
+            throw new PhotonException(String.format("Failed to set value for field '%s' to '%s' on entity '%s'.", fieldBlueprint.getFieldName(), value, entityBlueprint.getEntityClassName()), ex);
         }
     }
 
