@@ -3,6 +3,9 @@ package photon.blueprints;
 import org.apache.commons.lang3.StringUtils;
 import photon.exceptions.PhotonException;
 
+import java.util.Arrays;
+import java.util.List;
+
 public class ForeignKeyListBlueprint
 {
     private final String foreignTableName;
@@ -12,6 +15,8 @@ public class ForeignKeyListBlueprint
     private final Class fieldListItemClass;
 
     private String selectSql;
+    private String insertSql;
+    private String deleteSql;
 
     public String getForeignTableName()
     {
@@ -43,6 +48,16 @@ public class ForeignKeyListBlueprint
         return selectSql;
     }
 
+    public String getInsertSql()
+    {
+        return insertSql;
+    }
+
+    public String getDeleteSql()
+    {
+        return deleteSql;
+    }
+
     public ForeignKeyListBlueprint(
         String foreignTableName,
         String foreignTableJoinColumnName,
@@ -57,6 +72,11 @@ public class ForeignKeyListBlueprint
         this.fieldListItemClass = fieldListItemClass;
     }
 
+    public List<String> getSelectColumnNames()
+    {
+        return Arrays.asList(foreignTableKeyColumnName, foreignTableJoinColumnName);
+    }
+
     public void setSelectSql(String selectSql)
     {
         if(StringUtils.isBlank(selectSql))
@@ -64,5 +84,23 @@ public class ForeignKeyListBlueprint
             throw new PhotonException("Select SQL cannot be blank.");
         }
         this.selectSql = selectSql;
+    }
+
+    public void setInsertSql(String insertSql)
+    {
+        if(StringUtils.isBlank(insertSql))
+        {
+            throw new PhotonException("Insert SQL cannot be blank.");
+        }
+        this.insertSql = insertSql;
+    }
+
+    public void setDeleteSql(String deleteSql)
+    {
+        if(StringUtils.isBlank(deleteSql))
+        {
+            throw new PhotonException("Delete SQL cannot be blank.");
+        }
+        this.deleteSql = deleteSql;
     }
 }

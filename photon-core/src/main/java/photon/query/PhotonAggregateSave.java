@@ -1,9 +1,8 @@
 package photon.query;
 
-import photon.blueprints.AggregateBlueprint;
-import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.AggregateEntityBlueprint;
-import photon.blueprints.FieldBlueprint;
+import photon.blueprints.*;
+import photon.converters.Convert;
+import photon.converters.Converter;
 
 import java.sql.Connection;
 import java.util.*;
@@ -27,6 +26,15 @@ public class PhotonAggregateSave
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
         saveEntitiesRecursive(Collections.singletonList(aggregateRootEntity), null);
+    }
+
+    public void saveAll(List<?> aggregateRootInstances)
+    {
+        List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
+            .stream()
+            .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
+            .collect(Collectors.toList());
+        saveEntitiesRecursive(aggregateRootEntities, null);
     }
 
     private void saveEntitiesRecursive(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
@@ -53,6 +61,8 @@ public class PhotonAggregateSave
         setForeignKeyToParentForPopulatedEntities(populatedEntitiesNeedingForeignKeyToParentSet, fieldsWithChildEntities);
 
         deleteOrphanChildEntities(updatedPopulatedEntities, fieldsWithChildEntities, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+
+        insertAndDeleteForeignKeyListFields(populatedEntities, entityBlueprint.getForeignKeyListFields());
 
         for(PopulatedEntity populatedEntity : populatedEntities)
         {
@@ -182,5 +192,110 @@ public class PhotonAggregateSave
                 deleteAllChildrenExceptStatement.executeBatch();
             }
         }
+    }
+
+    private void insertAndDeleteForeignKeyListFields(List<PopulatedEntity> populatedEntities, List<FieldBlueprint> foreignKeyListFields)
+    {
+        if(populatedEntities == null || populatedEntities.isEmpty())
+        {
+            return;
+        }
+
+        AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
+
+        for (FieldBlueprint fieldBlueprint : foreignKeyListFields)
+        {
+            ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+            List<Object> ids = populatedEntities
+                .stream()
+                .map(PopulatedEntity::getPrimaryKeyValue)
+                .collect(Collectors.toList());
+            Map<Object, Collection> existingDatabaseForeignKeyListValues = getExistingDatabaseForeignKeyListValues(
+                ids,
+                foreignKeyListBlueprint,
+                entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass()
+            );
+
+            try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getInsertSql(), connection))
+            {
+                for (PopulatedEntity populatedEntity : populatedEntities)
+                {
+                    Collection databaseForeignKeyListValuesForEntity = existingDatabaseForeignKeyListValues.get(populatedEntity.getPrimaryKeyValue());
+                    if(databaseForeignKeyListValuesForEntity == null)
+                    {
+                        databaseForeignKeyListValuesForEntity = Collections.emptyList();
+                    }
+                    final Collection databaseForeignKeyListValuesForEntityFinal = databaseForeignKeyListValuesForEntity;
+                    Collection currentForeignKeyListValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint);
+                    if(currentForeignKeyListValues == null)
+                    {
+                        currentForeignKeyListValues = Collections.emptyList();
+                    }
+                    final Collection currentForeignKeyListValuesFinal = (Collection) currentForeignKeyListValues
+                        .stream()
+                        .distinct()
+                        .collect(Collectors.toList());
+
+                    Collection foreignKeyValuesToDelete = (Collection) databaseForeignKeyListValuesForEntityFinal
+                        .stream()
+                        .filter(value -> !currentForeignKeyListValuesFinal.contains(value))
+                        .collect(Collectors.toList());
+
+                    if(!foreignKeyValuesToDelete.isEmpty())
+                    {
+                        try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getDeleteSql(), connection))
+                        {
+                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+                            deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                            deleteStatement.executeUpdate();
+                        }
+                    }
+
+                    Collection foreignKeyValuesToInsert = (Collection) currentForeignKeyListValuesFinal
+                        .stream()
+                        .filter(value -> !databaseForeignKeyListValuesForEntityFinal.contains(value))
+                        .collect(Collectors.toList());
+
+                    for (Object foreignKeyValue : foreignKeyValuesToInsert)
+                    {
+                        insertStatement.setNextParameter(foreignKeyValue, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+                        insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                        insertStatement.addToBatch();
+                    }
+                }
+
+                insertStatement.executeBatch();
+            }
+        }
+    }
+
+    private Map<Object, Collection> getExistingDatabaseForeignKeyListValues(List<Object> ids, ForeignKeyListBlueprint foreignKeyListBlueprint, Class primaryKeyFieldClass)
+    {
+        Map<Object, Collection> existingDatabaseForeignKeyListValues = new HashMap<>();
+        List<PhotonQueryResultRow> photonQueryResultRows;
+
+        try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), connection))
+        {
+            statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+            photonQueryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
+        }
+
+        Converter joinColumnConverter = Convert.getConverterIfExists(primaryKeyFieldClass);
+        Converter foreignKeyConverter = Convert.getConverterIfExists(foreignKeyListBlueprint.getFieldListItemClass());
+
+        for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
+        {
+            Object joinColumnValue = joinColumnConverter.convert(photonQueryResultRow.getValue(foreignKeyListBlueprint.getForeignTableJoinColumnName()));
+            Object foreignKeyValue = foreignKeyConverter.convert(photonQueryResultRow.getValue(foreignKeyListBlueprint.getForeignTableKeyColumnName()));
+            Collection existingForeignKeysList = existingDatabaseForeignKeyListValues.get(joinColumnValue);
+            if(existingForeignKeysList == null)
+            {
+                existingForeignKeysList = new ArrayList<>();
+                existingDatabaseForeignKeyListValues.put(joinColumnValue, existingForeignKeysList);
+            }
+            existingForeignKeysList.add(foreignKeyValue);
+        }
+
+        return existingDatabaseForeignKeyListValues;
     }
 }

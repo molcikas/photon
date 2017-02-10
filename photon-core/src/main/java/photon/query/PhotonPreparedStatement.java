@@ -31,6 +31,8 @@ public class PhotonPreparedStatement implements Closeable
     private final List<ParameterValue> parameterValues;
     private List<Long> generatedKeys;
 
+    private boolean isBatched = false;
+
     public PhotonPreparedStatement(String sqlText, Connection connection)
     {
         this.connection = connection;
@@ -42,6 +44,11 @@ public class PhotonPreparedStatement implements Closeable
 
     public void setNextArrayParameter(Collection values, Integer dataType)
     {
+        if(isBatched)
+        {
+            throw new PhotonException(String.format("Cannot call setNextArrayParameter() because this is a batched query. Sql: \n%s", originalSqlText));
+        }
+
         String newTextForQuestionMark;
         int questionMarkIndex = StringUtils.ordinalIndexOf(sqlText, "?", parameterValues.size() + 1);
 
@@ -85,6 +92,7 @@ public class PhotonPreparedStatement implements Closeable
         try
         {
             preparedStatement.addBatch();
+            isBatched = true;
             parameterValues.clear();
         }
         catch(Exception ex)

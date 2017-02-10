@@ -14,7 +14,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
-public class TwoAggregatesFetchTests
+public class TwoAggregatesTests
 {
     private Photon photon;
 
@@ -99,9 +99,12 @@ public class TwoAggregatesFetchTests
 
             aggregateOnes.get(0).getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000020"));
             aggregateOnes.get(0).getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000022"));
+            aggregateOnes.get(0).getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000022")); // Duplicates should be ignored.
+            aggregateOnes.get(1).getAggregateTwos().clear();
+            aggregateOnes.get(1).getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000020"));
             aggregateOnes.get(2).getAggregateTwos().clear();
 
-            aggregateOnes.forEach(connection::save);
+            connection.saveAll(aggregateOnes);
         }
 
         try(PhotonConnection connection = photon.open())
@@ -121,12 +124,12 @@ public class TwoAggregatesFetchTests
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000010"), aggregateOne0.getAggregateOneId());
             assertEquals(2, aggregateOne0.getAggregateTwos().size());
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000020"), aggregateOne0.getAggregateTwos().get(0));
-            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000022"), aggregateOne0.getAggregateTwos().get(0));
+            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000022"), aggregateOne0.getAggregateTwos().get(1));
 
             AggregateOne aggregateOne1 = aggregateOnes.get(1);
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"), aggregateOne1.getAggregateOneId());
             assertEquals(1, aggregateOne1.getAggregateTwos().size());
-            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000021"), aggregateOne1.getAggregateTwos().get(0));
+            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000020"), aggregateOne1.getAggregateTwos().get(0));
 
             AggregateOne aggregateOne2 = aggregateOnes.get(2);
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"), aggregateOne2.getAggregateOneId());

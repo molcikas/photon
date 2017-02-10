@@ -2,6 +2,8 @@ package photon.sqlbuilders;
 
 import photon.blueprints.ColumnBlueprint;
 import photon.blueprints.AggregateEntityBlueprint;
+import photon.blueprints.FieldBlueprint;
+import photon.blueprints.ForeignKeyListBlueprint;
 
 import java.util.*;
 
@@ -25,6 +27,8 @@ public class InsertSqlBuilderService
         entityBlueprint.setInsertSql(sqlBuilder.toString());
 
         //System.out.println(sqlBuilder.toString());
+
+        entityBlueprint.getForeignKeyListFields().forEach(this::buildInsertKeysFromForeignTableSql);
 
         final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);
@@ -66,5 +70,18 @@ public class InsertSqlBuilderService
         }
 
         sqlBuilder.append(")");
+    }
+
+    private void buildInsertKeysFromForeignTableSql(FieldBlueprint fieldBlueprint)
+    {
+        ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+
+        String sql = String.format("INSERT INTO `%s` (`%s`, `%s`) VALUES (?, ?)",
+            foreignKeyListBlueprint.getForeignTableName(),
+            foreignKeyListBlueprint.getForeignTableKeyColumnName(),
+            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+        );
+
+        foreignKeyListBlueprint.setInsertSql(sql);
     }
 }

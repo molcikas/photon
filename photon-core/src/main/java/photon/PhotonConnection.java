@@ -9,6 +9,7 @@ import photon.query.PhotonQuery;
 
 import java.io.Closeable;
 import java.sql.*;
+import java.util.List;
 import java.util.Map;
 
 public class PhotonConnection implements Closeable
@@ -68,7 +69,22 @@ public class PhotonConnection implements Closeable
         new PhotonAggregateSave(aggregateBlueprint, connection).save(aggregate);
     }
 
-    // TODO: public void save(List<Object> aggregates)
+    // TODO: Need unit tests for this!
+    public void saveAll(List<?> aggregates)
+    {
+        if(aggregates == null || aggregates.isEmpty())
+        {
+            return;
+        }
+        Class aggregateClass = aggregates.get(0).getClass();
+        AggregateBlueprint aggregateBlueprint = registeredAggregates.get(aggregateClass);
+        if(aggregateBlueprint == null)
+        {
+            throw new PhotonException(String.format("The aggregate root class '%s' is not registered with photon.", aggregateClass.getName()));
+        }
+
+        new PhotonAggregateSave(aggregateBlueprint, connection).saveAll(aggregates);
+    }
 
     public void close()
     {
