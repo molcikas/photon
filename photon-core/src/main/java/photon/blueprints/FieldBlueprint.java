@@ -13,7 +13,7 @@ public class FieldBlueprint
     private final Class fieldClass;
     private final FieldType fieldType;
 
-    private final String columnName;
+    private final String mappedColumnName;
     private final AggregateEntityBlueprint childEntityBlueprint;
     private final ForeignKeyListBlueprint foreignKeyListBlueprint;
 
@@ -37,10 +37,9 @@ public class FieldBlueprint
         return fieldType;
     }
 
-    // TODO: Rename
-    public String getColumnName()
+    public String getMappedColumnName()
     {
-        return columnName;
+        return mappedColumnName;
     }
 
     public AggregateEntityBlueprint getChildEntityBlueprint()
@@ -68,7 +67,7 @@ public class FieldBlueprint
         if(foreignKeyListBlueprint != null)
         {
             this.fieldType = FieldType.ForeignKeyList;
-            this.columnName = null;
+            this.mappedColumnName = null;
             this.childEntityBlueprint = null;
             this.foreignKeyListBlueprint = foreignKeyListBlueprint;
 
@@ -97,14 +96,14 @@ public class FieldBlueprint
                 this.fieldType = FieldType.Entity;
             }
 
-            this.columnName = mappedColumnName;
+            this.mappedColumnName = mappedColumnName;
             this.childEntityBlueprint = childEntityBlueprint;
             this.foreignKeyListBlueprint = null;
         }
         else
         {
             this.fieldType = FieldType.Primitive;
-            this.columnName = mappedColumnName;
+            this.mappedColumnName = mappedColumnName;
             this.childEntityBlueprint = null;
             this.foreignKeyListBlueprint = null;
         }

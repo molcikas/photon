@@ -158,38 +158,38 @@ public class PhotonAggregateSave
 
     private void deleteOrphanChildEntities(List<PopulatedEntity> populatedEntities, List<FieldBlueprint> fieldsWithChildEntities, Integer primaryKeyDataType)
     {
+        // TODO: 3 level entity, if you delete the middle level the last level will throw a foreign key error!
+
         for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
         {
             String deleteChildrenExceptSql = fieldBlueprint.getChildEntityBlueprint().getDeleteChildrenExceptSql();
             ColumnBlueprint childPrimaryKeyColumn = fieldBlueprint.getChildEntityBlueprint().getPrimaryKeyColumn();
 
-            try(PhotonPreparedStatement deleteAllChildrenExceptStatement = new PhotonPreparedStatement(deleteChildrenExceptSql, connection))
+            for(PopulatedEntity populatedEntity : populatedEntities)
             {
-                for(PopulatedEntity populatedEntity : populatedEntities)
+                List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
+
+                List<Object> childrenToSave;
+                if(childPrimaryKeyColumn.getMappedFieldBlueprint() == null)
                 {
-                    List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-
-                    List<Object> childrenToSave;
-                    if(childPrimaryKeyColumn.getMappedFieldBlueprint() == null)
-                    {
-                        // If the child does not have a primary key, then it has to be re-inserted on every save.
-                        childrenToSave = Collections.emptyList();
-                    }
-                    else
-                    {
-                        childrenToSave = fieldPopulatedEntities
-                            .stream()
-                            .filter(p -> p.getPrimaryKeyValue() != null)
-                            .map(PopulatedEntity::getPrimaryKeyValue)
-                            .collect(Collectors.toList());
-                    }
-
-                    deleteAllChildrenExceptStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), primaryKeyDataType);
-                    deleteAllChildrenExceptStatement.setNextArrayParameter(childrenToSave, childPrimaryKeyColumn.getColumnDataType());
-                    deleteAllChildrenExceptStatement.addToBatch();
+                    // If the child does not have a primary key, then it has to be re-inserted on every save.
+                    childrenToSave = Collections.emptyList();
+                }
+                else
+                {
+                    childrenToSave = fieldPopulatedEntities
+                        .stream()
+                        .filter(p -> p.getPrimaryKeyValue() != null)
+                        .map(PopulatedEntity::getPrimaryKeyValue)
+                        .collect(Collectors.toList());
                 }
 
-                deleteAllChildrenExceptStatement.executeBatch();
+                try(PhotonPreparedStatement deleteAllChildrenExceptStatement = new PhotonPreparedStatement(deleteChildrenExceptSql, connection))
+                {
+                    deleteAllChildrenExceptStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), primaryKeyDataType);
+                    deleteAllChildrenExceptStatement.setNextArrayParameter(childrenToSave, childPrimaryKeyColumn.getColumnDataType());
+                    deleteAllChildrenExceptStatement.executeUpdate();
+                }
             }
         }
     }
@@ -202,14 +202,14 @@ public class PhotonAggregateSave
         }
 
         AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
+        List<Object> ids = populatedEntities
+            .stream()
+            .map(PopulatedEntity::getPrimaryKeyValue)
+            .collect(Collectors.toList());
 
         for (FieldBlueprint fieldBlueprint : foreignKeyListFields)
         {
             ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
-            List<Object> ids = populatedEntities
-                .stream()
-                .map(PopulatedEntity::getPrimaryKeyValue)
-                .collect(Collectors.toList());
             Map<Object, Collection> existingDatabaseForeignKeyListValues = getExistingDatabaseForeignKeyListValues(
                 ids,
                 foreignKeyListBlueprint,
@@ -243,7 +243,7 @@ public class PhotonAggregateSave
 
                     if(!foreignKeyValuesToDelete.isEmpty())
                     {
-                        try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getDeleteSql(), connection))
+                        try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getDeleteForeignKeysSql(), connection))
                         {
                             deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, foreignKeyListBlueprint.getForeignTableKeyColumnType());
                             deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());

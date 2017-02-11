@@ -47,7 +47,7 @@ public class AggregateBlueprint
         selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
         updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
         insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
-        deleteSqlBuilderService.buildDeleteChildrenExceptSqlTemplates(aggregateRootEntityBlueprint);
+        deleteSqlBuilderService.buildDeleteSqlTemplates(aggregateRootEntityBlueprint);
     }
 
     private void findAllAggregateEntityBlueprints(AggregateEntityBlueprint aggregateEntityBlueprint)

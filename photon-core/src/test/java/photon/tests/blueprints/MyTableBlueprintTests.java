@@ -34,7 +34,11 @@ public class MyTableBlueprintTests
         }
     }
 
+    // TODO: Aggregate root entity must have primary key.
+
     // TODO: Entity without a primary key field cannot have child entities.
+
+    // TODO: Entity without a primary key field cannot have foreign key list field.
 
     // TODO: Cannot set withForeignKeyToParent to the primary key and also set primaryKeyAutoIncrement to true.
 }

@@ -63,7 +63,7 @@ public class EntityBlueprintConstructorService
             {
                 boolean isPrimaryKey = idFieldName != null && fieldName.equals(idFieldName);
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                    fieldBlueprint.getColumnName(),
+                    fieldBlueprint.getMappedColumnName(),
                     columnDataType,
                     isPrimaryKey,
                     isPrimaryKey && isPrimaryKeyAutoIncrement,

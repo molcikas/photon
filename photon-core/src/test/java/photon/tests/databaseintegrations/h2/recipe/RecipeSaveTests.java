@@ -263,6 +263,50 @@ public class RecipeSaveTests
         }
     }
 
+    @Test
+    public void aggregate_save_changeMultipleExistingRecipes_updatesRecipes()
+    {
+        registerRecipeAggregate();
+
+        try (PhotonConnection connection = photon.open())
+        {
+            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe2 = connection.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe3 = connection.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
+
+            recipe1.setName("New Recipe1 Name");
+            recipe2.setPrepTime(12345);
+            recipe3.setPrepTime(-377);
+
+            recipe1.getIngredients().clear();
+            recipe2.getInstructions().clear();
+
+            connection.saveAll(Arrays.asList(recipe1, recipe2, recipe3));
+        }
+
+        try (PhotonConnection connection = photon.open())
+        {
+            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe2 = connection.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe3 = connection.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
+
+            assertEquals("New Recipe1 Name", recipe1.getName());
+            assertEquals("Slow Cooker Rice and Bean Casserole", recipe2.getName());
+            assertEquals("Onion Gravy", recipe3.getName());
+
+            assertEquals(15, recipe1.getPrepTime());
+            assertEquals(12345, recipe2.getPrepTime());
+            assertEquals(-377, recipe3.getPrepTime());
+
+            assertEquals(0, recipe1.getIngredients().size());
+            assertEquals(3, recipe1.getInstructions().size());
+            assertEquals(10, recipe2.getIngredients().size());
+            assertEquals(0, recipe2.getInstructions().size());
+            assertEquals(8, recipe3.getIngredients().size());
+            assertEquals(6, recipe3.getInstructions().size());
+        }
+    }
+
     private void registerRecipeAggregate()
     {
         registerRecipeAggregate(SortDirection.Ascending);

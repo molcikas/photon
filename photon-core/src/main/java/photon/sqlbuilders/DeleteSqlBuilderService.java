@@ -4,49 +4,55 @@ import photon.blueprints.AggregateEntityBlueprint;
 import photon.blueprints.FieldBlueprint;
 import photon.blueprints.ForeignKeyListBlueprint;
 
-import java.util.*;
-
 public class DeleteSqlBuilderService
 {
-    public void buildDeleteChildrenExceptSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
+    public void buildDeleteSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        buildDeleteChildrenExceptSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList());
+        buildDeleteSqlTemplatesRecursive(aggregateRootEntityBlueprint);
     }
 
-    private void buildDeleteChildrenExceptSqlRecursive(
-        AggregateEntityBlueprint entityBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints)
+    private void buildDeleteSqlTemplatesRecursive(
+        AggregateEntityBlueprint entityBlueprint)
     {
-        String sql = String.format("DELETE FROM `%s` WHERE `%s`.`%s` = ? AND `%s`.`%s` NOT IN (?)",
-            entityBlueprint.getTableName(),
-            entityBlueprint.getTableName(),
-            entityBlueprint.getForeignKeyToParentColumnName(),
+        String deleteSql = String.format("DELETE FROM `%s` WHERE `%s` IN (?)",
             entityBlueprint.getTableName(),
             entityBlueprint.getPrimaryKeyColumnName()
         );
 
-        entityBlueprint.setDeleteChildrenExceptSql(sql);
+        entityBlueprint.setDeleteSql(deleteSql);
+
+        String deleteChildrenExceptSql = String.format("DELETE FROM `%s` WHERE `%s` = ? AND `%s` NOT IN (?)",
+            entityBlueprint.getTableName(),
+            entityBlueprint.getForeignKeyToParentColumnName(),
+            entityBlueprint.getPrimaryKeyColumnName()
+        );
+
+        entityBlueprint.setDeleteChildrenExceptSql(deleteChildrenExceptSql);
 
         entityBlueprint.getForeignKeyListFields().forEach(this::buildDeleteKeysFromForeignTableSql);
 
-        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        childParentBlueprints.addAll(parentBlueprints);
-        childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildDeleteChildrenExceptSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints));
+            .forEach(entityField -> buildDeleteSqlTemplatesRecursive(entityField.getChildEntityBlueprint()));
     }
 
     private void buildDeleteKeysFromForeignTableSql(FieldBlueprint fieldBlueprint)
     {
         ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
 
-        String sql = String.format("DELETE FROM `%s` WHERE `%s` IN (?) AND `%s` = ?",
+        String deleteSql = String.format("DELETE FROM `%s` WHERE `%s` IN (?)",
+            foreignKeyListBlueprint.getForeignTableName(),
+            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+        );
+
+        foreignKeyListBlueprint.setDeleteSql(deleteSql);
+
+        String deleteForeignKeysSql = String.format("DELETE FROM `%s` WHERE `%s` IN (?) AND `%s` = ?",
             foreignKeyListBlueprint.getForeignTableName(),
             foreignKeyListBlueprint.getForeignTableKeyColumnName(),
             foreignKeyListBlueprint.getForeignTableJoinColumnName()
         );
 
-        foreignKeyListBlueprint.setDeleteSql(sql);
+        foreignKeyListBlueprint.setDeleteForeignKeysSql(deleteForeignKeysSql);
     }
 }

@@ -17,6 +17,7 @@ public class ForeignKeyListBlueprint
     private String selectSql;
     private String insertSql;
     private String deleteSql;
+    private String deleteForeignKeysSql;
 
     public String getForeignTableName()
     {
@@ -56,6 +57,11 @@ public class ForeignKeyListBlueprint
     public String getDeleteSql()
     {
         return deleteSql;
+    }
+
+    public String getDeleteForeignKeysSql()
+    {
+        return deleteForeignKeysSql;
     }
 
     public ForeignKeyListBlueprint(
@@ -102,5 +108,14 @@ public class ForeignKeyListBlueprint
             throw new PhotonException("Delete SQL cannot be blank.");
         }
         this.deleteSql = deleteSql;
+    }
+
+    public void setDeleteForeignKeysSql(String deleteForeignKeysSql)
+    {
+        if(StringUtils.isBlank(deleteForeignKeysSql))
+        {
+            throw new PhotonException("Delete Foreign Keys SQL cannot be blank.");
+        }
+        this.deleteForeignKeysSql = deleteForeignKeysSql;
     }
 }

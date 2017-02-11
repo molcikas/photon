@@ -90,10 +90,21 @@ public class Recipe
         return instructions;
     }
 
+    // Anemic setters are strongly discouraged in aggregates, but we need these for testing.
+
     public void setInstructions(List<RecipeInstruction> instructions)
     {
-        // Anemic setters are strongly discouraged in aggregates, but we need this for testing.
         this.instructions = instructions;
+    }
+
+    public void setName(String name)
+    {
+        this.name = name;
+    }
+
+    public void setPrepTime(int prepTime)
+    {
+        this.prepTime = prepTime;
     }
 
     private Recipe()

@@ -79,9 +79,6 @@ public class PopulatedEntityMap
 
     public void mapAllEntityInstanceChildren()
     {
-        // TODO: Refactor this method and populatedEntity.mapEntityInstanceChildren. Move most of the logic to here. PopulatedEntity should not
-        // not know about PopulatedEntityMap.
-
         populatedEntityMap
             .values()
             .forEach(populatedEntities -> populatedEntities.forEach(populatedEntity -> populatedEntity.mapEntityInstanceChildren(this)));

@@ -138,6 +138,43 @@ public class TwoAggregatesTests
         }
     }
 
+    @Test
+    public void aggregate_deleteAll_allButOneEntity_deletesEntities()
+    {
+        registerAggregates();
+
+        try (PhotonConnection connection = photon.open())
+        {
+            List<AggregateOne> aggregateOnes = connection
+                .query(AggregateOne.class)
+                .fetchByIds(Arrays.asList(
+                    UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"),
+                    UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000010")
+                ));
+
+            connection.deleteAll(aggregateOnes);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            List<AggregateOne> aggregateOnes = connection
+                .query(AggregateOne.class)
+                .fetchByIds(Arrays.asList(
+                    UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"),
+                    UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"),
+                    UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000010")
+                ));
+
+            assertNotNull(aggregateOnes);
+            assertEquals(1, aggregateOnes.size());
+
+            AggregateOne aggregateOne1 = aggregateOnes.get(0);
+            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"), aggregateOne1.getAggregateOneId());
+            assertEquals(1, aggregateOne1.getAggregateTwos().size());
+            assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000021"), aggregateOne1.getAggregateTwos().get(0));
+        }
+    }
+
     private void registerAggregates()
     {
         photon.registerAggregate(AggregateOne.class)

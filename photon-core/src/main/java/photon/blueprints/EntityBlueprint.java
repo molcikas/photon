@@ -22,6 +22,7 @@ public class EntityBlueprint
     protected String selectSql;
     protected String updateSql;
     protected String insertSql;
+    protected String deleteSql;
     protected String deleteChildrenExceptSql;
 
     public Class getEntityClass()
@@ -67,6 +68,11 @@ public class EntityBlueprint
     public String getInsertSql()
     {
         return insertSql;
+    }
+
+    public String getDeleteSql()
+    {
+        return deleteSql;
     }
 
     public String getDeleteChildrenExceptSql()
@@ -148,7 +154,7 @@ public class EntityBlueprint
     {
         return fields
             .stream()
-            .filter(f -> StringUtils.equals(f.getColumnName(), columnName))
+            .filter(f -> StringUtils.equals(f.getMappedColumnName(), columnName))
             .findFirst()
             .orElse(null);
     }
@@ -202,6 +208,15 @@ public class EntityBlueprint
             throw new PhotonException("Insert SQL cannot be blank.");
         }
         this.insertSql = insertSql;
+    }
+
+    public void setDeleteSql(String deleteSql)
+    {
+        if(StringUtils.isBlank(deleteSql))
+        {
+            throw new PhotonException("Delete SQL cannot be blank.");
+        }
+        this.deleteSql = deleteSql;
     }
 
     public void setDeleteChildrenExceptSql(String deleteChildrenExceptSql)
