@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
@@ -161,6 +162,8 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
+            //System.out.println(sqlText);
+            //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
             return preparedStatement.executeUpdate();
         }
         catch(Exception ex)

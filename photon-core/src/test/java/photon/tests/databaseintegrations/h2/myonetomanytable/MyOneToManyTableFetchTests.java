@@ -6,8 +6,7 @@ import photon.Photon;
 import photon.PhotonConnection;
 import photon.tests.entities.myonetomanytable.MyManyTable;
 import photon.tests.entities.myonetomanytable.MyOneToManyTable;
-
-import java.sql.Types;
+import photon.tests.entities.myonetomanytable.MyThirdTable;
 
 import static org.junit.Assert.*;
 
@@ -30,17 +29,23 @@ public class MyOneToManyTableFetchTests
         {
             MyOneToManyTable myOneToManyTable = connection
                 .query(MyOneToManyTable.class)
-                .fetchById(5);
+                .fetchById(6);
 
             assertNotNull(myOneToManyTable);
-            assertEquals(Integer.valueOf(5), myOneToManyTable.getId());
-            assertEquals("my5dbvalue", myOneToManyTable.getMyvalue());
+            assertEquals(Integer.valueOf(6), myOneToManyTable.getId());
+            assertEquals("my6dbvalue", myOneToManyTable.getMyvalue());
             assertEquals(3, myOneToManyTable.getMyManyTables().size());
 
-            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(0);
-            assertNotNull(myManyTable);
-            assertEquals(Integer.valueOf(5), myManyTable.getParent());
-            assertEquals("my51otherdbvalue", myManyTable.getMyOtherValueWithDiffName());
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(2);
+            assertEquals(Integer.valueOf(9), myManyTable.getId());
+            assertEquals(Integer.valueOf(6), myManyTable.getParent());
+            assertEquals("my63otherdbvalue", myManyTable.getMyOtherValueWithDiffName());
+            assertEquals(2, myManyTable.getMyThirdTables().size());
+
+            MyThirdTable myThirdTable = myManyTable.getMyThirdTables().get(0);
+            assertEquals(Integer.valueOf(3), myThirdTable.getId());
+            assertEquals(Integer.valueOf(9), myThirdTable.getParent());
+            assertEquals("thirdtableval3", myThirdTable.getVal());
         }
     }
 
@@ -51,10 +56,14 @@ public class MyOneToManyTableFetchTests
             .withPrimaryKeyAutoIncrement()
             .withChild(MyManyTable.class)
                 .withId("id")
-                .withColumnDataType("id", Types.INTEGER)
                 .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("parent")
                 .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withChild(MyThirdTable.class)
+                    .withId("id")
+                    .withPrimaryKeyAutoIncrement()
+                    .withForeignKeyToParent("parent")
+                    .addAsChild("myThirdTables")
                 .addAsChild("myManyTables")
             .register();
     }

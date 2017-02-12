@@ -6,10 +6,10 @@ import java.util.*;
 
 public class SqlJoinClauseBuilderService
 {
-    public void buildJoinClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint, List<AggregateEntityBlueprint> parentEntities)
+    public void buildJoinClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint, List<AggregateEntityBlueprint> parentEntityBlueprints)
     {
         AggregateEntityBlueprint childEntityBlueprint = entityBlueprint;
-        for(AggregateEntityBlueprint parentEntityBlueprint : parentEntities)
+        for(AggregateEntityBlueprint parentEntityBlueprint : parentEntityBlueprints)
         {
             sqlBuilder.append(String.format("\nJOIN `%s` ON `%s`.`%s` = `%s`.`%s`",
                 parentEntityBlueprint.getTableName(),

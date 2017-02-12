@@ -3,6 +3,7 @@ package photon.query;
 import photon.blueprints.*;
 import photon.converters.Convert;
 import photon.converters.Converter;
+import photon.sqlbuilders.SqlJoinClauseBuilderService;
 
 import java.sql.Connection;
 import java.util.*;
@@ -25,7 +26,7 @@ public class PhotonAggregateSave
     public void save(Object aggregateRootInstance)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
-        saveEntitiesRecursive(Collections.singletonList(aggregateRootEntity), null);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null);
     }
 
     public void saveAll(List<?> aggregateRootInstances)
@@ -34,17 +35,66 @@ public class PhotonAggregateSave
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
-        saveEntitiesRecursive(aggregateRootEntities, null);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null);
     }
 
-    private void saveEntitiesRecursive(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
+    private void saveEntitiesRecursive(
+        AggregateEntityBlueprint entityBlueprint,
+        List<PopulatedEntity> populatedEntities,
+        PopulatedEntity parentPopulatedEntity,
+        FieldBlueprint parentFieldBlueprint)
     {
-        if(populatedEntities == null || populatedEntities.isEmpty())
+        if(populatedEntities == null)
+        {
+            populatedEntities = Collections.emptyList();
+        }
+
+        // TODO: Refactor orphan deleting!
+
+        if(parentFieldBlueprint != null && entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint() == null)
+        {
+            // If a child does not have a primary key, then it has to be deleted and re-inserted on every save.
+            try(PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), connection))
+            {
+                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                statement.setNextParameter(Collections.emptyList(), null);
+                statement.executeUpdate();
+            }
+        }
+
+        if(parentFieldBlueprint != null && entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint() != null)
+        {
+            List<?> ids = populatedEntities
+                .stream()
+                .map(PopulatedEntity::getPrimaryKeyValue)
+                .filter(value -> value != null)
+                .collect(Collectors.toList());
+            String orphanSql = String.format(
+                "SELECT `%s` FROM `%s` WHERE `%s` = ? AND `%s` NOT IN (?)",
+                entityBlueprint.getPrimaryKeyColumnName(),
+                entityBlueprint.getTableName(),
+                entityBlueprint.getForeignKeyToParentColumnName(),
+                entityBlueprint.getPrimaryKeyColumnName()
+            );
+            List<?> orphanIds;
+            try(PhotonPreparedStatement statement = new PhotonPreparedStatement(orphanSql, connection))
+            {
+                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+                List<PhotonQueryResultRow> rows = statement.executeQuery(Collections.singletonList(entityBlueprint.getPrimaryKeyColumnName()));
+                orphanIds = rows.stream().map(r -> r.getValue(entityBlueprint.getPrimaryKeyColumnName())).collect(Collectors.toList());
+            }
+            if(orphanIds.size() > 0)
+            {
+                deleteEntitiesRecursive(orphanIds, entityBlueprint, Collections.emptyList());
+            }
+        }
+
+        if(populatedEntities.isEmpty())
         {
             return;
         }
 
-        AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
         List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
         List<PopulatedEntity> updatedPopulatedEntities = updatePopulatedEntities(populatedEntities, parentPopulatedEntity);
         List<PopulatedEntity> populatedEntitiesToInsert = populatedEntities
@@ -60,8 +110,6 @@ public class PhotonAggregateSave
 
         setForeignKeyToParentForPopulatedEntities(populatedEntitiesNeedingForeignKeyToParentSet, fieldsWithChildEntities);
 
-        deleteOrphanChildEntities(updatedPopulatedEntities, fieldsWithChildEntities, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
-
         insertAndDeleteForeignKeyListFields(populatedEntities, entityBlueprint.getForeignKeyListFields());
 
         for(PopulatedEntity populatedEntity : populatedEntities)
@@ -69,8 +117,49 @@ public class PhotonAggregateSave
             for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
             {
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                saveEntitiesRecursive(fieldPopulatedEntities, populatedEntity);
+                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint);
             }
+        }
+    }
+
+    private void deleteEntitiesRecursive(List<?> orphanIds, AggregateEntityBlueprint entityBlueprint, List<AggregateEntityBlueprint> parentEntityBlueprints)
+    {
+        AggregateEntityBlueprint rootEntityBlueprint = parentEntityBlueprints.size() > 0 ?
+            parentEntityBlueprints.get(parentEntityBlueprints.size() - 1) :
+            entityBlueprint;
+
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
+        {
+            List<AggregateEntityBlueprint> childParentEntityBlueprints = new ArrayList<>(parentEntityBlueprints.size() + 1);
+            childParentEntityBlueprints.add(entityBlueprint);
+            childParentEntityBlueprints.addAll(parentEntityBlueprints);
+            deleteEntitiesRecursive(orphanIds, fieldBlueprint.getChildEntityBlueprint(), childParentEntityBlueprints);
+        }
+
+        SqlJoinClauseBuilderService sqlJoinClauseBuilderService = new SqlJoinClauseBuilderService();
+        StringBuilder deleteSql = new StringBuilder();
+
+        deleteSql.append(String.format(
+            "DELETE FROM `%s` WHERE `%s` IN (" +
+            "\nSELECT `%s`.`%s`" +
+            "\nFROM `%s`",
+            entityBlueprint.getTableName(),
+            entityBlueprint.getPrimaryKeyColumnName(),
+            entityBlueprint.getTableName(),
+            entityBlueprint.getPrimaryKeyColumnName(),
+            entityBlueprint.getTableName()
+        ));
+        sqlJoinClauseBuilderService.buildJoinClauseSql(deleteSql, entityBlueprint, parentEntityBlueprints);
+        deleteSql.append(String.format(
+            "\nWHERE `%s`.`%s` IN (?)" +
+            "\n)",
+            rootEntityBlueprint.getTableName(),
+            rootEntityBlueprint.getPrimaryKeyColumnName()
+        ));
+        try(PhotonPreparedStatement statement = new PhotonPreparedStatement(deleteSql.toString(), connection))
+        {
+            statement.setNextArrayParameter(orphanIds, rootEntityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+            statement.executeUpdate();
         }
     }
 
@@ -151,44 +240,6 @@ public class PhotonAggregateSave
                 for (PopulatedEntity fieldPopulatedEntity : fieldPopulatedEntities)
                 {
                     fieldPopulatedEntity.setForeignKeyToParentValue(populatedEntity.getPrimaryKeyValue());
-                }
-            }
-        }
-    }
-
-    private void deleteOrphanChildEntities(List<PopulatedEntity> populatedEntities, List<FieldBlueprint> fieldsWithChildEntities, Integer primaryKeyDataType)
-    {
-        // TODO: 3 level entity, if you delete the middle level the last level will throw a foreign key error!
-
-        for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
-        {
-            String deleteChildrenExceptSql = fieldBlueprint.getChildEntityBlueprint().getDeleteChildrenExceptSql();
-            ColumnBlueprint childPrimaryKeyColumn = fieldBlueprint.getChildEntityBlueprint().getPrimaryKeyColumn();
-
-            for(PopulatedEntity populatedEntity : populatedEntities)
-            {
-                List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-
-                List<Object> childrenToSave;
-                if(childPrimaryKeyColumn.getMappedFieldBlueprint() == null)
-                {
-                    // If the child does not have a primary key, then it has to be re-inserted on every save.
-                    childrenToSave = Collections.emptyList();
-                }
-                else
-                {
-                    childrenToSave = fieldPopulatedEntities
-                        .stream()
-                        .filter(p -> p.getPrimaryKeyValue() != null)
-                        .map(PopulatedEntity::getPrimaryKeyValue)
-                        .collect(Collectors.toList());
-                }
-
-                try(PhotonPreparedStatement deleteAllChildrenExceptStatement = new PhotonPreparedStatement(deleteChildrenExceptSql, connection))
-                {
-                    deleteAllChildrenExceptStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), primaryKeyDataType);
-                    deleteAllChildrenExceptStatement.setNextArrayParameter(childrenToSave, childPrimaryKeyColumn.getColumnDataType());
-                    deleteAllChildrenExceptStatement.executeUpdate();
                 }
             }
         }

@@ -22,7 +22,7 @@ public class PhotonAggregateDelete
     public void delete(Object aggregateRootInstance)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
-        deleteEntitiesRecursive(Collections.singletonList(aggregateRootEntity), null, null);
+        deleteEntitiesRecursive(Collections.singletonList(aggregateRootEntity), null);
     }
 
     public void deleteAll(List<?> aggregateRootInstances)
@@ -31,10 +31,10 @@ public class PhotonAggregateDelete
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
-        deleteEntitiesRecursive(aggregateRootEntities, null, null);
+        deleteEntitiesRecursive(aggregateRootEntities, null);
     }
 
-    private void deleteEntitiesRecursive(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity, FieldBlueprint parentFieldBlueprint)
+    private void deleteEntitiesRecursive(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
     {
         if(populatedEntities == null || populatedEntities.isEmpty())
         {
@@ -48,7 +48,7 @@ public class PhotonAggregateDelete
             for (FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
             {
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                deleteEntitiesRecursive(fieldPopulatedEntities, populatedEntity, fieldBlueprint);
+                deleteEntitiesRecursive(fieldPopulatedEntities, populatedEntity);
             }
         }
 

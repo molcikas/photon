@@ -42,12 +42,12 @@ public class SelectSqlBuilderService
 
         entityBlueprint.getForeignKeyListFields().forEach(this::buildSelectKeysFromForeignTableSql);
 
-        final List<AggregateEntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        childParentBlueprints.addAll(parentBlueprints);
-        childParentBlueprints.add(entityBlueprint);
+        final List<AggregateEntityBlueprint> childParentEntityBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        childParentEntityBlueprints.add(entityBlueprint);
+        childParentEntityBlueprints.addAll(parentBlueprints);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentBlueprints));
+            .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentEntityBlueprints));
     }
 
     private void buildSelectClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
@@ -83,8 +83,9 @@ public class SelectSqlBuilderService
         List<AggregateEntityBlueprint> parentBlueprints)
     {
         List<AggregateEntityBlueprint> entityBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        entityBlueprints.addAll(parentBlueprints);
         entityBlueprints.add(childBlueprint);
+        entityBlueprints.addAll(parentBlueprints);
+        Collections.reverse(entityBlueprints);
 
         sqlBuilder.append("\nORDER BY ");
 

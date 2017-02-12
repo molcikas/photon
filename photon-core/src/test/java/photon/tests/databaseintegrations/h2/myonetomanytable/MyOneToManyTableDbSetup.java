@@ -23,6 +23,7 @@ public class MyOneToManyTableDbSetup
             connection.query("insert into `myonetomanytable` (`id`, `myvalue`) values (3, 'my3dbvalue')").executeUpdate();
             connection.query("insert into `myonetomanytable` (`id`, `myvalue`) values (4, 'my4dbvalue')").executeUpdate();
             connection.query("insert into `myonetomanytable` (`id`, `myvalue`) values (5, 'my5dbvalue')").executeUpdate();
+            connection.query("insert into `myonetomanytable` (`id`, `myvalue`) values (6, 'my6dbvalue')").executeUpdate();
 
             connection.query("DROP TABLE IF EXISTS `mymanytable`").executeUpdate();
             connection.query("CREATE TABLE `mymanytable` (\n" +
@@ -38,6 +39,22 @@ public class MyOneToManyTableDbSetup
             connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (4, 5, 'my51otherdbvalue')").executeUpdate();
             connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (5, 5, 'my52otherdbvalue')").executeUpdate();
             connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (6, 5, 'my53otherdbvalue')").executeUpdate();
+            connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (7, 6, 'my62otherdbvalue')").executeUpdate();
+            connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (8, 6, 'my62otherdbvalue')").executeUpdate();
+            connection.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (9, 6, 'my63otherdbvalue')").executeUpdate();
+
+            connection.query("DROP TABLE IF EXISTS `mythirdtable`").executeUpdate();
+            connection.query("CREATE TABLE `mythirdtable` (\n" +
+                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `parent` int(11) NOT NULL,\n" +
+                "  `val` varchar(255) DEFAULT 'oops',\n" +
+                "  PRIMARY KEY (`id`),\n" +
+                "  CONSTRAINT `MyManyTable_MyThirdTable` FOREIGN KEY (`parent`) REFERENCES `mymanytable` (`id`)\n" +
+                ")").executeUpdate();
+            connection.query("insert into `mythirdtable` (`id`, `parent`, `val`) values (1, 7, 'thirdtableval1')").executeUpdate();
+            connection.query("insert into `mythirdtable` (`id`, `parent`, `val`) values (2, 8, 'thirdtableval2')").executeUpdate();
+            connection.query("insert into `mythirdtable` (`id`, `parent`, `val`) values (3, 9, 'thirdtableval3')").executeUpdate();
+            connection.query("insert into `mythirdtable` (`id`, `parent`, `val`) values (4, 9, 'thirdtableval4')").executeUpdate();
         }
 
         return photon;
