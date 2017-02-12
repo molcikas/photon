@@ -3,6 +3,7 @@ package photon.blueprints;
 import org.apache.commons.lang3.StringUtils;
 import photon.exceptions.PhotonException;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.stream.Collectors;
 public class EntityBlueprint
 {
     protected Class entityClass;
+    protected Constructor entityConstructor;
     protected String orderByColumnName;
     protected SortDirection orderByDirection;
     protected List<FieldBlueprint> fields;
@@ -28,6 +30,11 @@ public class EntityBlueprint
     public Class getEntityClass()
     {
         return entityClass;
+    }
+
+    public Constructor getEntityConstructor()
+    {
+        return entityConstructor;
     }
 
     public String getOrderByColumnName()
@@ -108,13 +115,20 @@ public class EntityBlueprint
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null, null);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, null);
 
-        for(ColumnBlueprint columnBlueprint : columns)
+        try
         {
-            if(columnBlueprint.isPrimaryKeyColumn())
-            {
-                primaryKeyColumn = columnBlueprint;
-            }
+            this.entityConstructor = entityClass.getDeclaredConstructor();
+            entityConstructor.setAccessible(true);
         }
+        catch (Exception ex)
+        {
+            throw new PhotonException(
+                String.format("Error getting constructor for entity '%s'. Make sure the entity has a parameterless constructor (private is ok).", getEntityClassName()),
+                ex
+            );
+        }
+
+        primaryKeyColumn = columns.stream().filter(ColumnBlueprint::isPrimaryKeyColumn).findFirst().orElse(null);
 
         if(StringUtils.isBlank(orderByColumnName) && primaryKeyColumn != null)
         {

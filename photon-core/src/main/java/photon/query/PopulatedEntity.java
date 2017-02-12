@@ -289,19 +289,15 @@ public class PopulatedEntity<T>
 
     private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
     {
+        Constructor<T> constructor = entityBlueprint.getEntityConstructor();
+
         try
         {
-            // TODO: Cache constructor.
-            Constructor<T> constructor = entityBlueprint.getEntityClass().getDeclaredConstructor();
-            constructor.setAccessible(true);
             entityInstance = constructor.newInstance();
         }
         catch (Exception ex)
         {
-            throw new PhotonException(
-                String.format("Error constructing entity '%s'. Make sure the entity has a parameterless constructor (private is ok).",
-                    entityBlueprint.getEntityClassName()),
-                ex);
+            throw new RuntimeException(ex);
         }
 
         for(Map.Entry<String, Object> entry : queryResultRow.getValues())

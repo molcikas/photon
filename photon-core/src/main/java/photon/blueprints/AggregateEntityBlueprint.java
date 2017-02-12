@@ -66,6 +66,19 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName);
 
+        try
+        {
+            this.entityConstructor = entityClass.getDeclaredConstructor();
+            entityConstructor.setAccessible(true);
+        }
+        catch (Exception ex)
+        {
+            throw new PhotonException(
+                String.format("Error getting constructor for entity '%s'. Make sure the entity has a parameterless constructor (private is ok).", getEntityClassName()),
+                ex
+            );
+        }
+
         for(ColumnBlueprint columnBlueprint : columns)
         {
             if(columnBlueprint.isPrimaryKeyColumn())
