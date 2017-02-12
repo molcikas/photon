@@ -67,7 +67,7 @@ public class PhotonAggregateDelete
             }
         }
 
-        if(entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint() != null)
+        if(entityBlueprint.isPrimaryKeyMappedToField())
         {
             try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteSql(), connection))
             {

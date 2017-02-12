@@ -1,10 +1,7 @@
 package photon.sqlbuilders;
 
 import org.apache.commons.lang3.StringUtils;
-import photon.blueprints.ColumnBlueprint;
-import photon.blueprints.AggregateEntityBlueprint;
-import photon.blueprints.FieldBlueprint;
-import photon.blueprints.ForeignKeyListBlueprint;
+import photon.blueprints.*;
 
 import java.util.*;
 
@@ -25,26 +22,27 @@ public class SelectSqlBuilderService
     private void buildSelectSqlRecursive(
         AggregateEntityBlueprint entityBlueprint,
         AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints)
+        List<AggregateEntityBlueprint> parentEntityBlueprints)
     {
         int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
         buildSelectClauseSql(sqlBuilder, entityBlueprint);
         buildFromClauseSql(sqlBuilder, entityBlueprint);
-        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentBlueprints);
+        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
         buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
-        buildOrderBySql(sqlBuilder, entityBlueprint, parentBlueprints);
+        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
 
         entityBlueprint.setSelectSql(sqlBuilder.toString());
 
         //System.out.println(sqlBuilder.toString());
 
+        buildSelectOrphansSql(entityBlueprint);
         entityBlueprint.getForeignKeyListFields().forEach(this::buildSelectKeysFromForeignTableSql);
 
-        final List<AggregateEntityBlueprint> childParentEntityBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
+        final List<AggregateEntityBlueprint> childParentEntityBlueprints = new ArrayList<>(parentEntityBlueprints.size() + 1);
         childParentEntityBlueprints.add(entityBlueprint);
-        childParentEntityBlueprints.addAll(parentBlueprints);
+        childParentEntityBlueprints.addAll(parentEntityBlueprints);
         entityBlueprint
             .getFieldsWithChildEntities()
             .forEach(entityField -> buildSelectSqlRecursive(entityField.getChildEntityBlueprint(), aggregateRootEntityBlueprint, childParentEntityBlueprints));
@@ -109,6 +107,26 @@ public class SelectSqlBuilderService
                 ));
             }
         }
+    }
+
+    private void buildSelectOrphansSql(AggregateEntityBlueprint entityBlueprint)
+    {
+        if(!entityBlueprint.isPrimaryKeyMappedToField())
+        {
+            // If the entity does not know its primary key value, we can't determine what the orphans are. On save,
+            // we'll have to delete all children and re-insert them.
+            return;
+        }
+
+        String selectOrphansSql = String.format(
+            "SELECT `%s` FROM `%s` WHERE `%s` = ? AND `%s` NOT IN (?)",
+            entityBlueprint.getPrimaryKeyColumnName(),
+            entityBlueprint.getTableName(),
+            entityBlueprint.getForeignKeyToParentColumnName(),
+            entityBlueprint.getPrimaryKeyColumnName()
+        );
+
+        entityBlueprint.setSelectOrphansSql(selectOrphansSql);
     }
 
     private void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint)

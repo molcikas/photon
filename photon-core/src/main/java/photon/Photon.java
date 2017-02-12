@@ -29,7 +29,7 @@ public class Photon
         this.selectSqlBuilderService = new SelectSqlBuilderService(sqlJoinClauseBuilderService);
         this.updateSqlBuilderService = new UpdateSqlBuilderService();
         this.insertSqlBuilderService = new InsertSqlBuilderService();
-        this.deleteSqlBuilderService = new DeleteSqlBuilderService();
+        this.deleteSqlBuilderService = new DeleteSqlBuilderService(sqlJoinClauseBuilderService);
         this.entityBlueprintConstructorService = new EntityBlueprintConstructorService();
     }
 

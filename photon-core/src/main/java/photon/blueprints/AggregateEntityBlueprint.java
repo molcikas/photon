@@ -9,10 +9,29 @@ import java.util.stream.Collectors;
 public class AggregateEntityBlueprint extends EntityBlueprint
 {
     private ColumnBlueprint foreignKeyToParentColumn;
+    private boolean isPrimaryKeyMappedToField;
+
+    private String selectOrphansSql;
+    private Map<Integer, String> deleteOrphansSql;
 
     public ColumnBlueprint getForeignKeyToParentColumn()
     {
         return foreignKeyToParentColumn;
+    }
+
+    public boolean isPrimaryKeyMappedToField()
+    {
+        return isPrimaryKeyMappedToField;
+    }
+
+    public String getSelectOrphansSql()
+    {
+        return selectOrphansSql;
+    }
+
+    public String getDeleteOrphanSql(int parentLevelsUpForOrphanIds)
+    {
+        return deleteOrphansSql.get(parentLevelsUpForOrphanIds);
     }
 
     public AggregateEntityBlueprint(
@@ -41,6 +60,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
             orderByDirection = SortDirection.Ascending;
         }
 
+        this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints);
@@ -75,6 +95,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
             );
             columns.add(primaryKeyColumn);
         }
+        this.isPrimaryKeyMappedToField = getPrimaryKeyColumn().getMappedFieldBlueprint() != null;
 
         if(StringUtils.isNotBlank(foreignKeyToParentColumnName) && foreignKeyToParentColumn == null)
         {
@@ -127,5 +148,15 @@ public class AggregateEntityBlueprint extends EntityBlueprint
             .stream()
             .filter(f -> f.getFieldType() == FieldType.ForeignKeyList)
             .collect(Collectors.toList());
+    }
+
+    public void setSelectOrphansSql(String selectOrphansSql)
+    {
+        this.selectOrphansSql = selectOrphansSql;
+    }
+
+    public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
+    {
+        deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
     }
 }
