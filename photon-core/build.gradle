@@ -1,20 +1,12 @@
-group 'molcikas'
-version '1.0.0'
 
-apply plugin: 'java'
-
-sourceCompatibility = 1.8
-
-repositories {
-    mavenCentral()
-}
+description = "Photon core"
 
 dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     compile group: 'joda-time', name: 'joda-time', version: '2.9.7'
 
     // Database
-    testCompile group: 'com.h2database', name: 'mysql', version: '1.4.193'
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.193'
     testCompile group: 'mysql', name: 'mysql-connector-java', version: '5.1.40'
 
     // Unit testing
