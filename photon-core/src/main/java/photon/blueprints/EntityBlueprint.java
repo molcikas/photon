@@ -1,6 +1,7 @@
 package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 import java.lang.reflect.Constructor;
@@ -112,7 +113,7 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null, null);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null, null, null, null);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, null);
 
         try
@@ -195,6 +196,13 @@ public class EntityBlueprint
             .stream()
             .map(ColumnBlueprint::getColumnName)
             .collect(Collectors.toList());
+    }
+
+    public Converter getPrimaryKeyCustomToDatabaseValueConverter()
+    {
+        ColumnBlueprint primaryKeyColumn = getPrimaryKeyColumn();
+        return primaryKeyColumn.getMappedFieldBlueprint() != null ?
+            primaryKeyColumn.getMappedFieldBlueprint().getCustomToDatabaseValueConverter() : null;
     }
 
     public void setSelectSql(String selectSql)

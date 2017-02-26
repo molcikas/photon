@@ -4,6 +4,8 @@ import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.converters.Converter;
+import photon.converters.ConverterException;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
 
@@ -148,6 +150,96 @@ public class MyTableSaveTests
             assertNotNull(myOtherTableRetrieved);
             assertEquals(7, myOtherTableRetrieved.getId());
             assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+        }
+    }
+
+    @Test
+    public void aggregate_save_insertWithCustomToFieldValueConverter_savesAndRetrievesEntity()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withCustomToFieldValueConverter("myvalue", new Converter()
+            {
+                @Override
+                public Object convert(Object val) throws ConverterException
+                {
+                    return ((String) val).toUpperCase();
+                }
+
+                @Override
+                public Object toDatabaseParam(Object val)
+                {
+                    return null;
+                }
+            })
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
+
+            connection
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(7, myTableRetrieved.getId());
+            assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
+
+            MyTable myOtherTableRaw = connection.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
+            assertEquals("MySavedValueAutoInc", myOtherTableRaw.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_save_insertWithCustomToDatabaseValueConverter_savesAndRetrievesEntity()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withCustomToDatabaseValueConverter("myvalue", new Converter()
+            {
+                @Override
+                public Object convert(Object val) throws ConverterException
+                {
+                    return ((String) val).toUpperCase();
+                }
+
+                @Override
+                public Object toDatabaseParam(Object val)
+                {
+                    return null;
+                }
+            })
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
+
+            connection
+                .save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTableRetrieved = connection
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(7, myTableRetrieved.getId());
+            assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
+
+            MyTable myOtherTableRaw = connection.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
+            assertEquals("MYSAVEDVALUEAUTOINC", myOtherTableRaw.getMyvalue());
         }
     }
 

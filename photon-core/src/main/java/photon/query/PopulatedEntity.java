@@ -225,10 +225,12 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
+            Converter customToDatabaseValueConverter = null;
 
             if (fieldBlueprint != null)
             {
                 fieldValue = getInstanceValue(fieldBlueprint);
+                customToDatabaseValueConverter = fieldBlueprint.getCustomToDatabaseValueConverter();
             }
             else if (columnBlueprint.isForeignKeyToParentColumn())
             {
@@ -240,7 +242,7 @@ public class PopulatedEntity<T>
                 break;
             }
 
-            updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
+            updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customToDatabaseValueConverter);
         }
 
         if(!canPerformUpdate)
@@ -259,10 +261,12 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
+            Converter customToDatabaseValueConverter = null;
 
             if(fieldBlueprint != null)
             {
                 fieldValue = getInstanceValue(fieldBlueprint);
+                customToDatabaseValueConverter = fieldBlueprint.getCustomToDatabaseValueConverter();
             }
             else if(columnBlueprint.isForeignKeyToParentColumn())
             {
@@ -281,7 +285,7 @@ public class PopulatedEntity<T>
                 ));
             }
 
-            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType());
+            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customToDatabaseValueConverter);
         }
 
         insertStatement.addToBatch();
@@ -333,7 +337,9 @@ public class PopulatedEntity<T>
             return;
         }
 
-        Converter converter = Convert.getConverterIfExists(fieldBlueprint.getFieldClass());
+        Converter converter = fieldBlueprint.getCustomToFieldValueConverter() != null ?
+            fieldBlueprint.getCustomToFieldValueConverter() :
+            Convert.getConverterIfExists(fieldBlueprint.getFieldClass());
 
         if(converter == null)
         {

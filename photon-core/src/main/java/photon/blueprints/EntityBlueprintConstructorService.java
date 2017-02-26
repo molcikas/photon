@@ -1,5 +1,7 @@
 package photon.blueprints;
 
+import photon.converters.Converter;
+
 import java.lang.reflect.Field;
 import java.sql.Types;
 import java.util.*;
@@ -11,11 +13,15 @@ public class EntityBlueprintConstructorService
         Class entityClass,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
-        Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints)
+        Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
+        Map<String, Converter> customToFieldValueConverters,
+        Map<String, Converter> customToDatabaseValueConverters)
     {
         final Map<String, String> customFieldToColumnMappingsFinal = customFieldToColumnMappings != null ? customFieldToColumnMappings : new HashMap<>();
         final Map<String, AggregateEntityBlueprint> childEntitiesFinal = childEntities != null ? childEntities : new HashMap<>();
         final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
+        final Map<String, Converter> customToFieldValueConvertersFinal = customToFieldValueConverters != null ? customToFieldValueConverters : new HashMap<>();
+        final Map<String, Converter> customToDatabaseValueConvertersFinal = customToDatabaseValueConverters != null ? customToDatabaseValueConverters : new HashMap<>();
 
         List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
 
@@ -27,7 +33,9 @@ public class EntityBlueprintConstructorService
                     customFieldToColumnMappingsFinal.get(reflectedField.getName()) :
                     reflectedField.getName(),
                 childEntitiesFinal.get(reflectedField.getName()),
-                foreignKeyListBlueprintsFinal.get(reflectedField.getName())
+                foreignKeyListBlueprintsFinal.get(reflectedField.getName()),
+                customToFieldValueConvertersFinal.get(reflectedField.getName()),
+                customToDatabaseValueConvertersFinal.get(reflectedField.getName())
             ))
             .collect(Collectors.toList());
 

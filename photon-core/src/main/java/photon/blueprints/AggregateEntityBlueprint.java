@@ -1,6 +1,7 @@
 package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 import java.util.*;
@@ -45,6 +46,8 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
+        Map<String, Converter> customToFieldValueConverters,
+        Map<String, Converter> customToDatabaseValueConverters,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         if(entityClass == null)
@@ -63,7 +66,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters, customToDatabaseValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName);
 
         try

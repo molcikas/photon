@@ -2,6 +2,7 @@ package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
 import photon.Photon;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 import java.util.HashMap;
@@ -22,6 +23,8 @@ public class AggregateEntityBlueprintBuilder
     private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
+    private final Map<String, Converter> customToFieldValueConverters;
+    private final Map<String, Converter> customToDatabaseValueConverters;
 
     public AggregateEntityBlueprintBuilder(Class entityClass, AggregateEntityBlueprintBuilder parentBuilder, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -45,6 +48,8 @@ public class AggregateEntityBlueprintBuilder
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
         this.foreignKeyListBlueprints = new HashMap<>();
+        this.customToFieldValueConverters = new HashMap<>();
+        this.customToDatabaseValueConverters = new HashMap<>();
     }
 
     public AggregateEntityBlueprintBuilder withId(String idFieldName)
@@ -92,6 +97,18 @@ public class AggregateEntityBlueprintBuilder
     public AggregateEntityBlueprintBuilder withFieldToColumnMapping(String fieldName, String columnName)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
+        return this;
+    }
+
+    public AggregateEntityBlueprintBuilder withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
+    {
+        customToFieldValueConverters.put(fieldName, customToFieldValueConverter);
+        return this;
+    }
+
+    public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String fieldName, Converter customToDatabaseValueConverter)
+    {
+        customToDatabaseValueConverters.put(fieldName, customToDatabaseValueConverter);
         return this;
     }
 
@@ -148,6 +165,8 @@ public class AggregateEntityBlueprintBuilder
             customFieldToColumnMappings,
             childEntities,
             foreignKeyListBlueprints,
+            customToFieldValueConverters,
+            customToDatabaseValueConverters,
             entityBlueprintConstructorService
         );
     }

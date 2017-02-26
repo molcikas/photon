@@ -1,5 +1,6 @@
 package photon.tests.databaseintegrations.h2.recipe;
 
+import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
@@ -9,7 +10,6 @@ import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
 import photon.tests.entities.recipe.RecipeInstruction;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +30,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_fetchById_validSingleAggregateAndQuery_returnsCorrectAggregate()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         try (PhotonConnection connection = photon.open())
         {
@@ -54,7 +54,7 @@ public class RecipeFetchTests
 
             RecipeIngredient recipeIngredient = recipe.getIngredients().get(12);
             assertEquals(true, recipeIngredient.isRequired());
-            assertEquals("2.0000", recipeIngredient.getQuantity());
+            assertEquals(Fraction.getFraction("2"), recipeIngredient.getQuantity());
             assertEquals("teaspoon", recipeIngredient.getQuantityUnit());
             assertEquals(null, recipeIngredient.getQuantityDetail());
             assertEquals("Rosemary", recipeIngredient.getName());
@@ -71,7 +71,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_fetchById_SingleAggregateWithEmptyChildLists_returnsAggregateWithEmptyChildLists()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         try (PhotonConnection connection = photon.open())
         {
@@ -90,7 +90,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_fetchByIds_validAggregateAndQuery_returnsCorrectAggregates()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         try (PhotonConnection connection = photon.open())
         {
@@ -109,7 +109,7 @@ public class RecipeFetchTests
 
             RecipeIngredient recipeIngredient1 = recipe1.getIngredients().get(3);
             assertEquals(true, recipeIngredient1.isRequired());
-            assertEquals("3.0000", recipeIngredient1.getQuantity());
+            assertEquals(Fraction.getFraction("3"), recipeIngredient1.getQuantity());
             assertEquals("tablespoon", recipeIngredient1.getQuantityUnit());
             assertEquals(null, recipeIngredient1.getQuantityDetail());
             assertEquals("onions", recipeIngredient1.getName());
@@ -131,7 +131,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_fetchById_validAggregateAndQueryWithDescendingSort_returnsCorrectAggregate()
     {
-        registerRecipeAggregate(SortDirection.Descending);
+        RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
 
         try (PhotonConnection connection = photon.open())
         {
@@ -155,31 +155,5 @@ public class RecipeFetchTests
                 assertEquals(i + 1, recipe.getInstructions().get(i).getStepNumber());
             }
         }
-    }
-
-    private void registerRecipeAggregate()
-    {
-        registerRecipeAggregate(SortDirection.Ascending);
-    }
-
-    private void registerRecipeAggregate(SortDirection ingredientSortDirection)
-    {
-        photon.registerAggregate(Recipe.class)
-            .withId("recipeId")
-            .withChild(RecipeInstruction.class)
-                .withId("recipeInstructionId")
-                .withColumnDataType("recipeInstructionId", Types.BINARY)
-                .withForeignKeyToParent("recipeId")
-                .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("stepNumber")
-            .addAsChild("instructions")
-            .withChild(RecipeIngredient.class)
-                .withId("recipeIngredientId")
-                .withColumnDataType("recipeIngredientId", Types.BINARY)
-                .withForeignKeyToParent("recipeId")
-                .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("orderBy", ingredientSortDirection)
-                .addAsChild("ingredients")
-            .register();
     }
 }

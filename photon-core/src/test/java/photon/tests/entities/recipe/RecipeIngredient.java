@@ -1,12 +1,14 @@
 package photon.tests.entities.recipe;
 
+import org.apache.commons.lang3.math.Fraction;
+
 import java.util.Objects;
 
 public class RecipeIngredient
 {
     private boolean isRequired;
 
-    private String quantity;
+    private Fraction quantity;
 
     private String quantityUnit;
 
@@ -23,7 +25,7 @@ public class RecipeIngredient
         return isRequired;
     }
 
-    public String getQuantity()
+    public Fraction getQuantity()
     {
         return quantity;
     }
@@ -57,7 +59,7 @@ public class RecipeIngredient
     {
     }
 
-    public RecipeIngredient(boolean isRequired, String quantity, String quantityUnit, String quantityDetail, String name, String preparation, Integer orderBy)
+    public RecipeIngredient(boolean isRequired, Fraction quantity, String quantityUnit, String quantityDetail, String name, String preparation, Integer orderBy)
     {
         this.isRequired = isRequired;
         this.quantity = quantity;

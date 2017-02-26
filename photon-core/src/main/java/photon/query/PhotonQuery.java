@@ -124,11 +124,11 @@ public class PhotonQuery
             Object value = parameter.getValue();
             if(value != null && Collection.class.isAssignableFrom(value.getClass()))
             {
-                photonPreparedStatement.setNextArrayParameter((Collection) value, dataType);
+                photonPreparedStatement.setNextArrayParameter((Collection) value, dataType, null);
             }
             else
             {
-                photonPreparedStatement.setNextParameter(parameter.getValue(), dataType);
+                photonPreparedStatement.setNextParameter(parameter.getValue(), dataType, null);
             }
         }
 

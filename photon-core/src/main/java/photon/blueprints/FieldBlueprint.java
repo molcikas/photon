@@ -1,6 +1,7 @@
 package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 import java.lang.reflect.Field;
@@ -12,6 +13,8 @@ public class FieldBlueprint
     private final String fieldName;
     private final Class fieldClass;
     private final FieldType fieldType;
+    private final Converter customToFieldValueConverter;
+    private final Converter customToDatabaseValueConverter;
 
     private final String mappedColumnName;
     private final AggregateEntityBlueprint childEntityBlueprint;
@@ -52,7 +55,18 @@ public class FieldBlueprint
         return foreignKeyListBlueprint;
     }
 
-    FieldBlueprint(Field reflectedField, String mappedColumnName, AggregateEntityBlueprint childEntityBlueprint, ForeignKeyListBlueprint foreignKeyListBlueprint)
+    public Converter getCustomToFieldValueConverter()
+    {
+        return customToFieldValueConverter;
+    }
+
+    public Converter getCustomToDatabaseValueConverter()
+    {
+        return customToDatabaseValueConverter;
+    }
+
+    FieldBlueprint(Field reflectedField, String mappedColumnName, AggregateEntityBlueprint childEntityBlueprint,
+                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, Converter customToDatabaseValueConverter)
     {
         if(reflectedField == null)
         {
@@ -63,6 +77,8 @@ public class FieldBlueprint
         this.reflectedField = reflectedField;
         this.fieldName = reflectedField.getName();
         this.fieldClass = reflectedField.getType();
+        this.customToFieldValueConverter = customToFieldValueConverter;
+        this.customToDatabaseValueConverter = customToDatabaseValueConverter;
 
         if(foreignKeyListBlueprint != null)
         {

@@ -59,7 +59,7 @@ public class PhotonAggregateQuery<T>
     {
         try (PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getSelectSql(), connection))
         {
-            statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+            statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType(), entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
             List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
             queryResultRows.forEach(queryResultRow -> populatedEntityMap.createPopulatedEntity(entityBlueprint, queryResultRow));
         }
@@ -69,7 +69,7 @@ public class PhotonAggregateQuery<T>
             ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), connection))
             {
-                statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+                statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
                 List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
                 populatedEntityMap.setFieldValuesOnEntityInstances(queryResultRows, fieldBlueprint, entityBlueprint);
             }

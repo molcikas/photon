@@ -94,6 +94,8 @@ public class PhotonAggregateSave
             return;
         }
 
+        EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
+
         if(entityBlueprint.isPrimaryKeyMappedToField())
         {
             List<?> childIds = populatedEntities
@@ -102,10 +104,11 @@ public class PhotonAggregateSave
                 .filter(value -> value != null) // Auto increment entities that have not been inserted yet will have null primary key values.
                 .collect(Collectors.toList());
             List<?> orphanIds;
+
             try(PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getSelectOrphansSql(), connection))
             {
-                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
-                statement.setNextArrayParameter(childIds, entityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                statement.setNextArrayParameter(childIds, entityBlueprint.getPrimaryKeyColumn().getColumnDataType(), entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 List<PhotonQueryResultRow> rows = statement.executeQuery(Collections.singletonList(entityBlueprint.getPrimaryKeyColumnName()));
                 orphanIds = rows.stream().map(r -> r.getValue(entityBlueprint.getPrimaryKeyColumnName())).collect(Collectors.toList());
             }
@@ -119,8 +122,8 @@ public class PhotonAggregateSave
             // If a child does not have a primary key, then it has to be deleted and re-inserted on every save.
             try(PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), connection))
             {
-                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
-                statement.setNextParameter(Collections.emptyList(), null);
+                statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                statement.setNextParameter(Collections.emptyList(), null, null);
                 statement.executeUpdate();
             }
         }
@@ -145,7 +148,7 @@ public class PhotonAggregateSave
 
         try(PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getDeleteOrphanSql(parentEntityBlueprints.size()), connection))
         {
-            statement.setNextArrayParameter(orphanIds, rootEntityBlueprint.getPrimaryKeyColumn().getColumnDataType());
+            statement.setNextArrayParameter(orphanIds, rootEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), rootEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
             statement.executeUpdate();
         }
     }
@@ -258,6 +261,7 @@ public class PhotonAggregateSave
             {
                 for (PopulatedEntity populatedEntity : populatedEntities)
                 {
+                    EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
                     Collection databaseForeignKeyListValuesForEntity = existingDatabaseForeignKeyListValues.get(populatedEntity.getPrimaryKeyValue());
                     if(databaseForeignKeyListValuesForEntity == null)
                     {
@@ -283,8 +287,8 @@ public class PhotonAggregateSave
                     {
                         try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getDeleteForeignKeysSql(), connection))
                         {
-                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, foreignKeyListBlueprint.getForeignTableKeyColumnType());
-                            deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
+                            deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                             deleteStatement.executeUpdate();
                         }
                     }
@@ -296,8 +300,8 @@ public class PhotonAggregateSave
 
                     for (Object foreignKeyValue : foreignKeyValuesToInsert)
                     {
-                        insertStatement.setNextParameter(foreignKeyValue, foreignKeyListBlueprint.getForeignTableKeyColumnType());
-                        insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
+                        insertStatement.setNextParameter(foreignKeyValue, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
+                        insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                         insertStatement.addToBatch();
                     }
                 }
@@ -314,7 +318,7 @@ public class PhotonAggregateSave
 
         try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), connection))
         {
-            statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType());
+            statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
             photonQueryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
         }
 

@@ -1,15 +1,14 @@
 package photon.tests.databaseintegrations.h2.recipe;
 
+import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
-import photon.blueprints.SortDirection;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
 import photon.tests.entities.recipe.RecipeInstruction;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -30,7 +29,7 @@ public class RecipeSaveTests
     @Test
     public void aggregate_save_saveNewRecipeNoChildren_insertsRecipe()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         Recipe recipe = new Recipe(
             UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"),
@@ -72,7 +71,7 @@ public class RecipeSaveTests
     @Test
     public void aggregate_save_saveNewRecipeWithInstructions_insertsRecipe()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         Recipe recipe = new Recipe(
             UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"),
@@ -123,7 +122,7 @@ public class RecipeSaveTests
     @Test
     public void aggregate_save_saveNewRecipeWithIngredientsAndInstructions_insertsRecipe()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         Recipe recipe = new Recipe(
             UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"),
@@ -139,7 +138,7 @@ public class RecipeSaveTests
             Arrays.asList(
                 new RecipeIngredient(
                     true,
-                    "1/2",
+                    Fraction.getFraction("1/2"),
                     "teaspoon",
                     null,
                     "salt",
@@ -148,7 +147,7 @@ public class RecipeSaveTests
                 ),
                 new RecipeIngredient(
                     true,
-                    "1/4",
+                    Fraction.getFraction("1/4"),
                     "tablespoon",
                     null,
                     "tumeric",
@@ -193,7 +192,7 @@ public class RecipeSaveTests
     @Test
     public void aggregate_save_overwriteExistingRecipe_insertsRecipe()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         // A recipe with this id already exists in the database. Any traces if the old recipe
         // should be removed when saving this new recipe.
@@ -212,7 +211,7 @@ public class RecipeSaveTests
             Arrays.asList(
                 new RecipeIngredient(
                     true,
-                    "1/2",
+                    Fraction.getFraction("1/2"),
                     "teaspoon",
                     null,
                     "salt",
@@ -221,7 +220,7 @@ public class RecipeSaveTests
                 ),
                 new RecipeIngredient(
                     true,
-                    "1/4",
+                    Fraction.getFraction("1/4"),
                     "tablespoon",
                     null,
                     "tumeric",
@@ -266,7 +265,7 @@ public class RecipeSaveTests
     @Test
     public void aggregate_save_changeMultipleExistingRecipes_updatesRecipes()
     {
-        registerRecipeAggregate();
+        RecipeDbSetup.registerRecipeAggregate(photon);
 
         try (PhotonConnection connection = photon.open())
         {
@@ -305,31 +304,5 @@ public class RecipeSaveTests
             assertEquals(8, recipe3.getIngredients().size());
             assertEquals(6, recipe3.getInstructions().size());
         }
-    }
-
-    private void registerRecipeAggregate()
-    {
-        registerRecipeAggregate(SortDirection.Ascending);
-    }
-
-    private void registerRecipeAggregate(SortDirection ingredientSortDirection)
-    {
-        photon.registerAggregate(Recipe.class)
-            .withId("recipeId")
-            .withChild(RecipeInstruction.class)
-                .withId("recipeInstructionId")
-                .withColumnDataType("recipeInstructionId", Types.BINARY)
-                .withForeignKeyToParent("recipeId")
-                .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("stepNumber")
-            .addAsChild("instructions")
-            .withChild(RecipeIngredient.class)
-                .withId("recipeIngredientId")
-                .withColumnDataType("recipeIngredientId", Types.BINARY)
-                .withForeignKeyToParent("recipeId")
-                .withColumnDataType("recipeId", Types.BINARY)
-                .withOrderBy("orderBy", ingredientSortDirection)
-                .addAsChild("ingredients")
-            .register();
     }
 }

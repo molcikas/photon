@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
@@ -17,11 +16,13 @@ public class PhotonPreparedStatement implements Closeable
     {
         public final Object value;
         public final Integer dataType;
+        public final Converter customToDatabaseValueConverter;
 
-        public ParameterValue(Object value, Integer dataType)
+        public ParameterValue(Object value, Integer dataType, Converter customToDatabaseValueConverter)
         {
             this.value = value;
             this.dataType = dataType;
+            this.customToDatabaseValueConverter = customToDatabaseValueConverter;
         }
     }
 
@@ -43,7 +44,7 @@ public class PhotonPreparedStatement implements Closeable
         this.generatedKeys = new ArrayList<>(100);
     }
 
-    public void setNextArrayParameter(Collection values, Integer dataType)
+    public void setNextArrayParameter(Collection values, Integer dataType, Converter customToDatabaseValueConverter)
     {
         if(isBatched)
         {
@@ -64,7 +65,7 @@ public class PhotonPreparedStatement implements Closeable
 
             for (Object value : values)
             {
-                setNextParameter(value, dataType);
+                setNextParameter(value, dataType, customToDatabaseValueConverter);
             }
         }
 
@@ -81,9 +82,9 @@ public class PhotonPreparedStatement implements Closeable
         sqlText = newSqlText.toString();
     }
 
-    public void setNextParameter(Object value, Integer dataType)
+    public void setNextParameter(Object value, Integer dataType, Converter customToDatabaseValueConverter)
     {
-        parameterValues.add(new ParameterValue(value, dataType));
+        parameterValues.add(new ParameterValue(value, dataType, customToDatabaseValueConverter));
     }
 
     public void addToBatch()
@@ -226,16 +227,18 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    private <T> T convertValue(Object value, Class<T> toClass)
+    private <T> T convertValue(ParameterValue parameterValue, Class<T> toClass)
     {
-        Converter<T> converter = Convert.getConverterIfExists(toClass);
+        Converter<T> converter = parameterValue.customToDatabaseValueConverter != null ?
+            parameterValue.customToDatabaseValueConverter :
+            Convert.getConverterIfExists(toClass);
 
         if(converter == null)
         {
             throw new PhotonException(String.format("No converter found for class '%s'.", toClass.getName()));
         }
 
-        return converter.convert(value);
+        return converter.convert(parameterValue.value);
     }
 
     private String getQuestionMarks(int count)
@@ -286,39 +289,39 @@ public class PhotonPreparedStatement implements Closeable
                 {
                     case Types.BIT:
                     case Types.BOOLEAN:
-                        preparedStatement.setBoolean(parameterIndex, convertValue(parameterValue.value, Boolean.class));
+                        preparedStatement.setBoolean(parameterIndex, convertValue(parameterValue, Boolean.class));
                         continue;
                     case Types.TINYINT:
                     case Types.SMALLINT:
                     case Types.INTEGER:
-                        preparedStatement.setInt(parameterIndex, convertValue(parameterValue.value, Integer.class));
+                        preparedStatement.setInt(parameterIndex, convertValue(parameterValue, Integer.class));
                         continue;
                     case Types.BIGINT:
-                        preparedStatement.setLong(parameterIndex, convertValue(parameterValue.value, Long.class));
+                        preparedStatement.setLong(parameterIndex, convertValue(parameterValue, Long.class));
                         continue;
                     case Types.FLOAT:
-                        preparedStatement.setFloat(parameterIndex, convertValue(parameterValue.value, Float.class));
+                        preparedStatement.setFloat(parameterIndex, convertValue(parameterValue, Float.class));
                         continue;
                     case Types.REAL:
                     case Types.DOUBLE:
                     case Types.NUMERIC:
                     case Types.DECIMAL:
-                        preparedStatement.setDouble(parameterIndex, convertValue(parameterValue.value, Double.class));
+                        preparedStatement.setDouble(parameterIndex, convertValue(parameterValue, Double.class));
                         continue;
                     case Types.CHAR:
                     case Types.VARCHAR:
                     case Types.LONGVARCHAR:
-                        preparedStatement.setString(parameterIndex, convertValue(parameterValue.value, String.class));
+                        preparedStatement.setString(parameterIndex, convertValue(parameterValue, String.class));
                         continue;
                     case Types.DATE:
                     case Types.TIME:
                     case Types.TIMESTAMP:
-                        preparedStatement.setDate(parameterIndex, convertValue(parameterValue.value, Date.class));
+                        preparedStatement.setDate(parameterIndex, convertValue(parameterValue, Date.class));
                         continue;
                     case Types.BINARY:
                     case Types.VARBINARY:
                     case Types.LONGVARBINARY:
-                        preparedStatement.setBytes(parameterIndex, convertValue(parameterValue.value, byte[].class));
+                        preparedStatement.setBytes(parameterIndex, convertValue(parameterValue, byte[].class));
                         continue;
                     case Types.NULL:
                     case Types.OTHER:

@@ -62,7 +62,7 @@ public class PhotonAggregateDelete
         {
             try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(), connection))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType);
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, fieldBlueprint.getCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
             }
         }
@@ -71,7 +71,7 @@ public class PhotonAggregateDelete
         {
             try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteSql(), connection))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType);
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
             }
         }
@@ -79,8 +79,9 @@ public class PhotonAggregateDelete
         {
             try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), connection))
             {
-                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntity.getEntityBlueprint().getPrimaryKeyColumn().getColumnDataType());
-                photonPreparedStatement.setNextArrayParameter(Collections.emptyList(), null);
+                EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
+                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                photonPreparedStatement.setNextArrayParameter(Collections.emptyList(), null, null);
                 photonPreparedStatement.executeUpdate();
             }
         }

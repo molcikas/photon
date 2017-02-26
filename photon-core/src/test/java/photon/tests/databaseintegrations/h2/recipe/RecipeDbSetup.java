@@ -1,8 +1,17 @@
 package photon.tests.databaseintegrations.h2.recipe;
 
+import org.apache.commons.lang3.math.Fraction;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.blueprints.SortDirection;
+import photon.converters.Converter;
+import photon.converters.ConverterException;
 import photon.tests.databaseintegrations.h2.H2TestUtil;
+import photon.tests.entities.recipe.Recipe;
+import photon.tests.entities.recipe.RecipeIngredient;
+import photon.tests.entities.recipe.RecipeInstruction;
+
+import java.sql.Types;
 
 public class RecipeDbSetup
 {
@@ -216,5 +225,46 @@ public class RecipeDbSetup
         }
 
         return photon;
+    }
+
+    public static void registerRecipeAggregate(Photon photon)
+    {
+        registerRecipeAggregate(photon, SortDirection.Ascending);
+    }
+
+    public static void registerRecipeAggregate(Photon photon, SortDirection ingredientSortDirection)
+    {
+        photon.registerAggregate(Recipe.class)
+            .withId("recipeId")
+            .withChild(RecipeInstruction.class)
+            .withId("recipeInstructionId")
+            .withColumnDataType("recipeInstructionId", Types.BINARY)
+            .withForeignKeyToParent("recipeId")
+            .withColumnDataType("recipeId", Types.BINARY)
+            .withOrderBy("stepNumber")
+            .addAsChild("instructions")
+            .withChild(RecipeIngredient.class)
+            .withId("recipeIngredientId")
+            .withColumnDataType("recipeIngredientId", Types.BINARY)
+            .withForeignKeyToParent("recipeId")
+            .withColumnDataType("recipeId", Types.BINARY)
+            .withColumnDataType("quantity", Types.VARCHAR)
+            .withCustomToFieldValueConverter("quantity", new Converter()
+            {
+                @Override
+                public Object convert(Object val) throws ConverterException
+                {
+                    return val != null ? Fraction.getFraction((String) val) : null;
+                }
+
+                @Override
+                public Object toDatabaseParam(Object val)
+                {
+                    return null;
+                }
+            })
+            .withOrderBy("orderBy", ingredientSortDirection)
+            .addAsChild("ingredients")
+            .register();
     }
 }
