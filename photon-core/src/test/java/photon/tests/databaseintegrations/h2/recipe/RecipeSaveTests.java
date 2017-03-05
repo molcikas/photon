@@ -190,6 +190,79 @@ public class RecipeSaveTests
     }
 
     @Test
+    public void aggregate_insert_insertRecipeWithIngredientsAndInstructions_insertsRecipe()
+    {
+        RecipeDbSetup.registerRecipeAggregate(photon);
+
+        Recipe recipe = new Recipe(
+            UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"),
+            "My Recipe",
+            "This is my recipe.",
+            10,
+            11,
+            12,
+            true,
+            false,
+            true,
+            "http://www.example.com/food/myrecipe",
+            Arrays.asList(
+                new RecipeIngredient(
+                    true,
+                    Fraction.getFraction("1/2"),
+                    "teaspoon",
+                    null,
+                    "salt",
+                    null,
+                    0
+                ),
+                new RecipeIngredient(
+                    true,
+                    Fraction.getFraction("1/4"),
+                    "tablespoon",
+                    null,
+                    "tumeric",
+                    "dried",
+                    1
+                )
+            ),
+            Arrays.asList(
+                new RecipeInstruction(
+                    UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000012"),
+                    1,
+                    "Cook all the food."
+                ),
+                new RecipeInstruction(
+                    UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000013"),
+                    2,
+                    "Eat it."
+                )
+            )
+        );
+
+        try (PhotonConnection connection = photon.open())
+        {
+            connection
+                .insert(recipe);
+        }
+
+        try (PhotonConnection connection = photon.open())
+        {
+            Recipe fetchedRecipe = connection
+                .query(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
+
+            assertNotNull(fetchedRecipe);
+            assertEquals(recipe.getRecipeId(), fetchedRecipe.getRecipeId());
+            assertEquals(recipe.getName(), fetchedRecipe.getName());
+            assertEquals(recipe.getIngredients().size(), fetchedRecipe.getIngredients().size());
+            assertEquals(recipe.getIngredients().get(1).getName(), fetchedRecipe.getIngredients().get(1).getName());
+            assertEquals(recipe.getInstructions().size(), fetchedRecipe.getInstructions().size());
+            assertEquals(recipe.getInstructions().get(1).getDescription(), fetchedRecipe.getInstructions().get(1).getDescription());
+            assertEquals(recipe, fetchedRecipe);
+        }
+    }
+
+    @Test
     public void aggregate_save_overwriteExistingRecipe_insertsRecipe()
     {
         RecipeDbSetup.registerRecipeAggregate(photon);

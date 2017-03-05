@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
@@ -93,6 +94,7 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
+            //System.out.println("Batch Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
             preparedStatement.addBatch();
             isBatched = true;
             parameterValues.clear();
@@ -115,6 +117,7 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
+            //System.out.println(sqlText);
             int[] resultCounts = preparedStatement.executeBatch();
             parameterValues.clear();
             sqlText = originalSqlText;
@@ -163,8 +166,8 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            //System.out.println(sqlText);
             //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
+            //System.out.println(sqlText);
             return preparedStatement.executeUpdate();
         }
         catch(Exception ex)
@@ -179,6 +182,8 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
+            //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
+            //System.out.println(sqlText);
             int rowsUpdated = preparedStatement.executeUpdate();
             updateGeneratedKeys();
             return rowsUpdated;

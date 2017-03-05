@@ -1,1 +1,2 @@
 include 'photon-core'
+include 'photon-perf-test'

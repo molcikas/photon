@@ -1,0 +1,20 @@
+
+description = "Photon performance testing"
+
+dependencies {
+    compile project(':photon-core')
+
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
+
+    // Database
+    testCompile group: 'com.h2database', name: 'h2', version: '1.4.193'
+    testCompile group: 'mysql', name: 'mysql-connector-java', version: '5.1.40'
+    testCompile group: 'com.zaxxer', name: 'HikariCP', version: '2.4.7'
+    testCompile group: 'org.hibernate', name: 'hibernate-core', version: '5.2.3.Final'
+    testCompile group: 'org.hibernate', name: 'hibernate-entitymanager', version: '5.2.3.Final'
+    testCompile group: 'org.hibernate', name: 'hibernate-hikaricp', version: '5.2.3.Final'
+
+    // Unit testing
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+}

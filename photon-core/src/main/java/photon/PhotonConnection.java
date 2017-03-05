@@ -69,6 +69,22 @@ public class PhotonConnection implements Closeable
         new PhotonAggregateSave(aggregateBlueprint, connection).saveAll(aggregates);
     }
 
+    public void insert(Object aggregate)
+    {
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
+        new PhotonAggregateSave(aggregateBlueprint, connection).insert(aggregate);
+    }
+
+    public void insertAll(List<?> aggregates)
+    {
+        if(aggregates == null || aggregates.isEmpty())
+        {
+            return;
+        }
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
+        new PhotonAggregateSave(aggregateBlueprint, connection).insertAll(aggregates);
+    }
+
     public void delete(Object aggregate)
     {
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
@@ -83,6 +99,18 @@ public class PhotonConnection implements Closeable
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
         new PhotonAggregateDelete(aggregateBlueprint, connection).deleteAll(aggregates);
+    }
+
+    public void commit()
+    {
+        try
+        {
+            connection.commit();
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException("Error committing transaction.", ex);
+        }
     }
 
     public void close()

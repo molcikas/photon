@@ -26,7 +26,7 @@ public class PhotonAggregateSave
     public void save(Object aggregateRootInstance)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, false);
     }
 
     public void saveAll(List<?> aggregateRootInstances)
@@ -35,21 +35,40 @@ public class PhotonAggregateSave
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, false);
+    }
+
+    public void insert(Object aggregateRootInstance)
+    {
+        PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, true);
+    }
+
+    public void insertAll(List<?> aggregateRootInstances)
+    {
+        List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
+            .stream()
+            .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
+            .collect(Collectors.toList());
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, true);
     }
 
     private void saveEntitiesRecursive(
         AggregateEntityBlueprint entityBlueprint,
         List<PopulatedEntity> populatedEntities,
         PopulatedEntity parentPopulatedEntity,
-        FieldBlueprint parentFieldBlueprint)
+        FieldBlueprint parentFieldBlueprint,
+        boolean isInsert)
     {
         if(populatedEntities == null)
         {
             populatedEntities = Collections.emptyList();
         }
 
-        deleteOrphans(entityBlueprint, populatedEntities, parentPopulatedEntity, parentFieldBlueprint);
+        if(!isInsert)
+        {
+            deleteOrphans(entityBlueprint, populatedEntities, parentPopulatedEntity, parentFieldBlueprint);
+        }
 
         if(populatedEntities.isEmpty())
         {
@@ -57,11 +76,21 @@ public class PhotonAggregateSave
         }
 
         List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
-        List<PopulatedEntity> updatedPopulatedEntities = updatePopulatedEntities(populatedEntities, parentPopulatedEntity);
-        List<PopulatedEntity> populatedEntitiesToInsert = populatedEntities
-            .stream()
-            .filter(p -> !updatedPopulatedEntities.contains(p))
-            .collect(Collectors.toList());
+        List<PopulatedEntity> populatedEntitiesToInsert;
+
+        if(isInsert)
+        {
+            populatedEntitiesToInsert = populatedEntities;
+        }
+        else
+        {
+            List<PopulatedEntity> updatedPopulatedEntities = updatePopulatedEntities(populatedEntities,
+                parentPopulatedEntity);
+            populatedEntitiesToInsert = populatedEntities
+                .stream()
+                .filter(p -> !updatedPopulatedEntities.contains(p))
+                .collect(Collectors.toList());
+        }
 
         insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity);
         List<PopulatedEntity> populatedEntitiesNeedingForeignKeyToParentSet = populatedEntitiesToInsert
@@ -78,7 +107,7 @@ public class PhotonAggregateSave
             for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
             {
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint);
+                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint, populatedEntitiesToInsert.contains(populatedEntity));
             }
         }
     }

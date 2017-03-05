@@ -8,7 +8,7 @@ public class MyTableDbSetup
 {
     public static Photon setupDatabase()
     {
-        Photon photon = new Photon(H2TestUtil.getH2Url("MySQL"), H2TestUtil.h2User, H2TestUtil.h2Password);
+        Photon photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password);
 
         try(PhotonConnection connection = photon.open())
         {
