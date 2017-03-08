@@ -13,3 +13,19 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
 }
+
+idea {
+    module {
+        iml.withXml { xmlFile ->
+            def facetManager = xmlFile.asNode().component.find { it.@name == 'FacetManager' } as Node
+            if (!facetManager) {
+                facetManager = xmlFile.asNode().appendNode('component', [name: 'FacetManager'])
+            }
+            def builder = new NodeBuilder()
+            def infinitestFacet = builder.facet(type: "Infinitest", name: 'Infinitest') {
+                configuration {}
+            }
+            facetManager.append infinitestFacet
+        }
+    }
+}
