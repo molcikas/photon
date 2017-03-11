@@ -113,7 +113,7 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, null, null, null, null);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, null, null, customFieldToColumnMappings, null, null, null, null);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, null);
 
         try

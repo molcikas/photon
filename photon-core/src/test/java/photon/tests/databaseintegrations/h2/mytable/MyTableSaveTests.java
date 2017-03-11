@@ -4,10 +4,14 @@ import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.blueprints.EntityFieldValueMapping;
 import photon.converters.Converter;
 import photon.converters.ConverterException;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
+
+import java.lang.reflect.Field;
+import java.sql.Types;
 
 import static org.junit.Assert.*;
 
@@ -243,6 +247,63 @@ public class MyTableSaveTests
         }
     }
 
+    @Test
+    public void aggregate_save_ignoredField_doesNotSaveIgnoredField()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withIgnoredField("myvalue")
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, "IShouldBeIgnored", null);
+
+            connection.save(myTable);
+        }
+
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = connection
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTable);
+            assertEquals(7, myTable.getId());
+            assertEquals("oops", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_save_entityFieldValueMapping_savesEntityWithMappedValue()
+    {
+        registerMyTableWithCustomFieldColumnMappingAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = new MyTable(0, null, new MyOtherTable(0, "MySavedMappedEntityValue"));
+
+            connection.save(myTable);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = connection
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTable);
+            assertEquals(7, myTable.getId());
+            assertEquals("MySavedMappedEntityValue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)
@@ -280,6 +341,40 @@ public class MyTableSaveTests
                 .withForeignKeyToParent("id")
                 .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")
+            .register();
+    }
+
+    private void registerMyTableWithCustomFieldColumnMappingAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withIgnoredField("myvalue")
+            .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
+                {
+                    @Override
+                    public String getFieldValueFromEntityInstance(MyTable entityInstance)
+                    {
+                        return entityInstance.getMyOtherTable().getMyOtherValueWithDiffName();
+                    }
+
+                    @Override
+                    public void setFieldValueOnEntityInstance(MyTable entityInstance, String value)
+                    {
+                        try
+                        {
+                            MyOtherTable myOtherTable = new MyOtherTable(0, value);
+                            Field field = MyTable.class.getDeclaredField("myOtherTable");
+                            field.setAccessible(true);
+                            field.set(entityInstance, myOtherTable);
+                        }
+                        catch(Exception ex)
+                        {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                }
+            )
             .register();
     }
 }

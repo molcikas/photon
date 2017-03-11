@@ -5,5 +5,6 @@ public enum FieldType
     Primitive,
     Entity,
     EntityList,
-    ForeignKeyList
+    CustomValueMapper,
+    ForeignKeyList,
 }

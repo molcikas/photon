@@ -14,7 +14,9 @@ public class FieldBlueprint
     private final Class fieldClass;
     private final FieldType fieldType;
     private final Converter customToFieldValueConverter;
+    // TODO: Should this be on the ColumnBlueprint instead of here?
     private final Converter customToDatabaseValueConverter;
+    private final EntityFieldValueMapping entityFieldValueMapping;
 
     private final String mappedColumnName;
     private final AggregateEntityBlueprint childEntityBlueprint;
@@ -65,27 +67,60 @@ public class FieldBlueprint
         return customToDatabaseValueConverter;
     }
 
-    FieldBlueprint(Field reflectedField, String mappedColumnName, AggregateEntityBlueprint childEntityBlueprint,
-                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, Converter customToDatabaseValueConverter)
+    public EntityFieldValueMapping getEntityFieldValueMapping()
     {
-        if(reflectedField == null)
+        return entityFieldValueMapping;
+    }
+
+    FieldBlueprint(Field reflectedField, String mappedColumnName, AggregateEntityBlueprint childEntityBlueprint,
+                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, Converter customToDatabaseValueConverter,
+                   EntityFieldValueMapping entityFieldValueMapping)
+    {
+        if(reflectedField == null && entityFieldValueMapping == null)
         {
-            throw new PhotonException("The reflected field for a field blueprint cannot be null.");
+            throw new PhotonException("The reflected field and entity field value mapping for a field blueprint cannot both be null.");
         }
 
-        reflectedField.setAccessible(true);
-        this.reflectedField = reflectedField;
-        this.fieldName = reflectedField.getName();
-        this.fieldClass = reflectedField.getType();
+        if(reflectedField != null)
+        {
+            reflectedField.setAccessible(true);
+            this.reflectedField = reflectedField;
+            this.fieldName = reflectedField.getName();
+            this.fieldClass = reflectedField.getType();
+        }
+        else
+        {
+            this.reflectedField = null;
+            this.fieldName = null;
+            this.fieldClass = null;
+        }
+
         this.customToFieldValueConverter = customToFieldValueConverter;
         this.customToDatabaseValueConverter = customToDatabaseValueConverter;
 
-        if(foreignKeyListBlueprint != null)
+        if(entityFieldValueMapping != null)
+        {
+            if(StringUtils.isBlank(mappedColumnName))
+            {
+                throw new PhotonException("A field with a custom entity field value mapping must have a mapped column name.");
+            }
+            if(reflectedField != null || childEntityBlueprint != null || foreignKeyListBlueprint != null)
+            {
+                throw new PhotonException(String.format("The field for column '%s' has a custom entity field value mapping, therefore the field cannot have a reflected field, child entity, or foreign key list.", mappedColumnName));
+            }
+            this.fieldType = FieldType.CustomValueMapper;
+            this.mappedColumnName = mappedColumnName;
+            this.childEntityBlueprint = null;
+            this.foreignKeyListBlueprint = null;
+            this.entityFieldValueMapping = entityFieldValueMapping;
+        }
+        else if(foreignKeyListBlueprint != null)
         {
             this.fieldType = FieldType.ForeignKeyList;
             this.mappedColumnName = null;
             this.childEntityBlueprint = null;
             this.foreignKeyListBlueprint = foreignKeyListBlueprint;
+            this.entityFieldValueMapping = null;
 
             if(StringUtils.isBlank(foreignKeyListBlueprint.getForeignTableName()) ||
                 StringUtils.isBlank(foreignKeyListBlueprint.getForeignTableKeyColumnName()) ||
@@ -115,6 +150,7 @@ public class FieldBlueprint
             this.mappedColumnName = mappedColumnName;
             this.childEntityBlueprint = childEntityBlueprint;
             this.foreignKeyListBlueprint = null;
+            this.entityFieldValueMapping = null;
         }
         else
         {
@@ -122,6 +158,7 @@ public class FieldBlueprint
             this.mappedColumnName = mappedColumnName;
             this.childEntityBlueprint = null;
             this.foreignKeyListBlueprint = null;
+            this.entityFieldValueMapping = null;
         }
     }
 }

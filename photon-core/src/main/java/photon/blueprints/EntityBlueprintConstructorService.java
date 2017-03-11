@@ -1,5 +1,6 @@
 package photon.blueprints;
 
+import org.apache.commons.lang3.StringUtils;
 import photon.converters.Converter;
 
 import java.lang.reflect.Field;
@@ -11,12 +12,16 @@ public class EntityBlueprintConstructorService
 {
     public List<FieldBlueprint> getFieldsForEntity(
         Class entityClass,
+        List<String> ignoredFields,
+        Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
         Map<String, Converter> customToFieldValueConverters,
         Map<String, Converter> customToDatabaseValueConverters)
     {
+        final List<String> ignoredFieldsFinal = ignoredFields != null ? ignoredFields : Collections.emptyList();
+        final Map<String, EntityFieldValueMapping> customDatabaseColumnsFinal = customDatabaseColumns != null ? customDatabaseColumns : new HashMap<>();
         final Map<String, String> customFieldToColumnMappingsFinal = customFieldToColumnMappings != null ? customFieldToColumnMappings : new HashMap<>();
         final Map<String, AggregateEntityBlueprint> childEntitiesFinal = childEntities != null ? childEntities : new HashMap<>();
         final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
@@ -27,6 +32,7 @@ public class EntityBlueprintConstructorService
 
         List<FieldBlueprint> fields = reflectedFields
             .stream()
+            .filter(f -> !ignoredFieldsFinal.contains(f.getName()))
             .map(reflectedField -> new FieldBlueprint(
                 reflectedField,
                 customFieldToColumnMappingsFinal.containsKey(reflectedField.getName()) ?
@@ -35,9 +41,25 @@ public class EntityBlueprintConstructorService
                 childEntitiesFinal.get(reflectedField.getName()),
                 foreignKeyListBlueprintsFinal.get(reflectedField.getName()),
                 customToFieldValueConvertersFinal.get(reflectedField.getName()),
-                customToDatabaseValueConvertersFinal.get(reflectedField.getName())
+                customToDatabaseValueConvertersFinal.get(reflectedField.getName()),
+                null
             ))
             .collect(Collectors.toList());
+
+        fields.addAll(
+            customDatabaseColumnsFinal.entrySet()
+                .stream()
+                .map(e -> new FieldBlueprint(
+                    null,
+                    e.getKey(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    e.getValue()
+                ))
+                .collect(Collectors.toList())
+        );
 
         return fields;
     }
@@ -64,18 +86,19 @@ public class EntityBlueprintConstructorService
         for(FieldBlueprint fieldBlueprint : fieldsWithColumnMappings)
         {
             String fieldName = fieldBlueprint.getFieldName();
-            Integer columnDataType = customColumnDataTypes.containsKey(fieldName) ?
-                customColumnDataTypes.get(fieldName) :
+            String columnName = fieldBlueprint.getMappedColumnName();
+            Integer columnDataType = customColumnDataTypes.containsKey(columnName) ?
+                customColumnDataTypes.get(columnName) :
                 defaultColumnDataTypeForField(fieldBlueprint.getFieldClass());
             if(columnDataType != null)
             {
-                boolean isPrimaryKey = idFieldName != null && fieldName.equals(idFieldName);
+                boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                    fieldBlueprint.getMappedColumnName(),
+                    columnName,
                     columnDataType,
                     isPrimaryKey,
                     isPrimaryKey && isPrimaryKeyAutoIncrement,
-                    foreignKeyToParentColumnName != null && fieldName.equals(foreignKeyToParentColumnName),
+                    foreignKeyToParentColumnName != null && StringUtils.equals(fieldName, foreignKeyToParentColumnName),
                     fieldBlueprint,
                     columns.size()
                 );
@@ -88,6 +111,11 @@ public class EntityBlueprintConstructorService
 
     public Integer defaultColumnDataTypeForField(Class fieldType)
     {
+        if(fieldType == null)
+        {
+            return null;
+        }
+
         if(fieldType.equals(int.class) || fieldType.equals(Integer.class))
         {
             return Types.INTEGER;

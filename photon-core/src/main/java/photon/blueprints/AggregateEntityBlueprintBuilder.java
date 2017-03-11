@@ -5,7 +5,9 @@ import photon.Photon;
 import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class AggregateEntityBlueprintBuilder
@@ -20,6 +22,8 @@ public class AggregateEntityBlueprintBuilder
     private String orderByColumnName;
     private SortDirection orderByDirection;
     private final Map<String, Integer> customColumnDataTypes;
+    private final List<String> ignoredFields;
+    private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
     private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
@@ -45,6 +49,8 @@ public class AggregateEntityBlueprintBuilder
         this.parentBuilder = parentBuilder;
         this.isPrimaryKeyAutoIncrement = false;
         this.customColumnDataTypes = new HashMap<>();
+        this.ignoredFields = new ArrayList<>();
+        this.customDatabaseColumns = new HashMap<>();
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
         this.foreignKeyListBlueprints = new HashMap<>();
@@ -94,9 +100,22 @@ public class AggregateEntityBlueprintBuilder
         return this;
     }
 
+    public AggregateEntityBlueprintBuilder withIgnoredField(String fieldName)
+    {
+        ignoredFields.add(fieldName);
+        return this;
+    }
+
     public AggregateEntityBlueprintBuilder withFieldToColumnMapping(String fieldName, String columnName)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
+        return this;
+    }
+
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType, EntityFieldValueMapping entityFieldValueMapping)
+    {
+        customColumnDataTypes.put(columnName, columnDataType);
+        customDatabaseColumns.put(columnName, entityFieldValueMapping);
         return this;
     }
 
@@ -106,6 +125,7 @@ public class AggregateEntityBlueprintBuilder
         return this;
     }
 
+    // TODO: Should the key be the columnName instead of fieldName?
     public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String fieldName, Converter customToDatabaseValueConverter)
     {
         customToDatabaseValueConverters.put(fieldName, customToDatabaseValueConverter);
@@ -162,6 +182,8 @@ public class AggregateEntityBlueprintBuilder
             orderByColumnName,
             orderByDirection,
             customColumnDataTypes,
+            ignoredFields,
+            customDatabaseColumns,
             customFieldToColumnMappings,
             childEntities,
             foreignKeyListBlueprints,

@@ -106,7 +106,7 @@ public class Recipe
         this.prepTime = prepTime;
     }
 
-    private Recipe()
+    public Recipe()
     {
     }
 

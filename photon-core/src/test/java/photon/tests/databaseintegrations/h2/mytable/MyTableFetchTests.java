@@ -4,10 +4,13 @@ import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.blueprints.EntityFieldValueMapping;
 import photon.blueprints.SortDirection;
 import photon.tests.entities.mytable.MyOtherTable;
 import photon.tests.entities.mytable.MyTable;
 
+import java.lang.reflect.Field;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
@@ -147,6 +150,43 @@ public class MyTableFetchTests
         }
     }
 
+    @Test
+    public void aggregate_fetchById_ignoredField_returnsEntityWithIgnoredFieldNull()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withIgnoredField("myvalue")
+            .register();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = connection
+                .query(MyTable.class)
+                .fetchById(3);
+
+            assertNotNull(myTable);
+            assertEquals(3, myTable.getId());
+            assertNull(myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_fetchById_entityFieldValueMapping_returnsEntityWithMappedValue()
+    {
+        registerMyTableWithCustomFieldColumnMappingAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = connection
+                .query(MyTable.class)
+                .fetchById(3);
+
+            assertNotNull(myTable);
+            assertEquals(3, myTable.getId());
+            assertEquals("my3dbvalue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)
@@ -163,6 +203,40 @@ public class MyTableFetchTests
                 .withForeignKeyToParent("id")
                 .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
                 .addAsChild("myOtherTable")
+            .register();
+    }
+
+    private void registerMyTableWithCustomFieldColumnMappingAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withIgnoredField("myvalue")
+            .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
+                {
+                    @Override
+                    public String getFieldValueFromEntityInstance(MyTable entityInstance)
+                    {
+                        return entityInstance.getMyOtherTable().getMyOtherValueWithDiffName();
+                    }
+
+                    @Override
+                    public void setFieldValueOnEntityInstance(MyTable entityInstance, String value)
+                    {
+                        try
+                        {
+                            MyOtherTable myOtherTable = new MyOtherTable(0, value);
+                            Field field = MyTable.class.getDeclaredField("myOtherTable");
+                            field.setAccessible(true);
+                            field.set(entityInstance, myOtherTable);
+                        }
+                        catch(Exception ex)
+                        {
+                            throw new RuntimeException(ex);
+                        }
+                    }
+                }
+            )
             .register();
     }
 }

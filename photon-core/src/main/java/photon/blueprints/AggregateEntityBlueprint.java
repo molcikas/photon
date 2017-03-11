@@ -35,7 +35,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         return deleteOrphansSql.get(parentLevelsUpForOrphanIds);
     }
 
-    public AggregateEntityBlueprint(
+    AggregateEntityBlueprint(
         Class entityClass,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
@@ -43,6 +43,8 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         String orderByColumnName,
         SortDirection orderByDirection,
         Map<String, Integer> customColumnDataTypes,
+        List<String> ignoredFields,
+        Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
@@ -66,7 +68,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters, customToDatabaseValueConverters);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters, customToDatabaseValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName);
 
         try

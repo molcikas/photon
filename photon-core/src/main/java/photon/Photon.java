@@ -61,7 +61,7 @@ public class Photon
         }
         if(registeredAggregates.containsKey(aggregateRootEntityBlueprint.getEntityClass()))
         {
-            throw new PhotonException(String.format("The aggregate '%s' is already registered with this instance of Photon.", aggregateRootEntityBlueprint.getEntityClassName()));
+            // TODO: Print warning that aggregate was already registered and old registration is being replaced.
         }
         registeredAggregates.put(
             aggregateRootEntityBlueprint.getEntityClass(),

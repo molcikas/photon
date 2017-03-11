@@ -90,19 +90,21 @@ public class PopulatedEntity<T>
             return null;
         }
 
-        return getInstanceValue(fieldBlueprint.getFieldName());
-    }
-
-    public Object getInstanceValue(String fieldName)
-    {
-        try
+        if(fieldBlueprint.getEntityFieldValueMapping() != null)
         {
-            Field field = entityBlueprint.getReflectedField(fieldName);
-            return field.get(entityInstance);
+            return fieldBlueprint.getEntityFieldValueMapping().getFieldValueFromEntityInstance(entityInstance);
         }
-        catch(Exception ex)
+        else
         {
-            throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldName, entityBlueprint.getEntityClassName()), ex);
+            try
+            {
+                Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+                return field.get(entityInstance);
+            }
+            catch(Exception ex)
+            {
+                throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
+            }
         }
     }
 
@@ -337,16 +339,20 @@ public class PopulatedEntity<T>
             return;
         }
 
-        Converter converter = fieldBlueprint.getCustomToFieldValueConverter() != null ?
-            fieldBlueprint.getCustomToFieldValueConverter() :
-            Convert.getConverterIfExists(fieldBlueprint.getFieldClass());
-
-        if(converter == null)
+        Converter converter = fieldBlueprint.getCustomToFieldValueConverter();
+        if(converter == null && fieldBlueprint.getFieldClass() != null)
         {
+            converter = Convert.getConverterIfExists(fieldBlueprint.getFieldClass());
+        }
+
+        if(converter == null && fieldBlueprint.getEntityFieldValueMapping() == null)
+        {
+            // If we don't know how to convert the database value to a field value, then don't try setting the field on the entity instance
+            // unless the field has a custom field value mapping (in which case the mapping class will get the database value).
             return;
         }
 
-        Object fieldValue = converter.convert(databaseValue);
+        Object fieldValue = converter != null ? converter.convert(databaseValue) : databaseValue;
         setInstanceFieldToValue(fieldBlueprint, fieldValue);
     }
 
@@ -354,8 +360,15 @@ public class PopulatedEntity<T>
     {
         try
         {
-            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-            field.set(entityInstance, value);
+            if(fieldBlueprint.getEntityFieldValueMapping() != null)
+            {
+                fieldBlueprint.getEntityFieldValueMapping().setFieldValueOnEntityInstance(entityInstance, value);
+            }
+            else
+            {
+                Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+                field.set(entityInstance, value);
+            }
         }
         catch (Exception ex)
         {
