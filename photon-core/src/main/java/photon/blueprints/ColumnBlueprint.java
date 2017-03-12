@@ -1,6 +1,7 @@
 package photon.blueprints;
 
 import org.apache.commons.lang3.StringUtils;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 public class ColumnBlueprint
@@ -10,6 +11,7 @@ public class ColumnBlueprint
     private final boolean isPrimaryKeyColumn;
     private final boolean isAutoIncrementColumn;
     private final boolean isForeignKeyToParentColumn;
+    private final Converter customToDatabaseValueConverter;
 
     // Reference to the entity field that this database column is mapped to. This can (but does not have to)
     // be null if this column is an unmapped primary key or a foreign key to the parent.
@@ -42,6 +44,11 @@ public class ColumnBlueprint
         return isForeignKeyToParentColumn;
     }
 
+    public Converter getCustomToDatabaseValueConverter()
+    {
+        return customToDatabaseValueConverter;
+    }
+
     public FieldBlueprint getMappedFieldBlueprint()
     {
         return mappedFieldBlueprint;
@@ -58,6 +65,7 @@ public class ColumnBlueprint
         boolean isPrimaryKeyColumn,
         boolean isAutoIncrementColumn,
         boolean isForeignKeyToParentColumn,
+        Converter customToDatabaseValueConverter,
         FieldBlueprint mappedFieldBlueprint,
         int columnIndex)
     {
@@ -78,6 +86,7 @@ public class ColumnBlueprint
         this.isPrimaryKeyColumn = isPrimaryKeyColumn;
         this.isAutoIncrementColumn = isAutoIncrementColumn;
         this.isForeignKeyToParentColumn = isForeignKeyToParentColumn;
+        this.customToDatabaseValueConverter = customToDatabaseValueConverter;
         this.mappedFieldBlueprint = mappedFieldBlueprint;
         this.columnIndex = columnIndex;
     }

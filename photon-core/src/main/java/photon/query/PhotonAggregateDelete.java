@@ -62,7 +62,7 @@ public class PhotonAggregateDelete
         {
             try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(), connection))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, fieldBlueprint.getCustomToDatabaseValueConverter());
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
             }
         }

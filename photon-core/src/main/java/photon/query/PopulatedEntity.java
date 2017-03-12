@@ -232,7 +232,7 @@ public class PopulatedEntity<T>
             if (fieldBlueprint != null)
             {
                 fieldValue = getInstanceValue(fieldBlueprint);
-                customToDatabaseValueConverter = fieldBlueprint.getCustomToDatabaseValueConverter();
+                customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
             }
             else if (columnBlueprint.isForeignKeyToParentColumn())
             {
@@ -268,7 +268,7 @@ public class PopulatedEntity<T>
             if(fieldBlueprint != null)
             {
                 fieldValue = getInstanceValue(fieldBlueprint);
-                customToDatabaseValueConverter = fieldBlueprint.getCustomToDatabaseValueConverter();
+                customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
             }
             else if(columnBlueprint.isForeignKeyToParentColumn())
             {

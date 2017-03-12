@@ -113,8 +113,8 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, null, null, customFieldToColumnMappings, null, null, null, null);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, null);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, null, null, customFieldToColumnMappings, null, null, null);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, null);
 
         try
         {
@@ -201,8 +201,7 @@ public class EntityBlueprint
     public Converter getPrimaryKeyCustomToDatabaseValueConverter()
     {
         ColumnBlueprint primaryKeyColumn = getPrimaryKeyColumn();
-        return primaryKeyColumn.getMappedFieldBlueprint() != null ?
-            primaryKeyColumn.getMappedFieldBlueprint().getCustomToDatabaseValueConverter() : null;
+        return primaryKeyColumn.getCustomToDatabaseValueConverter();
     }
 
     public void setSelectSql(String selectSql)

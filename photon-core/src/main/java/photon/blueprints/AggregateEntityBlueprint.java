@@ -68,8 +68,8 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters, customToDatabaseValueConverters);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, customColumnDataTypes, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters);
 
         try
         {
@@ -108,6 +108,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
                 true,
                 isPrimaryKeyAutoIncrement,
                 idFieldName.equals(foreignKeyToParentColumnName),
+                customToDatabaseValueConverters.get(idFieldName),
                 null,
                 columns.size()
             );
@@ -127,6 +128,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
                 false,
                 false,
                 true,
+                customToDatabaseValueConverters.get(foreignKeyToParentColumnName),
                 null,
                 columns.size()
             );

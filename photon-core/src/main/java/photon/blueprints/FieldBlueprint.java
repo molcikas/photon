@@ -14,8 +14,6 @@ public class FieldBlueprint
     private final Class fieldClass;
     private final FieldType fieldType;
     private final Converter customToFieldValueConverter;
-    // TODO: Should this be on the ColumnBlueprint instead of here?
-    private final Converter customToDatabaseValueConverter;
     private final EntityFieldValueMapping entityFieldValueMapping;
 
     private final String mappedColumnName;
@@ -62,19 +60,13 @@ public class FieldBlueprint
         return customToFieldValueConverter;
     }
 
-    public Converter getCustomToDatabaseValueConverter()
-    {
-        return customToDatabaseValueConverter;
-    }
-
     public EntityFieldValueMapping getEntityFieldValueMapping()
     {
         return entityFieldValueMapping;
     }
 
     FieldBlueprint(Field reflectedField, String mappedColumnName, AggregateEntityBlueprint childEntityBlueprint,
-                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, Converter customToDatabaseValueConverter,
-                   EntityFieldValueMapping entityFieldValueMapping)
+                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, EntityFieldValueMapping entityFieldValueMapping)
     {
         if(reflectedField == null && entityFieldValueMapping == null)
         {
@@ -96,7 +88,6 @@ public class FieldBlueprint
         }
 
         this.customToFieldValueConverter = customToFieldValueConverter;
-        this.customToDatabaseValueConverter = customToDatabaseValueConverter;
 
         if(entityFieldValueMapping != null)
         {
