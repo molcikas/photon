@@ -8,7 +8,7 @@ import photon.sqlbuilders.UpdateSqlBuilderService;
 
 import java.util.*;
 
-public class AggregateBlueprint
+public class AggregateBlueprint<T>
 {
     private final AggregateEntityBlueprint aggregateRootEntityBlueprint;
     private final List<AggregateEntityBlueprint> entityBlueprints;
@@ -23,7 +23,7 @@ public class AggregateBlueprint
         return Collections.unmodifiableList(entityBlueprints);
     }
 
-    public Class getAggregateRootClass()
+    public Class<T> getAggregateRootClass()
     {
         return aggregateRootEntityBlueprint.getEntityClass();
     }

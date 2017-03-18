@@ -3,10 +3,7 @@ package photon;
 import photon.blueprints.EntityBlueprintConstructorService;
 import photon.exceptions.PhotonException;
 import photon.blueprints.AggregateBlueprint;
-import photon.query.PhotonAggregateDelete;
-import photon.query.PhotonAggregateQuery;
-import photon.query.PhotonAggregateSave;
-import photon.query.PhotonQuery;
+import photon.query.*;
 
 import java.io.Closeable;
 import java.sql.*;
@@ -49,7 +46,7 @@ public class PhotonConnection implements Closeable
 
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)
     {
-        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregateClass);
+        AggregateBlueprint<T> aggregateBlueprint = getAggregateBlueprint(aggregateClass);
         return new PhotonAggregateQuery<>(aggregateBlueprint, connection);
     }
 
@@ -125,9 +122,9 @@ public class PhotonConnection implements Closeable
         }
     }
 
-    private AggregateBlueprint getAggregateBlueprint(Class aggregateClass)
+    private <T> AggregateBlueprint<T> getAggregateBlueprint(Class<T> aggregateClass)
     {
-        AggregateBlueprint aggregateBlueprint = registeredAggregates.get(aggregateClass);
+        AggregateBlueprint<T> aggregateBlueprint = registeredAggregates.get(aggregateClass);
         if(aggregateBlueprint == null)
         {
             throw new PhotonException(String.format("The aggregate root class '%s' is not registered with photon.", aggregateClass.getName()));

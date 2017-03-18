@@ -187,6 +187,71 @@ public class MyTableFetchTests
         }
     }
 
+    @Test
+    public void aggregate_fetchWhere_fetchByNonIdValue_fetchesAggregate()
+    {
+        registerMyTableAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            MyTable myTable = connection
+                .query(MyTable.class)
+                .where("myvalue = :myvalue")
+                .addParameter("myvalue", "my3dbvalue")
+                .fetch();
+
+            assertNotNull(myTable);
+            assertEquals(3, myTable.getId());
+            assertEquals("my3otherdbvalue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
+    @Test
+    public void aggregate_fetchWhere_fetchListByNonIdValue_fetchesList()
+    {
+        registerMyTableAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            List<MyTable> myTables = connection
+                .query(MyTable.class)
+                .where("myvalue = :myvalue1 OR myvalue = :myvalue2")
+                .addParameter("myvalue1", "my3dbvalue")
+                .addParameter("myvalue2", "my4dbvalue")
+                .fetchList();
+
+            assertNotNull(myTables);
+            assertEquals(2, myTables.size());
+            assertEquals(3, myTables.get(0).getId());
+            assertEquals("my3otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
+            assertEquals(4, myTables.get(1).getId());
+            assertEquals("my4otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
+    @Test
+    public void aggregate_fetchByIdQuery_fetchByDataInSubEntity_fetchesAggregate()
+    {
+        registerMyTableAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            List<MyTable> myTables = connection
+                .query(MyTable.class)
+                .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue = :myothervalue1 OR myothervalue = :myothervalue2")
+                .addParameter("myothervalue1", "my4otherdbvalue")
+                .addParameter("myothervalue2", "my5otherdbvalue")
+                .fetchList();
+
+            assertNotNull(myTables);
+            assertEquals(2, myTables.size());
+            assertEquals(4, myTables.get(0).getId());
+            assertEquals("my4otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
+            assertEquals(5, myTables.get(1).getId());
+            assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)

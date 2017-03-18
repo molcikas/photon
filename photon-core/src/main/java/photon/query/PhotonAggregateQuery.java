@@ -8,11 +8,11 @@ import java.util.stream.Collectors;
 
 public class PhotonAggregateQuery<T>
 {
-    private final AggregateBlueprint aggregateBlueprint;
+    private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
 
     public PhotonAggregateQuery(
-        AggregateBlueprint aggregateBlueprint,
+        AggregateBlueprint<T> aggregateBlueprint,
         Connection connection)
     {
         this.aggregateBlueprint = aggregateBlueprint;
@@ -41,7 +41,15 @@ public class PhotonAggregateQuery<T>
             .collect(Collectors.toList());
     }
 
-    // TODO: fetchWhere(String query) allows fetching aggregates based on query
+    public PhotonAggregateIdsQuery<T> fetchByIdsQuery(String selectIdsSql)
+    {
+        return new PhotonAggregateIdsQuery(aggregateBlueprint, selectIdsSql, false, connection, this);
+    }
+
+    public PhotonAggregateIdsQuery<T> where(String whereClause)
+    {
+        return new PhotonAggregateIdsQuery(aggregateBlueprint, whereClause, true, connection, this);
+    }
 
     private List<PopulatedEntity> getPopulatedAggregateRoots(List ids)
     {

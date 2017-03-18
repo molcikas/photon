@@ -154,7 +154,7 @@ public class PhotonQuery
         for(PhotonSqlParameter parameter : parametersInOrder)
         {
             Integer dataType = parameter.getValue() != null ?
-                entityBlueprintConstructorService.defaultColumnDataTypeForField(parameter.getValue().getClass()) :
+                EntityBlueprintConstructorService.defaultColumnDataTypeForField(parameter.getValue().getClass()) :
                 null;
             Object value = parameter.getValue();
             if(value != null && Collection.class.isAssignableFrom(value.getClass()))

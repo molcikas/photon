@@ -111,7 +111,8 @@ public class EntityBlueprintConstructorService
         return columns;
     }
 
-    public Integer defaultColumnDataTypeForField(Class fieldType)
+    // TODO: Move this to a static class
+    public static Integer defaultColumnDataTypeForField(Class fieldType)
     {
         if(fieldType == null)
         {

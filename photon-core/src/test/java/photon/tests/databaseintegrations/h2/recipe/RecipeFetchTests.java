@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class RecipeFetchTests
 {
@@ -153,6 +154,26 @@ public class RecipeFetchTests
             for(int i = 0; i < recipe.getInstructions().size(); i++)
             {
                 assertEquals(i + 1, recipe.getInstructions().get(i).getStepNumber());
+            }
+        }
+    }
+
+    @Test
+    public void aggregate_fetchByIdsQuery_recipesWithMoreThan3Steps_returnsCorrectRecipes()
+    {
+        RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
+
+        try (PhotonConnection connection = photon.open())
+        {
+            List<Recipe> recipes = connection
+                .query(Recipe.class)
+                .fetchByIdsQuery("SELECT r.recipeId FROM recipe r JOIN recipeinstruction i ON i.recipeId = r.recipeId GROUP BY r.recipeId HAVING COUNT(*) > :instructionCount")
+                .addParameter("instructionCount", 3)
+                .fetchList();
+
+            for(Recipe recipe : recipes)
+            {
+                assertTrue(recipe.getInstructions().size() > 3);
             }
         }
     }
