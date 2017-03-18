@@ -46,6 +46,101 @@ public class MyTableQueryTests
     }
 
     @Test
+    public void query_fetchScalar_fetchString_fetchesString()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT myvalue " +
+                "FROM mytable " +
+                "WHERE id = :id ";
+
+            String myValue = connection
+                .query(sql)
+                .addParameter("id", 2)
+                .fetchScalar(String.class);
+
+            assertEquals("my2dbvalue", myValue);
+        }
+    }
+
+    @Test
+    public void query_fetchScalar_fetchNumber_fetchesNumber()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT COUNT(*) " +
+                "FROM mytable ";
+
+            Long count = connection
+                .query(sql)
+                .fetchScalar(Long.class);
+
+            assertEquals(Long.valueOf(6L), count);
+        }
+    }
+
+    @Test
+    public void query_fetchScalar_noResult_returnsNull()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT myvalue " +
+                "FROM mytable " +
+                "WHERE id = :id ";
+
+            String myValue = connection
+                .query(sql)
+                .addParameter("id", 9999)
+                .fetchScalar(String.class);
+
+            assertNull(myValue);
+        }
+    }
+
+    @Test
+    public void query_fetchScalarList_fetchStringsList_returnsStringsList()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT myvalue " +
+                "FROM mytable " +
+                "WHERE id >= :id ";
+
+            List<String> myValues = connection
+                .query(sql)
+                .addParameter("id", 3)
+                .fetchScalarList(String.class);
+
+            assertEquals(4, myValues.size());
+            assertEquals("my3dbvalue", myValues.get(0));
+            assertEquals("my5dbvalue", myValues.get(2));
+        }
+    }
+
+    @Test
+    public void query_fetchScalarList_noResults_returnsEmptyList()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT myvalue " +
+                "FROM mytable " +
+                "WHERE id >= :id ";
+
+            List<String> myValues = connection
+                .query(sql)
+                .addParameter("id", 9999)
+                .fetchScalarList(String.class);
+
+            assertEquals(0, myValues.size());
+        }
+    }
+
+    @Test
     public void query_fetchList_simpleEntities_returnsEntities()
     {
         try(PhotonConnection connection = photon.open())

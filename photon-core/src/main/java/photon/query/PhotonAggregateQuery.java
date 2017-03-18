@@ -41,6 +41,8 @@ public class PhotonAggregateQuery<T>
             .collect(Collectors.toList());
     }
 
+    // TODO: fetchWhere(String query) allows fetching aggregates based on query
+
     private List<PopulatedEntity> getPopulatedAggregateRoots(List ids)
     {
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();

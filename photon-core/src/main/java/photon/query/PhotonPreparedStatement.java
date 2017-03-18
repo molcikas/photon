@@ -130,6 +130,37 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
+    public List<PhotonQueryResultRow> executeQuery()
+    {
+        List<PhotonQueryResultRow> resultRows = new ArrayList<>(100);
+
+        prepareStatement();
+
+        try(ResultSet resultSet = preparedStatement.executeQuery())
+        {
+            ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+            while (resultSet.next())
+            {
+                PhotonQueryResultRow row = new PhotonQueryResultRow();
+                for (int c = 1; c <= resultSetMetaData.getColumnCount(); c++)
+                {
+                    Object value = resultSet.getObject(c);
+                    if (value != null)
+                    {
+                        row.addValue(resultSetMetaData.getColumnName(c), value);
+                    }
+                }
+                resultRows.add(row);
+            }
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException(String.format("Error executing query for statement with SQL: \n%s", originalSqlText), ex);
+        }
+
+        return resultRows;
+    }
+
     public List<PhotonQueryResultRow> executeQuery(List<String> columnNames)
     {
         List<PhotonQueryResultRow> resultRows = new ArrayList<>(100);

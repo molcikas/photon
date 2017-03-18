@@ -1,10 +1,11 @@
 package photon.query;
 
 import photon.blueprints.*;
+import photon.converters.Convert;
+import photon.converters.Converter;
 import photon.exceptions.PhotonException;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,6 +55,40 @@ public class PhotonQuery
         }
         parameters.get(parameter).assignValue(value);
         return this;
+    }
+
+    public <T> T fetchScalar(Class<T> scalarClass)
+    {
+        PhotonPreparedStatement photonPreparedStatement = prepareStatement();
+        List<PhotonQueryResultRow> results = photonPreparedStatement.executeQuery();
+        if(results.isEmpty())
+        {
+            return null;
+        }
+        Object firstValue = results.get(0).getFirstValue();
+        Converter<T> converter = Convert.getConverterIfExists(scalarClass);
+        if(converter == null)
+        {
+            return (T) firstValue;
+        }
+        return converter.convert(firstValue);
+    }
+
+    public <T> List<T> fetchScalarList(Class<T> scalarClass)
+    {
+        PhotonPreparedStatement photonPreparedStatement = prepareStatement();
+        List<PhotonQueryResultRow> results = photonPreparedStatement.executeQuery();
+        if(results.isEmpty())
+        {
+            return Collections.emptyList();
+        }
+        List databaseValues = results.stream().map(PhotonQueryResultRow::getFirstValue).collect(Collectors.toList());
+        Converter<T> converter = Convert.getConverterIfExists(scalarClass);
+        if(converter == null)
+        {
+            return databaseValues;
+        }
+        return (List<T>) databaseValues.stream().map(v -> converter.convert(v)).collect(Collectors.toList());
     }
 
     public <T> T fetch(Class<T> classToFetch)

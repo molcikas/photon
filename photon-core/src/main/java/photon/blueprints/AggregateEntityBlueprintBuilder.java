@@ -125,10 +125,9 @@ public class AggregateEntityBlueprintBuilder
         return this;
     }
 
-    // TODO: Should the key be the columnName instead of fieldName?
-    public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String fieldName, Converter customToDatabaseValueConverter)
+    public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String columnName, Converter customToDatabaseValueConverter)
     {
-        customToDatabaseValueConverters.put(fieldName, customToDatabaseValueConverter);
+        customToDatabaseValueConverters.put(columnName, customToDatabaseValueConverter);
         return this;
     }
 
