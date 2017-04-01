@@ -7,7 +7,8 @@ package photon.converters;
  * Time: 10:54 PM
  * To change this template use File | Settings | File Templates.
  */
-public class BooleanConverter extends ConverterBase<Boolean> {
+public class BooleanConverter implements Converter<Boolean>
+{
 
     public Boolean convert(Object val) throws ConverterException {
         if (val == null) return null;

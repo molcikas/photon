@@ -1,4 +1,4 @@
-package photon.converters;
+package photon.converters.number;
 
 import java.math.BigDecimal;
 

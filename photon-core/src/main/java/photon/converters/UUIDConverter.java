@@ -6,7 +6,8 @@ import java.util.UUID;
 /**
  * Used by sql2o to convert a value from the database into a {@link UUID}.
  */
-public class UUIDConverter extends ConverterBase<UUID> {
+public class UUIDConverter implements Converter<UUID>
+{
     public UUID convert(Object val) throws ConverterException {
         if (val == null){
             return null;

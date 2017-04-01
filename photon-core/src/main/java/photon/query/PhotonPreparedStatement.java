@@ -147,7 +147,7 @@ public class PhotonPreparedStatement implements Closeable
                     Object value = resultSet.getObject(c);
                     if (value != null)
                     {
-                        row.addValue(resultSetMetaData.getColumnName(c), value);
+                        row.addValue(resultSetMetaData.getColumnLabel(c), value);
                     }
                 }
                 resultRows.add(row);
@@ -352,7 +352,7 @@ public class PhotonPreparedStatement implements Closeable
                     case Types.DATE:
                     case Types.TIME:
                     case Types.TIMESTAMP:
-                        preparedStatement.setDate(parameterIndex, convertValue(parameterValue, Date.class));
+                        preparedStatement.setTimestamp(parameterIndex, convertValue(parameterValue, Timestamp.class));
                         continue;
                     case Types.BINARY:
                     case Types.VARBINARY:

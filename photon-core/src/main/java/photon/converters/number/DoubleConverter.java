@@ -1,9 +1,10 @@
-package photon.converters;
+package photon.converters.number;
 
 /**
  * Used by sql2o to convert a value from the database into a  {@link Double}.
  */
-public class DoubleConverter extends NumberConverter<Double> {
+public class DoubleConverter extends NumberConverter<Double>
+{
 
     public DoubleConverter(boolean primitive) {
         super(primitive);

@@ -1,9 +1,10 @@
-package photon.converters;
+package photon.converters.number;
 
 /**
  * Used by sql2o to convert a value from the database into a {@link Float}.
  */
-public class FloatConverter extends NumberConverter<Float> {
+public class FloatConverter extends NumberConverter<Float>
+{
 
     public FloatConverter(boolean primitive) {
         super(primitive);

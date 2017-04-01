@@ -5,6 +5,10 @@ import photon.converters.Converter;
 
 import java.lang.reflect.Field;
 import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -149,9 +153,18 @@ public class EntityBlueprintConstructorService
             return Types.BINARY;
         }
 
-        if(fieldType.equals(java.lang.String.class))
+        if(fieldType.equals(String.class))
         {
             return Types.VARCHAR;
+        }
+
+        if(fieldType.equals(Date.class) ||
+            fieldType.equals(Instant.class) ||
+            fieldType.equals(ZonedDateTime.class) ||
+            fieldType.equals(LocalDate.class) ||
+            fieldType.equals(LocalDateTime.class))
+        {
+            return Types.TIMESTAMP;
         }
 
         return null;

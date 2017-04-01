@@ -1,4 +1,4 @@
-package photon.converters;
+package photon.converters.number;
 
 /**
  * Used by sql2o to convert a value from the database into a  {@link Byte}.

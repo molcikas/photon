@@ -256,12 +256,6 @@ public class RecipeDbSetup
                 {
                     return val != null ? Fraction.getFraction((String) val) : null;
                 }
-
-                @Override
-                public Object toDatabaseParam(Object val)
-                {
-                    return null;
-                }
             })
             .withOrderBy("orderBy", ingredientSortDirection)
             .addAsChild("ingredients")

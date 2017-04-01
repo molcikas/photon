@@ -1,10 +1,12 @@
-package photon.converters;
+package photon.converters.number;
+
+import photon.converters.Converter;
 
 /**
  * Base class for numeric converters.
  */
-public abstract class NumberConverter<V extends Number> extends ConverterBase<V> {
-
+public abstract class NumberConverter<V extends Number> implements Converter<V>
+{
     private boolean isPrimitive;
 
     public NumberConverter(boolean primitive) {

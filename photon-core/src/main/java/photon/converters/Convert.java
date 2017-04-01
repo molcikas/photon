@@ -1,19 +1,17 @@
 package photon.converters;
 
-import org.joda.time.DateTime;
-import org.joda.time.LocalDate;
-import org.joda.time.LocalTime;
-import photon.converters.joda.DateTimeConverter;
-import photon.converters.joda.LocalDateConverter;
-import photon.converters.joda.LocalTimeConverter;
+import photon.converters.date.*;
+import photon.converters.number.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.UUID;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -56,28 +54,12 @@ public class Convert {
 
         mapToFill.put(String.class, new StringConverter());
 
-        mapToFill.put(java.util.Date.class,DateConverter.instance);
-        mapToFill.put(java.sql.Date.class,
-                new AbstractDateConverter<java.sql.Date>(java.sql.Date.class) {
-                    @Override
-                    protected java.sql.Date fromMilliseconds(long millisecond) {
-                        return new java.sql.Date(millisecond);
-                    }
-                });
-        mapToFill.put(java.sql.Time.class,
-                new AbstractDateConverter<java.sql.Time>(java.sql.Time.class) {
-                    @Override
-                    protected java.sql.Time fromMilliseconds(long millisecond) {
-                        return new java.sql.Time(millisecond);
-                    }
-                });
-        mapToFill.put(java.sql.Timestamp.class,
-                new AbstractDateConverter<java.sql.Timestamp>(java.sql.Timestamp.class) {
-                    @Override
-                    protected java.sql.Timestamp fromMilliseconds(long millisecond) {
-                        return new java.sql.Timestamp(millisecond);
-                    }
-                });
+        mapToFill.put(Timestamp.class, new TimestampConverter());
+        mapToFill.put(Date.class, new DateConverter());
+        mapToFill.put(Instant.class, new InstantConverter());
+        mapToFill.put(LocalDate.class, new LocalDateConverter());
+        mapToFill.put(LocalDateTime.class, new LocalDateTimeConverter());
+        mapToFill.put(ZonedDateTime.class, new ZonedDateTimeConverter());
 
         BooleanConverter booleanConverter = new BooleanConverter();
         mapToFill.put(Boolean.class, booleanConverter);
@@ -96,10 +78,6 @@ public class Convert {
         mapToFill.put(ByteArrayInputStream.class, inputStreamConverter);
 
         mapToFill.put(UUID.class, new UUIDConverter());
-
-        mapToFill.put(DateTime.class, new DateTimeConverter());
-        mapToFill.put(LocalTime.class, new LocalTimeConverter());
-        mapToFill.put(LocalDate.class, new LocalDateConverter());
     }
 
 

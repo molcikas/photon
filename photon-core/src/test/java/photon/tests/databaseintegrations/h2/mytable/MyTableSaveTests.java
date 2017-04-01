@@ -170,12 +170,6 @@ public class MyTableSaveTests
                 {
                     return ((String) val).toUpperCase();
                 }
-
-                @Override
-                public Object toDatabaseParam(Object val)
-                {
-                    return null;
-                }
             })
             .register();
 
@@ -214,12 +208,6 @@ public class MyTableSaveTests
                 public Object convert(Object val) throws ConverterException
                 {
                     return ((String) val).toUpperCase();
-                }
-
-                @Override
-                public Object toDatabaseParam(Object val)
-                {
-                    return null;
                 }
             })
             .register();

@@ -7,7 +7,8 @@ import java.sql.Blob;
 import java.sql.SQLException;
 import java.util.UUID;
 
-public class ByteArrayConverter extends ConverterBase<byte[]> {
+public class ByteArrayConverter implements Converter<byte[]>
+{
 
     public byte[] convert(Object val) throws ConverterException {
         if (val == null) return null;
