@@ -5,6 +5,8 @@ import photon.PhotonConnection;
 import photon.tests.databaseintegrations.h2.H2TestUtil;
 import photon.tests.entities.fieldtest.FieldTest;
 
+import java.sql.Types;
+
 public class FieldTestDbSetup
 {
     public static Photon setupDatabase()
@@ -38,11 +40,7 @@ public class FieldTestDbSetup
     {
         photon.registerAggregate(FieldTest.class)
             .withId("id")
-//        private Date date;
-//        private ZonedDateTime zonedDateTime;
-//        private LocalDate localDate;
-//        private TestEnum testEnumNumber;
-//        private TestEnum testEnumString;
+            .withColumnDataType("testEnumString", Types.VARCHAR)
             .register();
     }
 }

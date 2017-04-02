@@ -158,6 +158,11 @@ public class EntityBlueprintConstructorService
             return Types.VARCHAR;
         }
 
+        if(fieldType.isEnum())
+        {
+            return Types.INTEGER;
+        }
+
         if(fieldType.equals(Date.class) ||
             fieldType.equals(Instant.class) ||
             fieldType.equals(ZonedDateTime.class) ||

@@ -26,7 +26,7 @@ public abstract class NumberConverter<V extends Number> implements Converter<V>
         else if (/*val.getClass().isPrimitive() || */val instanceof Number ) {
             return convertNumberValue((Number)val);
         }
-        else if (val instanceof String){
+        else if (val instanceof String) {
             String stringVal = ((String)val).trim();
             stringVal = stringVal.isEmpty() ? null : stringVal;
 
@@ -36,7 +36,11 @@ public abstract class NumberConverter<V extends Number> implements Converter<V>
 
             return convertStringValue(stringVal);
         }
-        else{
+        else if(val instanceof Enum<?>) {
+            int enumVal = ((Enum) val).ordinal();
+            return convertNumberValue(enumVal);
+        }
+        else {
             throw new IllegalArgumentException("Cannot convert type " + val.getClass().toString() + " to " + getTypeDescription());
         }
     }

@@ -22,8 +22,6 @@ public class FieldTestTests
         photon = FieldTestDbSetup.setupDatabase();
     }
 
-    // TODO: Add support for parsing and setting the enum values!
-
     @Test
     public void queryAggregate_withDates_fetchesAggregateWithCorrectValues()
     {
@@ -43,6 +41,9 @@ public class FieldTestTests
             assertEquals(fieldTest.getLocalDate(), LocalDate.ofEpochDay(17244));
             assertEquals(fieldTest.getLocalDateTime(), LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.systemDefault()));
             assertEquals(fieldTest.getInstant(), Instant.ofEpochMilli(1489933701000L));
+
+            assertEquals(fieldTest.getTestEnumNumber(), TestEnum.VALUE_ZERO);
+            assertEquals(fieldTest.getTestEnumString(), TestEnum.VALUE_ONE);
         }
     }
 
@@ -65,6 +66,9 @@ public class FieldTestTests
             assertNull(fieldTest.getLocalDate());
             assertNull(fieldTest.getLocalDateTime());
             assertNull(fieldTest.getInstant());
+
+            assertNull(fieldTest.getTestEnumNumber());
+            assertNull(fieldTest.getTestEnumString());
         }
     }
 
@@ -99,6 +103,9 @@ public class FieldTestTests
             assertEquals(fieldTest.getLocalDate(), localDate);
             assertEquals(fieldTest.getLocalDateTime(), localDateTime);
             assertEquals(fieldTest.getInstant(), instant);
+
+            assertEquals(fieldTest.getTestEnumNumber(), TestEnum.VALUE_ONE);
+            assertEquals(fieldTest.getTestEnumString(), TestEnum.VALUE_TWO);
         }
     }
 }

@@ -51,6 +51,10 @@ public class StringConverter implements Converter<String>
             }
         }
 
+        if(val instanceof Enum<?>) {
+            return ((Enum) val).name();
+        }
+
         return val.toString().trim();
     }
 }
