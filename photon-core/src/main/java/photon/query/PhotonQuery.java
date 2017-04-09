@@ -23,6 +23,8 @@ public class PhotonQuery
     private Map<String, PhotonSqlParameter> parameters;
     private List<Long> generatedKeys;
 
+    private final Map<String, Converter> customToFieldValueConverters;
+
     public List<Long> getGeneratedKeys()
     {
         return generatedKeys;
@@ -41,6 +43,8 @@ public class PhotonQuery
             String parameterName = sqlText.substring(parameterMatcher.start() + 1, parameterMatcher.end());
             parameters.put(parameterName, new PhotonSqlParameter(parameters.size(), parameterName));
         }
+
+        this.customToFieldValueConverters = new HashMap<>();
     }
 
     public PhotonQuery addParameter(String parameter, Object value)
@@ -49,11 +53,17 @@ public class PhotonQuery
         {
             throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
         }
-        if(value == null)
-        {
-            throw new PhotonException(String.format("The parameter '%s' was set to null. Use \"IS NULL\" to check for null.", parameter, sqlText));
-        }
         parameters.get(parameter).assignValue(value);
+        return this;
+    }
+
+    public PhotonQuery addParameter(String parameter, Object value, Integer dataType)
+    {
+        if(!parameters.containsKey(parameter))
+        {
+            throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
+        }
+        parameters.get(parameter).assignValue(value, dataType);
         return this;
     }
 
@@ -101,7 +111,6 @@ public class PhotonQuery
     {
         PhotonPreparedStatement photonPreparedStatement = prepareStatement();
 
-        // TODO: Cache this and try to re-use it rather than building it for every query.
         EntityBlueprint entityBlueprint = new EntityBlueprint(
             classToFetch,
             null,
@@ -109,6 +118,10 @@ public class PhotonQuery
             null,
             null,
             null,
+            null,
+            null,
+            null,
+            customToFieldValueConverters,
             null,
             entityBlueprintConstructorService
         );
@@ -139,6 +152,12 @@ public class PhotonQuery
         return rowsUpdated;
     }
 
+    public PhotonQuery withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
+    {
+        customToFieldValueConverters.put(fieldName, customToFieldValueConverter);
+        return this;
+    }
+
     private PhotonPreparedStatement prepareStatement()
     {
         String sqlTextWithQuestionMarks = sqlText.replaceAll(parameterRegex, "?");
@@ -148,22 +167,19 @@ public class PhotonQuery
         List<PhotonSqlParameter> parametersInOrder = parameters
             .values()
             .stream()
-            .sorted((p1, p2) -> p1.getIndex() - p2.getIndex())
+            .sorted(Comparator.comparingInt(PhotonSqlParameter::getIndex))
             .collect(Collectors.toList());
 
         for(PhotonSqlParameter parameter : parametersInOrder)
         {
-            Integer dataType = parameter.getValue() != null ?
-                EntityBlueprintConstructorService.defaultColumnDataTypeForField(parameter.getValue().getClass()) :
-                null;
             Object value = parameter.getValue();
             if(value != null && Collection.class.isAssignableFrom(value.getClass()))
             {
-                photonPreparedStatement.setNextArrayParameter((Collection) value, dataType, null);
+                photonPreparedStatement.setNextArrayParameter((Collection) value, parameter.getDataType(), null);
             }
             else
             {
-                photonPreparedStatement.setNextParameter(parameter.getValue(), dataType, null);
+                photonPreparedStatement.setNextParameter(parameter.getValue(), parameter.getDataType(), null);
             }
         }
 

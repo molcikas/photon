@@ -5,10 +5,13 @@ import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
 import photon.PhotonConnection;
+import photon.converters.Converter;
+import photon.converters.ConverterException;
 import photon.exceptions.PhotonException;
 import photon.query.PhotonQuery;
 import photon.tests.entities.mytable.MyTable;
 
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
@@ -42,6 +45,56 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(2, myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void query_fetch_customParameterDataType_returnsEntity()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT * " +
+                "FROM mytable " +
+                "WHERE id = :id ";
+
+            MyTable myTable = connection
+                .query(sql)
+                .addParameter("id", "2", Types.INTEGER)
+                .fetch(MyTable.class);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void query_fetch_customToFieldConverter_returnsEntity()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT * " +
+                "FROM mytable " +
+                "WHERE id = :id ";
+
+            MyTable myTable = connection
+                .query(sql)
+                .addParameter("id", "2", Types.INTEGER)
+                .withCustomToFieldValueConverter("myvalue", new Converter()
+                {
+                    @Override
+                    public Object convert(Object val) throws ConverterException
+                    {
+                        return ((String) val).toUpperCase();
+                    }
+                })
+                .fetch(MyTable.class);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("MY2DBVALUE", myTable.getMyvalue());
         }
     }
 
@@ -216,32 +269,6 @@ public class MyTableQueryTests
     }
 
     @Test
-    public void query_fetch_nullParameter_throwsException()
-    {
-        try(PhotonConnection connection = photon.open())
-        {
-            String sql =
-                "SELECT * " +
-                "FROM mytable " +
-                "WHERE myvalue = :myvalue ";
-
-            try
-            {
-                MyTable myTable = connection
-                    .query(sql)
-                    .addParameter("myvalue", null)
-                    .fetch(MyTable.class);
-
-                Assert.fail("Failed to throw PhotonException");
-            }
-            catch(PhotonException ex)
-            {
-                assertTrue(ex.getMessage().toLowerCase().contains("null"));
-            }
-        }
-    }
-
-    @Test
     public void query_update_simpleEntity_updatesEntity()
     {
         try(PhotonConnection connection = photon.open())
@@ -279,7 +306,7 @@ public class MyTableQueryTests
     }
 
     @Test
-    public void aggregate_save_insertSimpleEntityWithAutoIncrement_savesEntity()
+    public void query_insert_insertSimpleEntityWithAutoIncrement_savesEntity()
     {
         try(PhotonConnection connection = photon.open())
         {
@@ -311,6 +338,39 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(7, myTable.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void query_insert_nullParameter_InsertsValueAsSqlNull()
+    {
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "INSERT INTO mytable VALUES (:id, :myvalue)";
+
+            int rowsInserted = connection
+                .query(sql)
+                .addParameter("id", 7)
+                .addParameter("myvalue", null)
+                .executeInsert();
+
+            assertEquals(1, rowsInserted);
+        }
+
+        try(PhotonConnection connection = photon.open())
+        {
+            String sql =
+                "SELECT * " +
+                "FROM mytable " +
+                "WHERE id = 7 ";
+
+            MyTable myTable = connection
+                .query(sql)
+                .fetch(MyTable.class);
+
+            assertNotNull(myTable);
+            assertNull(myTable.getMyvalue());
         }
     }
 }

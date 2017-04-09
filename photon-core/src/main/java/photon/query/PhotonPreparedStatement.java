@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
@@ -315,6 +314,11 @@ public class PhotonPreparedStatement implements Closeable
 
             try
             {
+                if(parameterValue.value == null)
+                {
+                    preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType : Types.VARCHAR);
+                }
+
                 if (parameterValue.dataType == null)
                 {
                     preparedStatement.setObject(parameterIndex, parameterValue.value);

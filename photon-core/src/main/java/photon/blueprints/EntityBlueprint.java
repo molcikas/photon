@@ -99,7 +99,11 @@ public class EntityBlueprint
         String orderByColumnName,
         SortDirection orderByDirection,
         Map<String, Integer> customColumnDataTypes,
+        List<String> ignoredFields,
+        Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
+        Map<String, Converter> customToFieldValueConverters,
+        Map<String, Converter> customToDatabaseValueConverters,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         if(entityClass == null)
@@ -113,8 +117,8 @@ public class EntityBlueprint
 
         this.entityClass = entityClass;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, null, null, customFieldToColumnMappings, null, null, null);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, null);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters);
 
         try
         {
