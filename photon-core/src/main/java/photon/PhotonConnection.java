@@ -41,7 +41,12 @@ public class PhotonConnection implements Closeable
 
     public PhotonQuery query(String sqlText)
     {
-        return new PhotonQuery(sqlText, connection, entityBlueprintConstructorService);
+        return query(sqlText, false);
+    }
+
+    public PhotonQuery query(String sqlText, boolean populateGeneratedKeys)
+    {
+        return new PhotonQuery(sqlText, populateGeneratedKeys, connection, entityBlueprintConstructorService);
     }
 
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)
@@ -119,6 +124,30 @@ public class PhotonConnection implements Closeable
         catch(Exception ex)
         {
             throw new PhotonException("Error closing connection.", ex);
+        }
+    }
+
+    public void rollbackTransaction()
+    {
+        try
+        {
+            connection.rollback();
+        }
+        catch(Exception ex)
+        {
+            throw new RuntimeException(ex);
+        }
+    }
+
+    public boolean isOpen()
+    {
+        try
+        {
+            return !connection.isClosed();
+        }
+        catch(Exception ex)
+        {
+            throw new RuntimeException(ex);
         }
     }
 

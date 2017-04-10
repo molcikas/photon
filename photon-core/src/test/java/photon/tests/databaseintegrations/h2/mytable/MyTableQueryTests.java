@@ -314,7 +314,7 @@ public class MyTableQueryTests
                 "INSERT INTO mytable (myvalue) " +
                 "VALUES ('MyAutoIncrementedInsertedSavedValue') ";
 
-            PhotonQuery query = connection.query(sql);
+            PhotonQuery query = connection.query(sql, true);
             int updateCount = query.executeInsert();
             List<Long> newKeys = query.getGeneratedKeys();
 

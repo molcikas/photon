@@ -41,7 +41,7 @@ public class PhotonAggregateIdsQuery<T>
             );
         }
 
-        this.photonQuery = new PhotonQuery(selectIdsSql, connection, null);
+        this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, null);
     }
 
     public PhotonAggregateIdsQuery<T> addParameter(String parameter, Object value)

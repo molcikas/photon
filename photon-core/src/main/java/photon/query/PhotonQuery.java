@@ -17,6 +17,7 @@ public class PhotonQuery
     private static final Pattern parameterPattern = Pattern.compile(parameterRegex);
 
     private final String sqlText;
+    private final boolean populateGeneratedKeys;
     private final Connection connection;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
@@ -27,12 +28,17 @@ public class PhotonQuery
 
     public List<Long> getGeneratedKeys()
     {
+        if(!populateGeneratedKeys)
+        {
+            throw new PhotonException("Cannot get generated keys because the query was created with populateGeneratedKeys set to false.");
+        }
         return generatedKeys;
     }
 
-    public PhotonQuery(String sqlText, Connection connection, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.sqlText = sqlText;
+        this.populateGeneratedKeys = populateGeneratedKeys;
         this.connection = connection;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
         this.parameters = new HashMap<>();
@@ -148,7 +154,10 @@ public class PhotonQuery
     {
         PhotonPreparedStatement photonPreparedStatement = prepareStatement();
         int rowsUpdated = photonPreparedStatement.executeInsert();
-        generatedKeys = photonPreparedStatement.getGeneratedKeys();
+        if(populateGeneratedKeys)
+        {
+            generatedKeys = photonPreparedStatement.getGeneratedKeys();
+        }
         return rowsUpdated;
     }
 
@@ -162,7 +171,7 @@ public class PhotonQuery
     {
         String sqlTextWithQuestionMarks = sqlText.replaceAll(parameterRegex, "?");
 
-        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(sqlTextWithQuestionMarks, connection);
+        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(sqlTextWithQuestionMarks, populateGeneratedKeys, connection);
 
         List<PhotonSqlParameter> parametersInOrder = parameters
             .values()

@@ -26,22 +26,24 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    private PreparedStatement preparedStatement;
     private final Connection connection;
     private final String originalSqlText;
+    private final boolean populateGeneratedKeys;
     private String sqlText;
+    private PreparedStatement preparedStatement;
     private final List<ParameterValue> parameterValues;
     private List<Long> generatedKeys;
 
     private boolean isBatched = false;
 
-    public PhotonPreparedStatement(String sqlText, Connection connection)
+    public PhotonPreparedStatement(String sqlText, boolean populateGeneratedKeys, Connection connection)
     {
         this.connection = connection;
         this.originalSqlText = sqlText;
         this.sqlText = sqlText;
+        this.populateGeneratedKeys = populateGeneratedKeys;
         this.parameterValues = new ArrayList<>(StringUtils.countMatches(sqlText, "?"));
-        this.generatedKeys = new ArrayList<>(100);
+        this.generatedKeys = populateGeneratedKeys ? new ArrayList<>(100) : null;
     }
 
     public void setNextArrayParameter(Collection values, Integer dataType, Converter customToDatabaseValueConverter)
@@ -110,7 +112,10 @@ public class PhotonPreparedStatement implements Closeable
         {
             // Executing empty batch, just reset and return that nothing was updated.
             parameterValues.clear();
-            generatedKeys.clear();
+            if(generatedKeys != null)
+            {
+                generatedKeys.clear();
+            }
             return new int[0];
         }
 
@@ -120,7 +125,7 @@ public class PhotonPreparedStatement implements Closeable
             int[] resultCounts = preparedStatement.executeBatch();
             parameterValues.clear();
             sqlText = originalSqlText;
-            updateGeneratedKeys();
+            updateGeneratedKeysIfRequested();
             return resultCounts;
         }
         catch(Exception ex)
@@ -215,7 +220,7 @@ public class PhotonPreparedStatement implements Closeable
             //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
             //System.out.println(sqlText);
             int rowsUpdated = preparedStatement.executeUpdate();
-            updateGeneratedKeys();
+            updateGeneratedKeysIfRequested();
             return rowsUpdated;
         }
         catch(Exception ex)
@@ -226,6 +231,10 @@ public class PhotonPreparedStatement implements Closeable
 
     public List<Long> getGeneratedKeys()
     {
+        if(!populateGeneratedKeys)
+        {
+            throw new PhotonException("Cannot get generated keys because the statement was created with populateGeneratedKeys set to false.");
+        }
         return Collections.unmodifiableList(generatedKeys);
     }
 
@@ -245,8 +254,13 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    private void updateGeneratedKeys()
+    private void updateGeneratedKeysIfRequested()
     {
+        if(!populateGeneratedKeys)
+        {
+            return;
+        }
+
         generatedKeys.clear();
 
         try(ResultSet keysResult = preparedStatement.getGeneratedKeys())
@@ -299,7 +313,14 @@ public class PhotonPreparedStatement implements Closeable
         {
             if(preparedStatement == null)
             {
-                preparedStatement = connection.prepareStatement(sqlText);
+                if(populateGeneratedKeys)
+                {
+                    preparedStatement = connection.prepareStatement(sqlText, Statement.RETURN_GENERATED_KEYS);
+                }
+                else
+                {
+                    preparedStatement = connection.prepareStatement(sqlText);
+                }
             }
         }
         catch(Exception ex)

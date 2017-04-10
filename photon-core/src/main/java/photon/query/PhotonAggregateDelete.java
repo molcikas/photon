@@ -60,7 +60,7 @@ public class PhotonAggregateDelete
 
         for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
-            try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(), connection))
+            try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(), false, connection))
             {
                 photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
@@ -69,7 +69,7 @@ public class PhotonAggregateDelete
 
         if(entityBlueprint.isPrimaryKeyMappedToField())
         {
-            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteSql(), connection))
+            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteSql(), false, connection))
             {
                 photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
@@ -77,7 +77,7 @@ public class PhotonAggregateDelete
         }
         else
         {
-            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), connection))
+            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), false, connection))
             {
                 EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
                 photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
