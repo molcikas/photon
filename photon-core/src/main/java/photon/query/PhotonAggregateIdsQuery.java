@@ -52,22 +52,11 @@ public class PhotonAggregateIdsQuery<T>
 
     public T fetch()
     {
-        Class primaryKeyClass = aggregateBlueprint.getAggregateRootEntityBlueprint().getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass();
-        Object id = photonQuery.fetchScalar(primaryKeyClass);
-
-        if(id == null)
-        {
-            return null;
-        }
-
-        return photonAggregateQuery.fetchById(id);
+        return photonAggregateQuery.fetchByIdsQuery(photonQuery);
     }
 
     public List<T> fetchList()
     {
-        Class primaryKeyClass = aggregateBlueprint.getAggregateRootEntityBlueprint().getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass();
-        List ids = photonQuery.fetchScalarList(primaryKeyClass);
-
-        return photonAggregateQuery.fetchByIds(ids);
+        return photonAggregateQuery.fetchListByIdsQuery(photonQuery);
     }
 }

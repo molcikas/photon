@@ -53,6 +53,20 @@ public class PhotonQuery
         this.customToFieldValueConverters = new HashMap<>();
     }
 
+    public List<PhotonSqlParameter> getParametersInOrder()
+    {
+        return parameters
+            .values()
+            .stream()
+            .sorted(Comparator.comparingInt(PhotonSqlParameter::getIndex))
+            .collect(Collectors.toList());
+    }
+
+    public String getSqlTextWithQuestionMarks()
+    {
+        return sqlText.replaceAll(parameterRegex, "?");
+    }
+
     public PhotonQuery addParameter(String parameter, Object value)
     {
         if(!parameters.containsKey(parameter))
@@ -169,17 +183,9 @@ public class PhotonQuery
 
     private PhotonPreparedStatement prepareStatement()
     {
-        String sqlTextWithQuestionMarks = sqlText.replaceAll(parameterRegex, "?");
+        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(getSqlTextWithQuestionMarks(), populateGeneratedKeys, connection);
 
-        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(sqlTextWithQuestionMarks, populateGeneratedKeys, connection);
-
-        List<PhotonSqlParameter> parametersInOrder = parameters
-            .values()
-            .stream()
-            .sorted(Comparator.comparingInt(PhotonSqlParameter::getIndex))
-            .collect(Collectors.toList());
-
-        for(PhotonSqlParameter parameter : parametersInOrder)
+        for(PhotonSqlParameter parameter : getParametersInOrder())
         {
             Object value = parameter.getValue();
             if(value != null && Collection.class.isAssignableFrom(value.getClass()))

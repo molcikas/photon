@@ -69,9 +69,10 @@ public class SelectSqlBuilderService
 
     private void buildWhereClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint aggregateRootEntityBlueprint)
     {
-        sqlBuilder.append(String.format("\nWHERE `%s`.`%s` IN (?)",
+        sqlBuilder.append(String.format("\nWHERE `%s`.`%s` IN (%s)",
             aggregateRootEntityBlueprint.getTableName(),
-            aggregateRootEntityBlueprint.getPrimaryKeyColumnName()
+            aggregateRootEntityBlueprint.getPrimaryKeyColumnName(),
+            "%s"
         ));
     }
 
