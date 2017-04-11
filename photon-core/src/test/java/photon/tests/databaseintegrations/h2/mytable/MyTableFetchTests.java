@@ -252,6 +252,28 @@ public class MyTableFetchTests
         }
     }
 
+    @Test
+    public void aggregate_fetchByIdQuery_fetchByDataInSubEntityList_fetchesAggregate()
+    {
+        registerMyTableAggregate();
+
+        try(PhotonConnection connection = photon.open())
+        {
+            List<MyTable> myTables = connection
+                .query(MyTable.class)
+                .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
+                .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
+                .fetchList();
+
+            assertNotNull(myTables);
+            assertEquals(2, myTables.size());
+            assertEquals(4, myTables.get(0).getId());
+            assertEquals("my4otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
+            assertEquals(5, myTables.get(1).getId());
+            assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)

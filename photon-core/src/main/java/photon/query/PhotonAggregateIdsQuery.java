@@ -10,7 +10,6 @@ import java.util.List;
 
 public class PhotonAggregateIdsQuery<T>
 {
-    private final AggregateBlueprint<T> aggregateBlueprint;
     private final PhotonAggregateQuery<T> photonAggregateQuery;
     private final PhotonQuery photonQuery;
 
@@ -26,7 +25,6 @@ public class PhotonAggregateIdsQuery<T>
             throw new PhotonException("Photon aggregate SELECT by ids SQL cannot be blank.");
         }
 
-        this.aggregateBlueprint = aggregateBlueprint;
         this.photonAggregateQuery = photonAggregateQuery;
 
         AggregateEntityBlueprint aggregateEntityBlueprint = aggregateBlueprint.getAggregateRootEntityBlueprint();

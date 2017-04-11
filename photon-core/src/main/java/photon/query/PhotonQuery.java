@@ -185,17 +185,9 @@ public class PhotonQuery
     {
         PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(getSqlTextWithQuestionMarks(), populateGeneratedKeys, connection);
 
-        for(PhotonSqlParameter parameter : getParametersInOrder())
+        for(PhotonSqlParameter photonSqlParameter : getParametersInOrder())
         {
-            Object value = parameter.getValue();
-            if(value != null && Collection.class.isAssignableFrom(value.getClass()))
-            {
-                photonPreparedStatement.setNextArrayParameter((Collection) value, parameter.getDataType(), null);
-            }
-            else
-            {
-                photonPreparedStatement.setNextParameter(parameter.getValue(), parameter.getDataType(), null);
-            }
+            photonPreparedStatement.setNextParameter(photonSqlParameter);
         }
 
         return photonPreparedStatement;

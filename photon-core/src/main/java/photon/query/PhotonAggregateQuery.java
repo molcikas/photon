@@ -94,7 +94,7 @@ public class PhotonAggregateQuery<T>
             {
                 for(PhotonSqlParameter photonSqlParameter : photonQuery.getParametersInOrder())
                 {
-                    statement.setNextParameter(photonSqlParameter.getValue(), photonSqlParameter.getDataType(), null);
+                    statement.setNextParameter(photonSqlParameter);
                 }
                 queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
             }

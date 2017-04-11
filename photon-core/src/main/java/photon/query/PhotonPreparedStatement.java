@@ -46,6 +46,18 @@ public class PhotonPreparedStatement implements Closeable
         this.generatedKeys = populateGeneratedKeys ? new ArrayList<>(100) : null;
     }
 
+    public void setNextParameter(PhotonSqlParameter photonSqlParameter)
+    {
+        if(photonSqlParameter.isCollection())
+        {
+            setNextArrayParameter((Collection) photonSqlParameter.getValue(), photonSqlParameter.getDataType(), null);
+        }
+        else
+        {
+            setNextParameter(photonSqlParameter.getValue(), photonSqlParameter.getDataType(), null);
+        }
+    }
+
     public void setNextArrayParameter(Collection values, Integer dataType, Converter customToDatabaseValueConverter)
     {
         if(isBatched)
