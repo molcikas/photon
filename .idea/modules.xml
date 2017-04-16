@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/photon.iml" filepath="$PROJECT_DIR$/photon.iml" />
+      <module fileurl="file://$PROJECT_DIR$/photon-core/photon-core.iml" filepath="$PROJECT_DIR$/photon-core/photon-core.iml" />
+	  <module fileurl="file://$PROJECT_DIR$/photon-perf-test/photon-perf-test.iml" filepath="$PROJECT_DIR$/photon-perf-test/photon-perf-test.iml" />
+    </modules>
+  </component>
+</project>

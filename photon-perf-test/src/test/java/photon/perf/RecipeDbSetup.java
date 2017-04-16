@@ -32,8 +32,8 @@ public class RecipeDbSetup
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection.query("DROP TABLE IF EXISTS recipe").executeUpdate();
-            connection.query("CREATE TABLE recipe (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipe").executeUpdate();
+            transaction.query("CREATE TABLE recipe (\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  name varchar(50) NOT NULL,\n" +
                 "  description text NOT NULL,\n" +
@@ -47,8 +47,8 @@ public class RecipeDbSetup
                 "  PRIMARY KEY (recipeId)\n" +
                 ")").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS recipeingredient").executeUpdate();
-            connection.query("CREATE TABLE recipeingredient (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipeingredient").executeUpdate();
+            transaction.query("CREATE TABLE recipeingredient (\n" +
                 "  recipeIngredientId binary(16) NOT NULL,\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  isRequired tinyint(1) NOT NULL,\n" +
@@ -62,8 +62,8 @@ public class RecipeDbSetup
                 "  CONSTRAINT RecipeIngredient_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
                 ")").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS recipeinstruction").executeUpdate();
-            connection.query("CREATE TABLE recipeinstruction (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipeinstruction").executeUpdate();
+            transaction.query("CREATE TABLE recipeinstruction (\n" +
                 "  recipeInstructionId binary(16) NOT NULL,\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  stepNumber int(10) unsigned NOT NULL,\n" +
@@ -71,6 +71,8 @@ public class RecipeDbSetup
                 "  PRIMARY KEY (recipeInstructionId),\n" +
                 "  CONSTRAINT RecipeInstruction_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
                 ")").executeUpdate();
+
+            transaction.commit();
         }
     }
 }
