@@ -1,6 +1,7 @@
 package photon.perf.hibernate;
 
 import org.apache.commons.lang3.time.StopWatch;
+import org.hibernate.Session;
 import org.junit.Before;
 import org.junit.Test;
 import photon.perf.RecipeDbSetup;
@@ -58,16 +59,20 @@ public class HibernateTest
 
         StopWatch stopWatch = new StopWatch();
         long insertTime = 0;
+        long selectTime = 0;
         long updateTime = 0;
         long deleteTime = 0;
 
         for(int i = 0; i < 10000; i++)
         {
+            /*** Insert ***/
+
             stopWatch.reset();
             stopWatch.start();
 
             EntityManager entityManager;
 
+            entityManagerFactory.getCache().evictAll();
             entityManager = entityManagerFactory.createEntityManager();
             entityManager.getTransaction().begin();
 
@@ -82,7 +87,7 @@ public class HibernateTest
                 false,
                 true,
                 "http://www.example.com/food/myrecipe",
-                new HashSet<RecipeIngredientEntity>(Arrays.asList(
+                new HashSet<>(Arrays.asList(
                     new RecipeIngredientEntity(
                         recipeIngredient1Id,
                         recipeId,
@@ -150,7 +155,7 @@ public class HibernateTest
                         5
                     )
                 )),
-                new HashSet<RecipeInstructionEntity>(Arrays.asList(
+                new HashSet<>(Arrays.asList(
                     new RecipeInstructionEntity(
                         recipeInstruction1Id,
                         recipeId,
@@ -177,47 +182,75 @@ public class HibernateTest
             entityManager.close();
 
             insertTime += stopWatch.getNanoTime();
+
+            /*** Select ***/
+
             stopWatch.reset();
             stopWatch.start();
 
+            entityManagerFactory.getCache().evictAll();
             entityManager = entityManagerFactory.createEntityManager();
             entityManager.getTransaction().begin();
 
-            RecipeEntity recipe2 = (RecipeEntity) entityManager
+            RecipeEntity recipeSelected = (RecipeEntity) entityManager
                 .createQuery("FROM RecipeEntity WHERE recipeId = :recipeId")
                 .setParameter("recipeId", recipeId)
                 .getResultList()
                 .get(0);
-            recipe2.setName("My renamed recipe.");
-            Iterator<RecipeIngredientEntity> ingredientsIterator = recipe2.getIngredients().iterator();
-            ingredientsIterator.next().setName("New First Recipe Ingredient Name");
-            recipe2.getIngredients().remove(ingredientsIterator.next());
-            recipe2.getInstructions().iterator().next().setDescription("New Step 1 Description");
 
-            entityManager.merge(recipe2);
+            entityManager.getTransaction().rollback();
+            entityManager.close();
+
+            selectTime += stopWatch.getNanoTime();
+
+            /*** Update ***/
+
+            stopWatch.reset();
+            stopWatch.start();
+
+            entityManagerFactory.getCache().evictAll();
+            entityManager = entityManagerFactory.createEntityManager();
+            entityManager.getTransaction().begin();
+
+            RecipeEntity recipeToUpdate = (RecipeEntity) entityManager
+                .createQuery("FROM RecipeEntity WHERE recipeId = :recipeId")
+                .setParameter("recipeId", recipeId)
+                .getResultList()
+                .get(0);
+            recipeToUpdate.setName("My renamed recipe.");
+            Iterator<RecipeIngredientEntity> ingredientsIterator = recipeToUpdate.getIngredients().iterator();
+            ingredientsIterator.next().setName("New First Recipe Ingredient Name");
+            recipeToUpdate.getIngredients().remove(ingredientsIterator.next());
+            recipeToUpdate.getInstructions().iterator().next().setDescription("New Step 1 Description");
+
+            entityManager.merge(recipeToUpdate);
             entityManager.getTransaction().commit();
             entityManager.close();
 
             updateTime += stopWatch.getNanoTime();
+
+            /*** Delete ***/
+
             stopWatch.reset();
             stopWatch.start();
 
+            entityManagerFactory.getCache().evictAll();
             entityManager = entityManagerFactory.createEntityManager();
             entityManager.getTransaction().begin();
 
-            RecipeEntity recipe3 = (RecipeEntity) entityManager
+            RecipeEntity recipeToDelete = (RecipeEntity) entityManager
                 .createQuery("FROM RecipeEntity WHERE recipeId = :recipeId")
                 .setParameter("recipeId", recipeId)
                 .getResultList()
                 .get(0);
 
-            entityManager.remove(recipe3);
+            entityManager.remove(recipeToDelete);
             entityManager.getTransaction().commit();
             entityManager.close();
 
             deleteTime += stopWatch.getNanoTime();
         }
 
-        System.out.println(String.format("Inserts: %s, Updates: %s, Deletes: %s", insertTime / 1000, updateTime / 1000, deleteTime / 1000));
+        System.out.println(String.format("Inserts: %s, Selects: %s, Updates: %s, Deletes: %s", insertTime / 1000000, selectTime / 1000000, updateTime / 1000000, deleteTime / 1000000));
     }
 }

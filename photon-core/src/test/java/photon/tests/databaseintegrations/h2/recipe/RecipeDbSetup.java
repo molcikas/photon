@@ -239,28 +239,21 @@ public class RecipeDbSetup
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
             .withChild(RecipeInstruction.class)
-            .withId("recipeInstructionId")
-            .withColumnDataType("recipeInstructionId", Types.BINARY)
-            .withForeignKeyToParent("recipeId")
-            .withColumnDataType("recipeId", Types.BINARY)
-            .withOrderBy("stepNumber")
-            .addAsChild("instructions")
+                .withId("recipeInstructionId")
+                .withColumnDataType("recipeInstructionId", Types.BINARY)
+                .withForeignKeyToParent("recipeId")
+                .withColumnDataType("recipeId", Types.BINARY)
+                .withOrderBy("stepNumber")
+                .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
-            .withId("recipeIngredientId")
-            .withColumnDataType("recipeIngredientId", Types.BINARY)
-            .withForeignKeyToParent("recipeId")
-            .withColumnDataType("recipeId", Types.BINARY)
-            .withColumnDataType("quantity", Types.VARCHAR)
-            .withCustomToFieldValueConverter("quantity", new Converter()
-            {
-                @Override
-                public Object convert(Object val) throws ConverterException
-                {
-                    return val != null ? Fraction.getFraction((String) val) : null;
-                }
-            })
-            .withOrderBy("orderBy", ingredientSortDirection)
-            .addAsChild("ingredients")
+                .withId("recipeIngredientId")
+                .withColumnDataType("recipeIngredientId", Types.BINARY)
+                .withForeignKeyToParent("recipeId")
+                .withColumnDataType("recipeId", Types.BINARY)
+                .withColumnDataType("quantity", Types.VARCHAR)
+                .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
+                .withOrderBy("orderBy", ingredientSortDirection)
+                .addAsChild("ingredients")
             .register();
     }
 }

@@ -75,6 +75,7 @@ public class PhotonTest
 
         StopWatch stopWatch = new StopWatch();
         long insertTime = 0;
+        long selectTime = 0;
         long updateTime = 0;
         long deleteTime = 0;
 
@@ -190,6 +191,17 @@ public class PhotonTest
                 Recipe recipe = transaction
                     .query(Recipe.class)
                     .fetchById(recipeId);
+            }
+
+            selectTime += stopWatch.getNanoTime();
+            stopWatch.reset();
+            stopWatch.start();
+
+            try (PhotonTransaction transaction = photon.beginTransaction())
+            {
+                Recipe recipe = transaction
+                    .query(Recipe.class)
+                    .fetchById(recipeId);
 
                 recipe.setName("My renamed recipe.");
                 recipe.getIngredients().get(0).setName("New First Recipe Ingredient Name");
@@ -217,6 +229,6 @@ public class PhotonTest
             deleteTime += stopWatch.getNanoTime();
         }
 
-        System.out.println(String.format("Inserts: %s, Updates: %s, Deletes: %s", insertTime / 1000, updateTime / 1000, deleteTime / 1000));
+        System.out.println(String.format("Inserts: %s, Selects: %s, Updates: %s, Deletes: %s", insertTime / 1000000, selectTime / 1000000, updateTime / 1000000, deleteTime / 1000000));
     }
 }

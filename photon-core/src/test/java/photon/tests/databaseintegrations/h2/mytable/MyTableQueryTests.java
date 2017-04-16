@@ -233,7 +233,7 @@ public class MyTableQueryTests
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
-                "SELECT * " +
+                "SELECT id, myvalue " +
                 "FROM mytable " +
                 "WHERE id IN (:ids) " +
                 "ORDER BY id DESC ";
