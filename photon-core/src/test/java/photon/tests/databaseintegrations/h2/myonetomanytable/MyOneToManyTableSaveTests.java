@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.myonetomanytable;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.entities.myonetomanytable.MyManyTable;
 import photon.tests.entities.myonetomanytable.MyOneToManyTable;
 import photon.tests.entities.myonetomanytable.MyThirdTable;
@@ -27,7 +27,7 @@ public class MyOneToManyTableSaveTests
     {
         registerMyOneToManyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyOneToManyTable myOneToManyTable = new MyOneToManyTable(
                 null,
@@ -43,13 +43,13 @@ public class MyOneToManyTableSaveTests
                 )
             );
 
-            connection
-                .save(myOneToManyTable);
+            transaction.save(myOneToManyTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(7);
 
@@ -68,6 +68,8 @@ public class MyOneToManyTableSaveTests
             assertEquals(Integer.valueOf(6), myThirdTable.getId());
             assertEquals(Integer.valueOf(12), myThirdTable.getParent());
             assertEquals("MyThirdTableVal2", myThirdTable.getVal());
+
+            transaction.commit();
         }
     }
 
@@ -76,20 +78,21 @@ public class MyOneToManyTableSaveTests
     {
         registerMyOneToManyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 
             myOneToManyTable.getMyManyTables().remove(1);
 
-            connection.save(myOneToManyTable);
+            transaction.save(myOneToManyTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 
@@ -108,6 +111,8 @@ public class MyOneToManyTableSaveTests
             assertEquals(Integer.valueOf(3), myThirdTable.getId());
             assertEquals(Integer.valueOf(9), myThirdTable.getParent());
             assertEquals("thirdtableval3", myThirdTable.getVal());
+
+            transaction.commit();
         }
     }
 
@@ -116,22 +121,24 @@ public class MyOneToManyTableSaveTests
     {
         registerMyOneToManyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 
-            connection.delete(myOneToManyTable);
+            transaction.delete(myOneToManyTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 
             assertNull(myOneToManyTable);
+            transaction.commit();
         }
     }
 

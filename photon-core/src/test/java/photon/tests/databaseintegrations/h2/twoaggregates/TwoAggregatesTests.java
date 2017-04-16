@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.twoaggregates;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.entities.twoaggregates.AggregateOne;
 import photon.tests.entities.twoaggregates.AggregateTwo;
 
@@ -29,9 +29,9 @@ public class TwoAggregatesTests
     {
         registerAggregates();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            AggregateOne aggregateOne = connection
+            AggregateOne aggregateOne = transaction
                 .query(AggregateOne.class)
                 .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"));
 
@@ -50,9 +50,9 @@ public class TwoAggregatesTests
     {
         registerAggregates();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<AggregateOne> aggregateOnes = connection
+            List<AggregateOne> aggregateOnes = transaction
                 .query(AggregateOne.class)
                 .fetchByIds(Arrays.asList(
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"),
@@ -87,9 +87,9 @@ public class TwoAggregatesTests
     {
         registerAggregates();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<AggregateOne> aggregateOnes = connection
+            List<AggregateOne> aggregateOnes = transaction
                 .query(AggregateOne.class)
                 .fetchByIds(Arrays.asList(
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"),
@@ -104,12 +104,13 @@ public class TwoAggregatesTests
             aggregateOnes.get(1).getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000020"));
             aggregateOnes.get(2).getAggregateTwos().clear();
 
-            connection.saveAll(aggregateOnes);
+            transaction.saveAll(aggregateOnes);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<AggregateOne> aggregateOnes = connection
+            List<AggregateOne> aggregateOnes = transaction
                 .query(AggregateOne.class)
                 .fetchByIds(Arrays.asList(
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"),
@@ -135,6 +136,8 @@ public class TwoAggregatesTests
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"), aggregateOne2.getAggregateOneId());
             assertEquals("agg1val2", aggregateOne2.getMyValue());
             assertEquals(0, aggregateOne2.getAggregateTwos().size());
+
+            transaction.commit();
         }
     }
 
@@ -143,21 +146,22 @@ public class TwoAggregatesTests
     {
         registerAggregates();
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<AggregateOne> aggregateOnes = connection
+            List<AggregateOne> aggregateOnes = transaction
                 .query(AggregateOne.class)
                 .fetchByIds(Arrays.asList(
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"),
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000010")
                 ));
 
-            connection.deleteAll(aggregateOnes);
+            transaction.deleteAll(aggregateOnes);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<AggregateOne> aggregateOnes = connection
+            List<AggregateOne> aggregateOnes = transaction
                 .query(AggregateOne.class)
                 .fetchByIds(Arrays.asList(
                     UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"),
@@ -172,6 +176,8 @@ public class TwoAggregatesTests
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"), aggregateOne1.getAggregateOneId());
             assertEquals(1, aggregateOne1.getAggregateTwos().size());
             assertEquals(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000021"), aggregateOne1.getAggregateTwos().get(0));
+
+            transaction.commit();
         }
     }
 

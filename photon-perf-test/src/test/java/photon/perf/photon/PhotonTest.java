@@ -4,7 +4,7 @@ import org.apache.commons.lang3.time.StopWatch;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.SortDirection;
 import photon.perf.RecipeDbSetup;
 
@@ -83,7 +83,7 @@ public class PhotonTest
             stopWatch.reset();
             stopWatch.start();
 
-            try (PhotonConnection transaction = photon.beginTransaction())
+            try (PhotonTransaction transaction = photon.beginTransaction())
             {
                 Recipe recipe = new Recipe(
                     recipeId,
@@ -185,7 +185,7 @@ public class PhotonTest
             stopWatch.reset();
             stopWatch.start();
 
-            try (PhotonConnection transaction = photon.beginTransaction())
+            try (PhotonTransaction transaction = photon.beginTransaction())
             {
                 Recipe recipe = transaction
                     .query(Recipe.class)
@@ -204,7 +204,7 @@ public class PhotonTest
             stopWatch.reset();
             stopWatch.start();
 
-            try (PhotonConnection transaction = photon.beginTransaction())
+            try (PhotonTransaction transaction = photon.beginTransaction())
             {
                 Recipe recipe = transaction
                     .query(Recipe.class)

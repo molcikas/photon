@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.mytable;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.EntityFieldValueMapping;
 import photon.converters.Converter;
 import photon.converters.ConverterException;
@@ -30,22 +30,70 @@ public class MyTableSaveTests
     {
         registerMyTableOnlyAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(2, "MySavedValue", null);
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
             assertEquals(2, myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+            transaction.commit();
+        }
+    }
+
+    @Test
+    public void aggregate_saveAndNoCommitWithReadTransaction_simpleEntity_savesEntity()
+    {
+        registerMyTableOnlyAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(2, "MySavedValue", null);
+            transaction.save(myTable);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(2, myTableRetrieved.getId());
+            assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+
+            // Not committing, but that won't matter because this transaction does not make any changes.
+        }
+    }
+
+    @Test
+    public void aggregate_saveWithoutCommit_simpleEntity_doesNotSaveEntity()
+    {
+        registerMyTableOnlyAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(7, "MySavedValue", null);
+            transaction.save(myTable);
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNull(myTableRetrieved);
         }
     }
 
@@ -54,22 +102,23 @@ public class MyTableSaveTests
     {
         registerMyTableOnlyAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(1111, "MyInsertedSavedValue", null);
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
             assertEquals(1111, myTableRetrieved.getId());
             assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
+            transaction.commit();
         }
     }
 
@@ -78,16 +127,16 @@ public class MyTableSaveTests
     {
         registerMyTableOnlyWithAutoIncrementAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "MyAutoIncrementedInsertedSavedValue", null);
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
@@ -102,17 +151,17 @@ public class MyTableSaveTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(3, "MySavedValue", new MyOtherTable(3, "MyOtherSavedValue"));
 
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(3);
 
@@ -124,6 +173,8 @@ public class MyTableSaveTests
             assertNotNull(myOtherTableRetrieved);
             assertEquals(3, myOtherTableRetrieved.getId());
             assertEquals("MyOtherSavedValue", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+
+            transaction.commit();
         }
     }
 
@@ -132,17 +183,17 @@ public class MyTableSaveTests
     {
         registerMyTableWithAutoIncrementAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
 
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
@@ -154,6 +205,8 @@ public class MyTableSaveTests
             assertNotNull(myOtherTableRetrieved);
             assertEquals(7, myOtherTableRetrieved.getId());
             assertEquals("MyOtherSavedValueAutoInc", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+
+            transaction.commit();
         }
     }
 
@@ -173,17 +226,17 @@ public class MyTableSaveTests
             })
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
 
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
@@ -191,8 +244,10 @@ public class MyTableSaveTests
             assertEquals(7, myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
-            MyTable myOtherTableRaw = connection.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
+            MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
             assertEquals("MySavedValueAutoInc", myOtherTableRaw.getMyvalue());
+
+            transaction.commit();
         }
     }
 
@@ -212,17 +267,17 @@ public class MyTableSaveTests
             })
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "MySavedValueAutoInc", new MyOtherTable(0, "MyOtherSavedValueAutoInc"));
 
-            connection
-                .save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTableRetrieved = connection
+            MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
@@ -230,8 +285,10 @@ public class MyTableSaveTests
             assertEquals(7, myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
-            MyTable myOtherTableRaw = connection.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
+            MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
             assertEquals("MYSAVEDVALUEAUTOINC", myOtherTableRaw.getMyvalue());
+
+            transaction.commit();
         }
     }
 
@@ -244,11 +301,13 @@ public class MyTableSaveTests
             .withIgnoredField("myvalue")
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "IShouldBeIgnored", null);
 
-            connection.save(myTable);
+
+            transaction.save(myTable);
+            transaction.commit();
         }
 
         photon.registerAggregate(MyTable.class)
@@ -256,15 +315,17 @@ public class MyTableSaveTests
             .withPrimaryKeyAutoIncrement()
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
             assertNotNull(myTable);
             assertEquals(7, myTable.getId());
             assertEquals("oops", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
@@ -273,22 +334,25 @@ public class MyTableSaveTests
     {
         registerMyTableWithCustomFieldColumnMappingAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, null, new MyOtherTable(0, "MySavedMappedEntityValue"));
 
-            connection.save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
             assertNotNull(myTable);
             assertEquals(7, myTable.getId());
             assertEquals("MySavedMappedEntityValue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
+
+            transaction.commit();
         }
     }
 

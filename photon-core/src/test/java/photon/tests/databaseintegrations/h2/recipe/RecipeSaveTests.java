@@ -4,7 +4,7 @@ import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
 import photon.tests.entities.recipe.RecipeInstruction;
@@ -46,15 +46,15 @@ public class RecipeSaveTests
             null
         );
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection
-                .save(recipe);
+            transaction.save(recipe);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe fetchedRecipe = connection
+            Recipe fetchedRecipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
@@ -65,6 +65,8 @@ public class RecipeSaveTests
 
             recipe.setInstructions(Collections.emptyList());
             assertEquals(recipe, fetchedRecipe);
+
+            transaction.commit();
         }
     }
 
@@ -99,15 +101,15 @@ public class RecipeSaveTests
             )
         );
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection
-                .save(recipe);
+            transaction.save(recipe);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe fetchedRecipe = connection
+            Recipe fetchedRecipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
@@ -116,6 +118,8 @@ public class RecipeSaveTests
             assertEquals(recipe.getIngredients().size(), fetchedRecipe.getIngredients().size());
             assertEquals(recipe.getInstructions().size(), fetchedRecipe.getInstructions().size());
             assertEquals(recipe, fetchedRecipe);
+
+            transaction.commit();
         }
     }
 
@@ -169,15 +173,15 @@ public class RecipeSaveTests
             )
         );
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection
-                .save(recipe);
+            transaction.save(recipe);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe fetchedRecipe = connection
+            Recipe fetchedRecipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
@@ -186,6 +190,8 @@ public class RecipeSaveTests
             assertEquals(recipe.getIngredients().size(), fetchedRecipe.getIngredients().size());
             assertEquals(recipe.getInstructions().size(), fetchedRecipe.getInstructions().size());
             assertEquals(recipe, fetchedRecipe);
+
+            transaction.commit();
         }
     }
 
@@ -239,15 +245,15 @@ public class RecipeSaveTests
             )
         );
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection
-                .insert(recipe);
+            transaction.insert(recipe);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe fetchedRecipe = connection
+            Recipe fetchedRecipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011"));
 
@@ -259,6 +265,8 @@ public class RecipeSaveTests
             assertEquals(recipe.getInstructions().size(), fetchedRecipe.getInstructions().size());
             assertEquals(recipe.getInstructions().get(1).getDescription(), fetchedRecipe.getInstructions().get(1).getDescription());
             assertEquals(recipe, fetchedRecipe);
+
+            transaction.commit();
         }
     }
 
@@ -315,15 +323,15 @@ public class RecipeSaveTests
             )
         );
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection
-                .save(recipe);
+            transaction.save(recipe);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe fetchedRecipe = connection
+            Recipe fetchedRecipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
@@ -332,6 +340,8 @@ public class RecipeSaveTests
             assertEquals(recipe.getIngredients().size(), fetchedRecipe.getIngredients().size());
             assertEquals(recipe.getInstructions().size(), fetchedRecipe.getInstructions().size());
             assertEquals(recipe, fetchedRecipe);
+
+            transaction.commit();
         }
     }
 
@@ -340,11 +350,11 @@ public class RecipeSaveTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
-            Recipe recipe2 = connection.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
-            Recipe recipe3 = connection.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe1 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe2 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe3 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
 
             recipe1.setName("New Recipe1 Name");
             recipe2.setPrepTime(12345);
@@ -353,14 +363,15 @@ public class RecipeSaveTests
             recipe1.getIngredients().clear();
             recipe2.getInstructions().clear();
 
-            connection.saveAll(Arrays.asList(recipe1, recipe2, recipe3));
+            transaction.saveAll(Arrays.asList(recipe1, recipe2, recipe3));
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
-            Recipe recipe2 = connection.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
-            Recipe recipe3 = connection.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe1 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe2 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E040B3D-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe3 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E0378C5-A9B6-11E6-AB83-0A0027000010"));
 
             assertEquals("New Recipe1 Name", recipe1.getName());
             assertEquals("Slow Cooker Rice and Bean Casserole", recipe2.getName());
@@ -376,6 +387,8 @@ public class RecipeSaveTests
             assertEquals(0, recipe2.getInstructions().size());
             assertEquals(8, recipe3.getIngredients().size());
             assertEquals(6, recipe3.getInstructions().size());
+
+            transaction.commit();
         }
     }
 }

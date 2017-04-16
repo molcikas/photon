@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.fieldtest;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.entities.fieldtest.FieldTest;
 import photon.tests.entities.fieldtest.TestEnum;
 
@@ -27,9 +27,9 @@ public class FieldTestTests
     {
         FieldTestDbSetup.registerAggregate(photon);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            FieldTest fieldTest = connection
+            FieldTest fieldTest = transaction
                 .query(FieldTest.class)
                 .fetchById(1);
 
@@ -52,9 +52,9 @@ public class FieldTestTests
     {
         FieldTestDbSetup.registerAggregate(photon);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            FieldTest fieldTest = connection
+            FieldTest fieldTest = transaction
                 .query(FieldTest.class)
                 .fetchById(2);
 
@@ -83,15 +83,16 @@ public class FieldTestTests
         LocalDateTime localDateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(1481122693000L), ZoneId.systemDefault());
         Instant instant = Instant.ofEpochMilli(1481122694000L);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             FieldTest fieldTest = new FieldTest(3, date, zonedDateTime, localDate, localDateTime, instant, TestEnum.VALUE_ONE, TestEnum.VALUE_TWO);
-            connection.save(fieldTest);
+            transaction.save(fieldTest);
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            FieldTest fieldTest = connection
+            FieldTest fieldTest = transaction
                 .query(FieldTest.class)
                 .fetchById(3);
 
@@ -106,6 +107,8 @@ public class FieldTestTests
 
             assertEquals(fieldTest.getTestEnumNumber(), TestEnum.VALUE_ONE);
             assertEquals(fieldTest.getTestEnumString(), TestEnum.VALUE_TWO);
+
+            transaction.commit();
         }
     }
 }

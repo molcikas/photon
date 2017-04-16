@@ -4,7 +4,7 @@ import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.SortDirection;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
@@ -33,9 +33,9 @@ public class RecipeFetchTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe = connection
+            Recipe recipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
@@ -74,9 +74,9 @@ public class RecipeFetchTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe = connection
+            Recipe recipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("28d8b2d4-90a7-467c-93a1-59d1493c0d15"));
 
@@ -93,9 +93,9 @@ public class RecipeFetchTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<Recipe> recipes = connection
+            List<Recipe> recipes = transaction
                 .query(Recipe.class)
                 .fetchByIds(Arrays.asList(UUID.fromString("3e0378c5-a9b6-11e6-ab83-0a0027000010"), UUID.fromString("3e03cb62-a9b6-11e6-ab83-0a0027000010")));
 
@@ -134,9 +134,9 @@ public class RecipeFetchTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe = connection
+            Recipe recipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
 
@@ -163,9 +163,9 @@ public class RecipeFetchTests
     {
         RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<Recipe> recipes = connection
+            List<Recipe> recipes = transaction
                 .query(Recipe.class)
                 .fetchByIdsQuery("SELECT r.recipeId FROM recipe r JOIN recipeinstruction i ON i.recipeId = r.recipeId GROUP BY r.recipeId HAVING COUNT(*) > :instructionCount")
                 .addParameter("instructionCount", 3)

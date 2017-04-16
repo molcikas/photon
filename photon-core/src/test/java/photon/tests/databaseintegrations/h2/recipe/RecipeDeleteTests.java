@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.recipe;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.SortDirection;
 import photon.tests.entities.recipe.Recipe;
 import photon.tests.entities.recipe.RecipeIngredient;
@@ -29,18 +29,20 @@ public class RecipeDeleteTests
     {
         registerRecipeAggregate();
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe1 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
 
-            connection.delete(recipe1);
+            transaction.delete(recipe1);
+            transaction.commit();
         }
 
-        try (PhotonConnection connection = photon.open())
+        try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Recipe recipe1 = connection.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
+            Recipe recipe1 = transaction.query(Recipe.class).fetchById(UUID.fromString("3E04169A-A9B6-11E6-AB83-0A0027000010"));
 
             assertNull(recipe1);
+            transaction.commit();
         }
     }
 

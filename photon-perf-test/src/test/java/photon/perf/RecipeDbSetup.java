@@ -3,7 +3,7 @@ package photon.perf;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 
 import javax.sql.DataSource;
 
@@ -30,7 +30,7 @@ public class RecipeDbSetup
     {
         Photon photon = new Photon(h2Url, h2User, h2Password);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             connection.query("DROP TABLE IF EXISTS recipe").executeUpdate();
             connection.query("CREATE TABLE recipe (\n" +

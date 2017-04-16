@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.mytable;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.EntityFieldValueMapping;
 import photon.blueprints.SortDirection;
 import photon.tests.entities.mytable.MyOtherTable;
@@ -31,9 +31,9 @@ public class MyTableFetchTests
     {
         registerMyTableOnlyAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(2);
 
@@ -48,9 +48,9 @@ public class MyTableFetchTests
     {
         registerMyTableOnlyAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(7);
 
@@ -66,9 +66,9 @@ public class MyTableFetchTests
             .withOrderBy("id", SortDirection.Descending)
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(MyTable.class)
                 .fetchByIds(Arrays.asList(2, 4));
 
@@ -86,9 +86,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(2);
 
@@ -105,9 +105,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(5);
 
@@ -127,9 +127,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(MyTable.class)
                 .fetchByIds(Arrays.asList(1, 2, 3, 4));
 
@@ -158,9 +158,9 @@ public class MyTableFetchTests
             .withIgnoredField("myvalue")
             .register();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(3);
 
@@ -175,9 +175,9 @@ public class MyTableFetchTests
     {
         registerMyTableWithCustomFieldColumnMappingAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .fetchById(3);
 
@@ -192,9 +192,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(MyTable.class)
                 .where("myvalue = :myvalue")
                 .addParameter("myvalue", "my3dbvalue")
@@ -211,9 +211,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(MyTable.class)
                 .where("myvalue = :myvalue1 OR myvalue = :myvalue2")
                 .addParameter("myvalue1", "my3dbvalue")
@@ -234,9 +234,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(MyTable.class)
                 .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue = :myothervalue1 OR myothervalue = :myothervalue2")
                 .addParameter("myothervalue1", "my4otherdbvalue")
@@ -257,9 +257,9 @@ public class MyTableFetchTests
     {
         registerMyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(MyTable.class)
                 .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
                 .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
@@ -271,6 +271,8 @@ public class MyTableFetchTests
             assertEquals("my4otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
             assertEquals(5, myTables.get(1).getId());
             assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
+
+            transaction.commit();
         }
     }
 

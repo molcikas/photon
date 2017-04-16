@@ -3,7 +3,7 @@ package photon.tests.databaseintegrations.h2.myonetomanytable;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.entities.myonetomanytable.MyManyTable;
 import photon.tests.entities.myonetomanytable.MyOneToManyTable;
 import photon.tests.entities.myonetomanytable.MyThirdTable;
@@ -25,9 +25,9 @@ public class MyOneToManyTableFetchTests
     {
         registerMyOneToManyTableAggregate();
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            MyOneToManyTable myOneToManyTable = connection
+            MyOneToManyTable myOneToManyTable = transaction
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 

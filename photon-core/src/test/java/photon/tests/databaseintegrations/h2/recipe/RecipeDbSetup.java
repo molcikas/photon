@@ -2,7 +2,7 @@ package photon.tests.databaseintegrations.h2.recipe;
 
 import org.apache.commons.lang3.math.Fraction;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.blueprints.SortDirection;
 import photon.converters.Converter;
 import photon.converters.ConverterException;
@@ -19,10 +19,10 @@ public class RecipeDbSetup
     {
         Photon photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection.query("DROP TABLE IF EXISTS recipe").executeUpdate();
-            connection.query("CREATE TABLE recipe (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipe").executeUpdate();
+            transaction.query("CREATE TABLE recipe (\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  name varchar(50) NOT NULL,\n" +
                 "  description text NOT NULL,\n" +
@@ -35,7 +35,7 @@ public class RecipeDbSetup
                 "  credit varchar(512) DEFAULT NULL,\n" +
                 "  PRIMARY KEY (recipeId)\n" +
                 ")").executeUpdate();
-            connection.query("insert into recipe (recipeId, name, description, prepTime, cookTime, servings, isVegetarian, isVegan, isPublished, credit) values\n" +
+            transaction.query("insert into recipe (recipeId, name, description, prepTime, cookTime, servings, isVegetarian, isVegan, isPublished, credit) values\n" +
                 "(X'28D8B2D490A7467C93A159D1493C0D15','AA','BB','1','2','3','0','0','0',NULL),\n" +
                 "(X'28D8B2D490A7467C93A159D1493C0D16','A','B','1','2','3','0','0','0',NULL),\n" +
                 "(X'3DFFC3B3A9B611E6AB830A0027000010','Vegetable Fried Rice','Yummy cashews add a load of benefits to this simple recipe for fried rice.','20','15','6','1','1','1',NULL),\n" +
@@ -49,8 +49,8 @@ public class RecipeDbSetup
                 "(X'3E042916A9B611E6AB830A0027000010','Vegan Chili','Zucchini and two kinds of beans make this recipe meaty without having any meat. Leave off the cheese and make it vegan!','10','30','8','1','1','1',NULL),\n" +
                 "(X'3E0431C1A9B611E6AB830A0027000010','Texas Black Bean Burgers','These burgers are packed with flavor and taste just as good as a regular hamburger.','30','45','4','1','1','0',NULL)").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS recipeingredient").executeUpdate();
-            connection.query("CREATE TABLE recipeingredient (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipeingredient").executeUpdate();
+            transaction.query("CREATE TABLE recipeingredient (\n" +
                 "  recipeIngredientId binary(16) NOT NULL,\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  isRequired tinyint(1) NOT NULL,\n" +
@@ -63,7 +63,7 @@ public class RecipeDbSetup
                 "  PRIMARY KEY (recipeIngredientId),\n" +
                 "  CONSTRAINT RecipeIngredient_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
                 ")").executeUpdate();
-            connection.query("insert into recipeingredient (recipeIngredientId, recipeId, isRequired, quantity, quantityUnit, quantityDetail, name, preparation, orderBy) values\n" +
+            transaction.query("insert into recipeingredient (recipeIngredientId, recipeId, isRequired, quantity, quantityUnit, quantityDetail, name, preparation, orderBy) values\n" +
                 "(X'0AA82E11E97346BFA537C7EE34C65D87',X'3E03CB62A9B611E6AB830A0027000010','1',NULL,NULL,'','salt','to taste','8'),\n" +
                 "(X'0CB17026B38A4C1B990AF626495581B9',X'3DFFC3B3A9B611E6AB830A0027000010','1','1/2',NULL,NULL,'red bell pepper','deseeded and diced','6'),\n" +
                 "(X'154EE28CFF694ED189A76686BC38AAF2',X'28D8B2D490A7467C93A159D1493C0D16','0','1/3',NULL,NULL,'a',NULL,'0'),\n" +
@@ -177,8 +177,8 @@ public class RecipeDbSetup
                 "(X'DF5EBAB85E6A4694B539B7610CA8DB86',X'3DFFC3B3A9B611E6AB830A0027000010','1','1',NULL,NULL,'medium onion','diced','5'),\n" +
                 "(X'E01AE10E897C49E897CE38D89460610C',X'3E03CB62A9B611E6AB830A0027000010','1','1.0000','teaspoon',NULL,'worcestershire sauce',NULL,'10');").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS recipeinstruction").executeUpdate();
-            connection.query("CREATE TABLE recipeinstruction (\n" +
+            transaction.query("DROP TABLE IF EXISTS recipeinstruction").executeUpdate();
+            transaction.query("CREATE TABLE recipeinstruction (\n" +
                 "  recipeInstructionId binary(16) NOT NULL,\n" +
                 "  recipeId binary(16) NOT NULL,\n" +
                 "  stepNumber int(10) unsigned NOT NULL,\n" +
@@ -186,7 +186,7 @@ public class RecipeDbSetup
                 "  PRIMARY KEY (recipeInstructionId),\n" +
                 "  CONSTRAINT RecipeInstruction_Recipe FOREIGN KEY (recipeId) REFERENCES recipe (recipeId) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
                 ")").executeUpdate();
-            connection.query("insert into recipeInstruction (recipeInstructionId, recipeId, stepNumber, description) values\n" +
+            transaction.query("insert into recipeInstruction (recipeInstructionId, recipeId, stepNumber, description) values\n" +
                 "(X'3771A1B61EBD4E14BEC0A9BD90C6E02C',X'3E03CB62A9B611E6AB830A0027000010','2','Heat a large skillet to medium-high heat. Add the olive oil. Mince and add the remaining garlic. Add the bread cubes. Cook them until they turn crusty and brown (like croutons!).'),\n" +
                 "(X'3AD748177FF549029A0133D55083FE52',X'3DFFC3B3A9B611E6AB830A0027000010','4','Stir in soy sauce and pepper. Stir in cashews. Stir in green onion. Taste and add seasoning if desired.'),\n" +
                 "(X'4C61288ACF58458FB5017D6872661D7A',X'3DFFC3B3A9B611E6AB830A0027000010','3','Add rice in the middle of the pan. Stir until heated through (about 2 minutes);, using a spatula to turn and move the rice around the pan.'),\n" +
@@ -222,6 +222,8 @@ public class RecipeDbSetup
                 "(X'D2A30BB1A94B11E6AB830A0027000010',X'3E038307A9B611E6AB830A0027000010','5','Drain the lentils and add them. Cook for 5 minutes. Season with salt and pepper.'),\n" +
                 "(X'D2A36443A94B11E6AB830A0027000010',X'3E038307A9B611E6AB830A0027000010','6','Serve the sauce over noodles. Sprinkle with basil and parmesan-style cheese.'),\n" +
                 "(X'F018A06DC36343BC8C62340E8A3F011A',X'3DFFC3B3A9B611E6AB830A0027000010','1','Heat oil in preheated wok on medium-high heat. Add ginger, stir until fragrant. Add onion, stir-fry for about 2 minutes until softened.')").executeUpdate();
+
+            transaction.commit();
         }
 
         return photon;

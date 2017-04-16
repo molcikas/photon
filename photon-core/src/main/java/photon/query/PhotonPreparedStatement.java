@@ -1,5 +1,7 @@
 package photon.query;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import photon.converters.Convert;
 import photon.converters.Converter;
 import photon.exceptions.PhotonException;
@@ -9,9 +11,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
+    private static final Logger log = LoggerFactory.getLogger(PhotonPreparedStatement.class);
+
     private class ParameterValue
     {
         public final Object value;
@@ -107,14 +112,28 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            //System.out.println("Batch Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
+            if(log.isDebugEnabled())
+            {
+                if(parameterValues.isEmpty())
+                {
+                    log.debug("Photon query batch added with no params.");
+                }
+                else
+                {
+                    log.debug("Photon query batch added with params:\n" +
+                        StringUtils.join(parameterValues.stream()
+                            .map(p -> p.value)
+                            .collect(Collectors.toList()), ','));
+
+                }
+            }
             preparedStatement.addBatch();
             isBatched = true;
             parameterValues.clear();
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error preparing statement for sql: \n%s", originalSqlText), ex);
+            throw new PhotonException(String.format("Error preparing statement for SQL: \n%s", originalSqlText), ex);
         }
     }
 
@@ -133,7 +152,10 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            //System.out.println(sqlText);
+            if(log.isDebugEnabled())
+            {
+                log.debug("Photon batch query executing with SQL:\n" + sqlText);
+            }
             int[] resultCounts = preparedStatement.executeBatch();
             parameterValues.clear();
             sqlText = originalSqlText;
@@ -142,7 +164,7 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing batch for sql: \n%s", originalSqlText), ex);
+            throw new PhotonException(String.format("Error executing batch for SQL:\n%s", originalSqlText), ex);
         }
     }
 
@@ -171,7 +193,7 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing query for statement with SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(String.format("Error executing query for statement with SQL:\n%s", originalSqlText), ex);
         }
 
         return resultRows;
@@ -182,6 +204,8 @@ public class PhotonPreparedStatement implements Closeable
         List<PhotonQueryResultRow> resultRows = new ArrayList<>(100);
 
         prepareStatement();
+
+        logQuery(null);
 
         try(ResultSet resultSet = preparedStatement.executeQuery())
         {
@@ -201,7 +225,7 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing query for statement with SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(String.format("Error executing query for statement with SQL:\n%s", originalSqlText), ex);
         }
 
         return resultRows;
@@ -213,8 +237,7 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
-            //System.out.println(sqlText);
+            logQuery("update");
             return preparedStatement.executeUpdate();
         }
         catch(Exception ex)
@@ -229,8 +252,7 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            //System.out.println("Params: " + StringUtils.join(parameterValues.stream().map(p -> p.value).collect(Collectors.toList()), ','));
-            //System.out.println(sqlText);
+            logQuery("insert");
             int rowsUpdated = preparedStatement.executeUpdate();
             updateGeneratedKeysIfRequested();
             return rowsUpdated;
@@ -413,6 +435,32 @@ public class PhotonPreparedStatement implements Closeable
             catch(Exception ex)
             {
                 throw new PhotonException(String.format("Error setting parameter %s with type %s to '%s'.", parameterIndex, parameterValue.dataType, parameterValue.value), ex);
+            }
+        }
+    }
+
+    private void logQuery(String queryType)
+    {
+        if(log.isDebugEnabled())
+        {
+            if(queryType == null)
+            {
+                queryType = "";
+            }
+
+            if(parameterValues.isEmpty())
+            {
+                log.debug("Photon {}query executing with no params and SQL:\n{}", StringUtils.isBlank(queryType) ? queryType : queryType + " ", sqlText);
+            }
+            else
+            {
+                log.debug(
+                    "Photon {}query executing with params:\n{}\nSQL:\n{}",
+                    StringUtils.isBlank(queryType) ? queryType : queryType + " ",
+                    StringUtils.join(parameterValues.stream()
+                        .map(p -> p.value)
+                        .collect(Collectors.toList()), ','),
+                    sqlText);
             }
         }
     }

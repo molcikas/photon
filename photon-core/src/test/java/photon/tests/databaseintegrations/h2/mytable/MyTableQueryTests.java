@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.converters.Converter;
 import photon.converters.ConverterException;
 import photon.exceptions.PhotonException;
@@ -30,14 +30,14 @@ public class MyTableQueryTests
     @Test
     public void query_fetch_simpleEntity_returnsEntity()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", 2)
                 .fetch(MyTable.class);
@@ -45,20 +45,22 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(2, myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_fetch_customParameterDataType_returnsEntity()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", "2", Types.INTEGER)
                 .fetch(MyTable.class);
@@ -66,20 +68,22 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(2, myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_fetch_customToFieldConverter_returnsEntity()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", "2", Types.INTEGER)
                 .withCustomToFieldValueConverter("myvalue", new Converter()
@@ -95,56 +99,62 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(2, myTable.getId());
             assertEquals("MY2DBVALUE", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_fetchScalar_fetchString_fetchesString()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT myvalue " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            String myValue = connection
+            String myValue = transaction
                 .query(sql)
                 .addParameter("id", 2)
                 .fetchScalar(String.class);
 
             assertEquals("my2dbvalue", myValue);
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_fetchScalar_fetchNumber_fetchesNumber()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT COUNT(*) " +
                 "FROM mytable ";
 
-            Long count = connection
+            Long count = transaction
                 .query(sql)
                 .fetchScalar(Long.class);
 
             assertEquals(Long.valueOf(6L), count);
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_fetchScalar_noResult_returnsNull()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT myvalue " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            String myValue = connection
+            String myValue = transaction
                 .query(sql)
                 .addParameter("id", 9999)
                 .fetchScalar(String.class);
@@ -156,14 +166,14 @@ public class MyTableQueryTests
     @Test
     public void query_fetchScalarList_fetchStringsList_returnsStringsList()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT myvalue " +
                 "FROM mytable " +
                 "WHERE id >= :id ";
 
-            List<String> myValues = connection
+            List<String> myValues = transaction
                 .query(sql)
                 .addParameter("id", 3)
                 .fetchScalarList(String.class);
@@ -177,14 +187,14 @@ public class MyTableQueryTests
     @Test
     public void query_fetchScalarList_noResults_returnsEmptyList()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT myvalue " +
                 "FROM mytable " +
                 "WHERE id >= :id ";
 
-            List<String> myValues = connection
+            List<String> myValues = transaction
                 .query(sql)
                 .addParameter("id", 9999)
                 .fetchScalarList(String.class);
@@ -196,7 +206,7 @@ public class MyTableQueryTests
     @Test
     public void query_fetchList_simpleEntities_returnsEntities()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
@@ -204,7 +214,7 @@ public class MyTableQueryTests
                 "WHERE id IN (2, 4) " +
                 "ORDER BY id DESC ";
 
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(sql)
                 .fetchList(MyTable.class);
 
@@ -220,7 +230,7 @@ public class MyTableQueryTests
     @Test
     public void query_fetchListWithListParameter_simpleEntities_returnsEntities()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
@@ -228,7 +238,7 @@ public class MyTableQueryTests
                 "WHERE id IN (:ids) " +
                 "ORDER BY id DESC ";
 
-            List<MyTable> myTables = connection
+            List<MyTable> myTables = transaction
                 .query(sql)
                 .addParameter("ids", Arrays.asList(2, 4))
                 .fetchList(MyTable.class);
@@ -245,7 +255,7 @@ public class MyTableQueryTests
     @Test
     public void query_fetch_parameterNotInList_throwsException()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
@@ -254,7 +264,7 @@ public class MyTableQueryTests
 
             try
             {
-                MyTable myTable = connection
+                MyTable myTable = transaction
                     .query(sql)
                     .addParameter("NotARealParameter", 2)
                     .fetch(MyTable.class);
@@ -271,30 +281,32 @@ public class MyTableQueryTests
     @Test
     public void query_update_simpleEntity_updatesEntity()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "UPDATE mytable " +
                 "SET myvalue = :newvalue " +
                 "WHERE id = :id ";
 
-            int updateCount = connection
+            int updateCount = transaction
                 .query(sql)
                 .addParameter("id", 2)
                 .addParameter("newvalue", "MyNewValue")
                 .executeUpdate();
 
             assertEquals(1, updateCount);
+
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", 2)
                 .fetch(MyTable.class);
@@ -302,35 +314,39 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(2, myTable.getId());
             assertEquals("MyNewValue", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_insert_insertSimpleEntityWithAutoIncrement_savesEntity()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "INSERT INTO mytable (myvalue) " +
                 "VALUES ('MyAutoIncrementedInsertedSavedValue') ";
 
-            PhotonQuery query = connection.query(sql, true);
+            PhotonQuery query = transaction.query(sql, true);
             int updateCount = query.executeInsert();
             List<Long> newKeys = query.getGeneratedKeys();
 
             assertEquals(1, updateCount);
             assertEquals(1, newKeys.size());
             assertEquals((Long) 7L, newKeys.get(0));
+
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = :id ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", 7)
                 .fetch(MyTable.class);
@@ -338,39 +354,45 @@ public class MyTableQueryTests
             assertNotNull(myTable);
             assertEquals(7, myTable.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 
     @Test
     public void query_insert_nullParameter_InsertsValueAsSqlNull()
     {
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "INSERT INTO mytable VALUES (:id, :myvalue)";
 
-            int rowsInserted = connection
+            int rowsInserted = transaction
                 .query(sql)
                 .addParameter("id", 7)
                 .addParameter("myvalue", null)
                 .executeInsert();
 
             assertEquals(1, rowsInserted);
+
+            transaction.commit();
         }
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
                 "SELECT * " +
                 "FROM mytable " +
                 "WHERE id = 7 ";
 
-            MyTable myTable = connection
+            MyTable myTable = transaction
                 .query(sql)
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
             assertNull(myTable.getMyvalue());
+
+            transaction.commit();
         }
     }
 }

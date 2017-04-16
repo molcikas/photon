@@ -38,14 +38,9 @@ public class Photon
         this(new GenericDataSource(url, user, password));
     }
 
-    public PhotonConnection open()
+    public PhotonTransaction beginTransaction()
     {
-        return new PhotonConnection(getConnection(), false, registeredAggregates, entityBlueprintConstructorService);
-    }
-
-    public PhotonConnection beginTransaction()
-    {
-        return new PhotonConnection(getConnection(), true, registeredAggregates, entityBlueprintConstructorService);
+        return new PhotonTransaction(getConnection(), registeredAggregates, entityBlueprintConstructorService);
     }
 
     public AggregateEntityBlueprintBuilder registerAggregate(Class aggregateRootClass)

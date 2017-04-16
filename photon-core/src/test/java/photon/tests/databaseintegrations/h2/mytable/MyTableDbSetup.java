@@ -1,7 +1,7 @@
 package photon.tests.databaseintegrations.h2.mytable;
 
 import photon.Photon;
-import photon.PhotonConnection;
+import photon.PhotonTransaction;
 import photon.tests.databaseintegrations.h2.H2TestUtil;
 
 public class MyTableDbSetup
@@ -10,31 +10,33 @@ public class MyTableDbSetup
     {
         Photon photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password);
 
-        try(PhotonConnection connection = photon.open())
+        try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            connection.query("DROP TABLE IF EXISTS `mytable`").executeUpdate();
-            connection.query("CREATE TABLE `mytable` (\n" +
+            transaction.query("DROP TABLE IF EXISTS `mytable`").executeUpdate();
+            transaction.query("CREATE TABLE `mytable` (\n" +
                 "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                 "  `myvalue` varchar(255) DEFAULT 'oops',\n" +
                 "  PRIMARY KEY (`id`)\n" +
                 ")").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (1, 'my1dbvalue')").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (2, 'my2dbvalue')").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (3, 'my3dbvalue')").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (4, 'my4dbvalue')").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (5, 'my5dbvalue')").executeUpdate();
-            connection.query("insert into `mytable` (`id`, `myvalue`) values (6, NULL)").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (1, 'my1dbvalue')").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (2, 'my2dbvalue')").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (3, 'my3dbvalue')").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (4, 'my4dbvalue')").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (5, 'my5dbvalue')").executeUpdate();
+            transaction.query("insert into `mytable` (`id`, `myvalue`) values (6, NULL)").executeUpdate();
 
-            connection.query("DROP TABLE IF EXISTS `myothertable`").executeUpdate();
-            connection.query("CREATE TABLE `myothertable` (\n" +
+            transaction.query("DROP TABLE IF EXISTS `myothertable`").executeUpdate();
+            transaction.query("CREATE TABLE `myothertable` (\n" +
                 "  `id` int(11) NOT NULL,\n" +
                 "  `myothervalue` varchar(255) DEFAULT 'oops',\n" +
                 "  PRIMARY KEY (`id`),\n" +
                 "  CONSTRAINT `MyOtherTable_MyTable` FOREIGN KEY (`id`) REFERENCES `mytable` (`id`)\n" +
                 ")").executeUpdate();
-            connection.query("insert into `myothertable` (`id`, `myothervalue`) values (3, 'my3otherdbvalue')").executeUpdate();
-            connection.query("insert into `myothertable` (`id`, `myothervalue`) values (4, 'my4otherdbvalue')").executeUpdate();
-            connection.query("insert into `myothertable` (`id`, `myothervalue`) values (5, 'my5otherdbvalue')").executeUpdate();
+            transaction.query("insert into `myothertable` (`id`, `myothervalue`) values (3, 'my3otherdbvalue')").executeUpdate();
+            transaction.query("insert into `myothertable` (`id`, `myothervalue`) values (4, 'my4otherdbvalue')").executeUpdate();
+            transaction.query("insert into `myothertable` (`id`, `myothervalue`) values (5, 'my5otherdbvalue')").executeUpdate();
+
+            transaction.commit();
         }
 
         return photon;
