@@ -1,4 +1,4 @@
-# Photon
+# Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
 A micro ORM that supports aggregates and a fluent API to allow aggregates to be modeled from the business domain rather than the database tables without the trade-off of having separate models for the domain and database.
 
 Traditional ORMs hide the SQL they are executing behind complicated modeling and custom querying languages. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. Also, most traditional ORMs (especially JVM ones) require the object-database mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables, preventing them from being modeled purely from the business domain.
