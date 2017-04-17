@@ -36,14 +36,14 @@ public class FieldTestTests
             assertNotNull(fieldTest);
             assertEquals(1, fieldTest.getId());
 
-            assertEquals(fieldTest.getDate(), new Date(1489933697000L));
-            assertEquals(fieldTest.getZonedDateTime(), ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.systemDefault()));
-            assertEquals(fieldTest.getLocalDate(), LocalDate.ofEpochDay(17244));
-            assertEquals(fieldTest.getLocalDateTime(), LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.systemDefault()));
-            assertEquals(fieldTest.getInstant(), Instant.ofEpochMilli(1489933701000L));
+            assertEquals(new Date(1489933697000L), fieldTest.getDate());
+            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.of("America/Chicago")), fieldTest.getZonedDateTime());
+            assertEquals(LocalDate.ofEpochDay(17244), fieldTest.getLocalDate());
+            assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.of("America/Chicago")), fieldTest.getLocalDateTime());
+            assertEquals(Instant.ofEpochMilli(1489933701000L), fieldTest.getInstant());
 
-            assertEquals(fieldTest.getTestEnumNumber(), TestEnum.VALUE_ZERO);
-            assertEquals(fieldTest.getTestEnumString(), TestEnum.VALUE_ONE);
+            assertEquals(TestEnum.VALUE_ZERO, fieldTest.getTestEnumNumber());
+            assertEquals(TestEnum.VALUE_ONE, fieldTest.getTestEnumString());
         }
     }
 
@@ -99,14 +99,14 @@ public class FieldTestTests
             assertNotNull(fieldTest);
             assertEquals(3, fieldTest.getId());
 
-            assertEquals(fieldTest.getDate(), date);
-            assertEquals(fieldTest.getZonedDateTime(), zonedDateTime);
-            assertEquals(fieldTest.getLocalDate(), localDate);
-            assertEquals(fieldTest.getLocalDateTime(), localDateTime);
-            assertEquals(fieldTest.getInstant(), instant);
+            assertEquals(date, fieldTest.getDate());
+            assertEquals(zonedDateTime, fieldTest.getZonedDateTime());
+            assertEquals(localDate, fieldTest.getLocalDate());
+            assertEquals(localDateTime, fieldTest.getLocalDateTime());
+            assertEquals(instant, fieldTest.getInstant());
 
-            assertEquals(fieldTest.getTestEnumNumber(), TestEnum.VALUE_ONE);
-            assertEquals(fieldTest.getTestEnumString(), TestEnum.VALUE_TWO);
+            assertEquals(TestEnum.VALUE_ONE, fieldTest.getTestEnumNumber());
+            assertEquals(TestEnum.VALUE_TWO, fieldTest.getTestEnumString());
 
             transaction.commit();
         }
