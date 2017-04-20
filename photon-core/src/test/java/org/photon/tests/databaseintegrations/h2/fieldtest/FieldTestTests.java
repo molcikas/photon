@@ -7,7 +7,6 @@ import org.photon.PhotonTransaction;
 import org.photon.tests.entities.fieldtest.FieldTest;
 import org.photon.tests.entities.fieldtest.TestEnum;
 
-import java.sql.Timestamp;
 import java.time.*;
 import java.util.Date;
 
@@ -37,10 +36,10 @@ public class FieldTestTests
             assertNotNull(fieldTest);
             assertEquals(1, fieldTest.getId());
 
-            assertEquals(new Date(new Timestamp(1489933697000L).getTime()), fieldTest.getDate());
-            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.of("America/Chicago")), fieldTest.getZonedDateTime());
+            assertEquals(new Date(1489933697000L), fieldTest.getDate()); // Database date: 2017-03-19 09-28-17
+            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.systemDefault()), fieldTest.getZonedDateTime());
             assertEquals(LocalDate.ofEpochDay(17244), fieldTest.getLocalDate());
-            assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.of("America/Chicago")), fieldTest.getLocalDateTime());
+            assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.systemDefault()), fieldTest.getLocalDateTime());
             assertEquals(Instant.ofEpochMilli(1489933701000L), fieldTest.getInstant());
 
             assertEquals(TestEnum.VALUE_ZERO, fieldTest.getTestEnumNumber());
