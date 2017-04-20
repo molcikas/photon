@@ -10,6 +10,7 @@ import org.photon.tests.entities.fieldtest.TestEnum;
 import java.text.SimpleDateFormat;
 import java.time.*;
 import java.util.Date;
+import java.util.TimeZone;
 
 import static org.junit.Assert.*;
 
@@ -37,11 +38,15 @@ public class FieldTestTests
             assertNotNull(fieldTest);
             assertEquals(1, fieldTest.getId());
 
-            assertEquals("2017-03-19 09:28:17", new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(fieldTest.getDate()));
-            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.of("America/Chicago")), fieldTest.getZonedDateTime());
+            // The database does not store a time zone, so we assume the date is in the system's time zone. But to make these tests
+            // compare epoch times but still work with any system time zone, we have to offset the epoch to the system's time zone.
+            int currentUtcOffset = TimeZone.getDefault().getOffset(new Date().getTime());
+
+            assertEquals(new Date(1489915697000L - currentUtcOffset), fieldTest.getDate());
+            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489915698000L - currentUtcOffset), ZoneId.systemDefault()), fieldTest.getZonedDateTime());
             assertEquals(LocalDate.ofEpochDay(17244), fieldTest.getLocalDate());
-            assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(1489933700000L), ZoneId.of("America/Chicago")), fieldTest.getLocalDateTime());
-            assertEquals(Instant.ofEpochMilli(1489933701000L), fieldTest.getInstant());
+            assertEquals(LocalDateTime.ofInstant(Instant.ofEpochMilli(1489915700000L - currentUtcOffset), ZoneId.systemDefault()), fieldTest.getLocalDateTime());
+            assertEquals(Instant.ofEpochMilli(1489915701000L - currentUtcOffset), fieldTest.getInstant());
 
             assertEquals(TestEnum.VALUE_ZERO, fieldTest.getTestEnumNumber());
             assertEquals(TestEnum.VALUE_ONE, fieldTest.getTestEnumString());
