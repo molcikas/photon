@@ -15,14 +15,9 @@ public class DateConverter implements Converter<Date>
             return null;
         }
 
-        System.out.println("Converting " + val.getClass().getSimpleName() + " value to date: " + val.toString());
-
         if(Date.class.isAssignableFrom(val.getClass()))
         {
-            System.out.println("Converting the date value to another date: " + ((Date)val).getTime());
-            Date date = new Date(((Date)val).getTime());
-            System.out.println("Converted the date to " + date.toString() + " epoch " + date.getTime());
-            return date;
+            return new Date(((Date)val).getTime());
         }
 
         if(ZonedDateTime.class.isAssignableFrom(val.getClass()))
