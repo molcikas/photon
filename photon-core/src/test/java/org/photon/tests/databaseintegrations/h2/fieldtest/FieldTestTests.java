@@ -36,6 +36,8 @@ public class FieldTestTests
             assertNotNull(fieldTest);
             assertEquals(1, fieldTest.getId());
 
+            System.out.println("Default timezone: " + ZoneId.systemDefault().toString() + " " + ZoneId.systemDefault());
+
             assertEquals(new Date(1489933697000L), fieldTest.getDate()); // Database date: 2017-03-19 09-28-17
             assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489933698000L), ZoneId.systemDefault()), fieldTest.getZonedDateTime());
             assertEquals(LocalDate.ofEpochDay(17244), fieldTest.getLocalDate());

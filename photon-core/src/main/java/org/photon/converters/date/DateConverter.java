@@ -15,8 +15,11 @@ public class DateConverter implements Converter<Date>
             return null;
         }
 
+        System.out.println("Converting " + val.getClass().getSimpleName() + " value to date: " + val.toString());
+
         if(Date.class.isAssignableFrom(val.getClass()))
         {
+            System.out.println("Converting the date value to another date: " + ((Date)val).getTime());
             return new Date(((Date)val).getTime());
         }
 
