@@ -1,11 +1,13 @@
-group 'molcikas'
-version '1.0.0'
+group 'com.github.molcikas'
+version '0.2.0'
 
 subprojects {
 
     apply plugin: 'java'
     apply plugin: 'idea'
     apply plugin: 'groovy'
+    apply plugin: 'maven'
+    apply plugin: 'signing'
     
     version = parent.version
     group = parent.group
@@ -28,10 +30,6 @@ subprojects {
         testCompile group: 'junit', name: 'junit', version: '4.11'
     }
 
-//    task sourceJar(type: Jar) {
-//        from sourceSets.main.allSource
-//    }
-
     tasks.idea {
         dependsOn = [ cleanIdeaModule, ideaModule ]
     }
@@ -50,6 +48,68 @@ subprojects {
         testLogging {
             exceptionFormat = 'full'
             showStandardStreams = true
+        }
+    }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+    signing {
+        sign configurations.archives
+    }
+
+    uploadArchives {
+        repositories {
+            mavenDeployer {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+                repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                    authentication(userName: ossrhUsername, password: ossrhPassword)
+                }
+
+                pom.project {
+                    name project.name
+                    packaging 'jar'
+                    description project.description
+                    url 'https://github.com/molcikas/photon'
+
+                    scm {
+                        connection 'https://github.com/molcikas/photon.git'
+                        developerConnection 'https://github.com/molcikas/photon.git'
+                        url 'https://github.com/molcikas/photon'
+                    }
+
+                    licenses {
+                        license {
+                            name 'MIT License'
+                            url 'https://github.com/molcikas/photon/blob/master/LICENSE'
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id 'molcikas'
+                            name 'Matt Olcikas'
+                            email developerEmailAddress
+                        }
+                    }
+                }
+            }
         }
     }
 }

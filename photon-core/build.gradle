@@ -1,5 +1,5 @@
 
-description = "Photon core"
+description = "A micro ORM that gives developers control over the SQL executed while also providing an easy way to do basic CRUD operations on aggregates."
 
 dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
@@ -28,3 +28,5 @@ idea {
         }
     }
 }
+
+archivesBaseName = "photon-core"
