@@ -4,9 +4,9 @@
              xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd"
              version="2.0">
     <persistence-unit name="app" transaction-type="RESOURCE_LOCAL">
-        <class>org.photon.perf.hibernate.RecipeEntity</class>
-        <class>org.photon.perf.hibernate.RecipeIngredientEntity</class>
-        <class>org.photon.perf.hibernate.RecipeInstructionEntity</class>
+        <class>com.github.molcikas.photon.perf.hibernate.RecipeEntity</class>
+        <class>com.github.molcikas.photon.perf.hibernate.RecipeIngredientEntity</class>
+        <class>com.github.molcikas.photon.perf.hibernate.RecipeInstructionEntity</class>
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect" />
             <property name="hibernate.show_sql" value="false" />

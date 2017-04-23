@@ -15,4 +15,4 @@ hs_err_pid*
 /.idea/tasks.xml
 /.gradle
 !gradle-wrapper.jar
-/gradle.properties
+/classes
