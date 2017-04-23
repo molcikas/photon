@@ -65,9 +65,10 @@ subprojects {
         archives javadocJar, sourcesJar
     }
 
-    signing {
-        sign configurations.archives
-    }
+// Comment this in when building for a sonatype release.
+//    signing {
+//        sign configurations.archives
+//    }
 
     uploadArchives {
         repositories {
