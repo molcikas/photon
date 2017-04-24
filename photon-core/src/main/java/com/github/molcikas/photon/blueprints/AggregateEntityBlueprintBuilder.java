@@ -16,6 +16,7 @@ public class AggregateEntityBlueprintBuilder
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
     private final AggregateEntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
+    private String tableName;
     private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
     private String foreignKeyToParent;
@@ -56,6 +57,12 @@ public class AggregateEntityBlueprintBuilder
         this.foreignKeyListBlueprints = new HashMap<>();
         this.customToFieldValueConverters = new HashMap<>();
         this.customToDatabaseValueConverters = new HashMap<>();
+    }
+
+    public AggregateEntityBlueprintBuilder withTableName(String tableName)
+    {
+        this.tableName = tableName;
+        return this;
     }
 
     public AggregateEntityBlueprintBuilder withId(String idFieldName)
@@ -175,6 +182,7 @@ public class AggregateEntityBlueprintBuilder
     {
         return new AggregateEntityBlueprint(
             entityClass,
+            tableName,
             idFieldName,
             isPrimaryKeyAutoIncrement,
             foreignKeyToParent,

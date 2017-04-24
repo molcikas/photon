@@ -4,6 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
     AggregateEntityBlueprint(
         Class entityClass,
+        String tableName,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
         String foreignKeyToParentColumnName,
@@ -58,7 +60,11 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         }
         if(StringUtils.isBlank(idFieldName))
         {
-            throw new PhotonException("EntityBlueprint id cannot be blank.");
+            idFieldName = determineDefaultIdFieldName(entityClass);
+            if(idFieldName == null)
+            {
+                throw new PhotonException(String.format("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName()));
+            }
         }
         if(orderByDirection == null)
         {
@@ -67,6 +73,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
+        this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
         this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters);
@@ -178,5 +185,21 @@ public class AggregateEntityBlueprint extends EntityBlueprint
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
     {
         deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
+    }
+
+    private String determineDefaultIdFieldName(Class entityClass)
+    {
+        List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
+
+        Optional<Field> idField = reflectedFields.stream().filter(f -> f.getName().equalsIgnoreCase("id")).findFirst();
+        if(idField.isPresent())
+        {
+            return idField.get().getName();
+        }
+
+        String fullIdName = entityClass.getSimpleName().toLowerCase() + "Id";
+        Optional<Field> fullIdField = reflectedFields.stream().filter(f -> f.getName().equalsIgnoreCase(fullIdName)).findFirst();
+
+        return fullIdField.isPresent() ? fullIdField.get().getName() : null;
     }
 }

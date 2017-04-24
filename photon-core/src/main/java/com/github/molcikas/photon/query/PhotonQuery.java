@@ -135,6 +135,7 @@ public class PhotonQuery
         EntityBlueprint entityBlueprint = new EntityBlueprint(
             classToFetch,
             null,
+            null,
             false,
             null,
             null,

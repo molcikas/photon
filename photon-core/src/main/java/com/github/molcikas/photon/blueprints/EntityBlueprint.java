@@ -16,6 +16,7 @@ public class EntityBlueprint
 {
     protected Class entityClass;
     protected Constructor entityConstructor;
+    protected String tableName;
     protected String orderByColumnName;
     protected SortDirection orderByDirection;
     protected List<FieldBlueprint> fields;
@@ -94,6 +95,7 @@ public class EntityBlueprint
 
     public EntityBlueprint(
         Class entityClass,
+        String tableName,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
         String orderByColumnName,
@@ -116,6 +118,7 @@ public class EntityBlueprint
         }
 
         this.entityClass = entityClass;
+        this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
         this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters);
@@ -161,7 +164,7 @@ public class EntityBlueprint
 
     public String getTableName()
     {
-        return entityClass.getSimpleName().toLowerCase();
+        return tableName;
     }
 
     public String getPrimaryKeyColumnName()
