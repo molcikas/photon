@@ -2,6 +2,8 @@ package com.github.molcikas.photon.tests.integration.sqlserver.entities;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.options.DefaultTableName;
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -23,7 +25,8 @@ public class SqlServerIntegrationTest
     public void setup()
     {
         String url = "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=PhotonTestDb;integratedSecurity=true";
-        photon = new Photon(url, null, null);
+        PhotonOptions photonOptions = new PhotonOptions("[", "]", DefaultTableName.ClassName, false);
+        photon = new Photon(url, null, null, photonOptions);
 
         photon
             .registerAggregate(MySqlServerTable.class)
@@ -79,7 +82,12 @@ public class SqlServerIntegrationTest
     @Test
     public void insertAggregateAndFetch_insertsAggregateAndPopulatesValues()
     {
-        MySqlServerTable mySqlServerTable = new MySqlServerTable(2, UUID.randomUUID(), ZonedDateTime.now(), "My Test String");
+        MySqlServerTable mySqlServerTable = new MySqlServerTable(
+            null,
+            UUID.fromString("11111111-2222-3333-4444-555555555555"),
+            ZonedDateTime.ofInstant(Instant.ofEpochSecond(1493493022), ZoneId.systemDefault()),
+            "My Test String"
+        );
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {

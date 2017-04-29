@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public class MySqlServerTable
 {
-    private int id;
+    private Integer id;
     private UUID uuidColumn;
     private ZonedDateTime dateColumn;
     private String varcharColumn;
@@ -35,7 +35,7 @@ public class MySqlServerTable
     {
     }
 
-    public MySqlServerTable(int id, UUID uuidColumn, ZonedDateTime dateColumn, String varcharColumn)
+    public MySqlServerTable(Integer id, UUID uuidColumn, ZonedDateTime dateColumn, String varcharColumn)
     {
         this.id = id;
         this.uuidColumn = uuidColumn;
@@ -49,7 +49,7 @@ public class MySqlServerTable
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         MySqlServerTable that = (MySqlServerTable) o;
-        return id == that.id &&
+        return Objects.equals(id, that.id) &&
             Objects.equals(uuidColumn, that.uuidColumn) &&
             Objects.equals(dateColumn, that.dateColumn) &&
             Objects.equals(varcharColumn, that.varcharColumn);

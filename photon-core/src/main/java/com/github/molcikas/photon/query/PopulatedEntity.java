@@ -259,6 +259,12 @@ public class PopulatedEntity<T>
 
     public void addInsertToBatch(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
     {
+        addParametersToInsertStatement(insertStatement, parentPopulatedEntity);
+        insertStatement.addToBatch();
+    }
+
+    public void addParametersToInsertStatement(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
+    {
         for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumnsForInsertStatement())
         {
             Object fieldValue;
@@ -289,8 +295,6 @@ public class PopulatedEntity<T>
 
             insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customToDatabaseValueConverter);
         }
-
-        insertStatement.addToBatch();
     }
 
     private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)

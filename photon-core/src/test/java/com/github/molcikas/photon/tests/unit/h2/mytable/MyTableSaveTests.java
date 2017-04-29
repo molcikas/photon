@@ -1,5 +1,10 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
+import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.options.DefaultTableName;
+import com.github.molcikas.photon.options.PhotonOptions;
+import com.github.molcikas.photon.tests.unit.h2.H2TestUtil;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -211,6 +216,68 @@ public class MyTableSaveTests
     }
 
     @Test
+    public void aggregate_saveWithCustomPhotonOptions_insertAutoIncrementEntityAndChild_savesEntity()
+    {
+        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("`", "`", DefaultTableName.ClassNameLowerCase, false));
+        MyTableDbSetup.setupDatabase(photon);
+        registerMyTableWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable1 = new MyTable(0, "MySavedValueAutoInc1", new MyOtherTable(0, "MyOtherSavedValueAutoInc1"));
+            MyTable myTable2 = new MyTable(0, "MySavedValueAutoInc2", new MyOtherTable(0, "MyOtherSavedValueAutoInc2"));
+
+            transaction.saveAll(myTable1, myTable2);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTableRetrieved1 = transaction
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTableRetrieved1);
+            assertEquals(7, myTableRetrieved1.getId());
+            assertEquals("MySavedValueAutoInc1", myTableRetrieved1.getMyvalue());
+
+            MyOtherTable myOtherTableRetrieved = myTableRetrieved1.getMyOtherTable();
+            assertNotNull(myOtherTableRetrieved);
+            assertEquals(7, myOtherTableRetrieved.getId());
+            assertEquals("MyOtherSavedValueAutoInc1", myOtherTableRetrieved.getMyOtherValueWithDiffName());
+
+            MyTable myTableRetrieved2 = transaction
+                .query(MyTable.class)
+                .fetchById(8);
+            assertNotNull(myTableRetrieved2);
+            assertEquals("MySavedValueAutoInc2", myTableRetrieved2.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_saveWithInvalidCustomPhotonOptionsForDb_throwsException()
+    {
+        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("~", "@", DefaultTableName.ClassNameLowerCase, false));
+        MyTableDbSetup.setupDatabase(photon);
+        registerMyTableWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable1 = new MyTable(0, "MySavedValueAutoInc1", new MyOtherTable(0, "MyOtherSavedValueAutoInc1"));
+            transaction.save(myTable1);
+            Assert.fail("Failed to throw PhotonException");
+        }
+        catch(PhotonException ex)
+        {
+            assertTrue(ex.getMessage().toLowerCase().contains("sql"));
+
+            // Error message should contain the bad SQL. Verify the SQL was created using the invalid options provided.
+            assertTrue(ex.getMessage().contains("mytable")); // Make sure table name is lower case.
+            assertTrue(ex.getMessage().contains("~") && ex.getMessage().contains("@")); // Make sure both delimiters are present.
+        }
+    }
+
+    @Test
     public void aggregate_save_insertWithCustomToFieldValueConverter_savesAndRetrievesEntity()
     {
         photon.registerAggregate(MyTable.class)
@@ -304,7 +371,6 @@ public class MyTableSaveTests
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
             MyTable myTable = new MyTable(0, "IShouldBeIgnored", null);
-
 
             transaction.save(myTable);
             transaction.commit();

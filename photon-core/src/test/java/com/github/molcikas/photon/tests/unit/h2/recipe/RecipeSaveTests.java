@@ -363,7 +363,7 @@ public class RecipeSaveTests
             recipe1.getIngredients().clear();
             recipe2.getInstructions().clear();
 
-            transaction.saveAll(Arrays.asList(recipe1, recipe2, recipe3));
+            transaction.saveAll(recipe1, recipe2, recipe3);
             transaction.commit();
         }
 

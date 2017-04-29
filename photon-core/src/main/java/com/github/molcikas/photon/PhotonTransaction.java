@@ -13,6 +13,7 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 
 import java.io.Closeable;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +72,13 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("save", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection).save(aggregate);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).save(aggregate);
         hasUncommittedChanges = true;
+    }
+
+    public <T> void saveAll(T... aggregates)
+    {
+        saveAll(Arrays.asList(aggregates));
     }
 
     public void saveAll(List<?> aggregates)
@@ -83,7 +89,7 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection).saveAll(aggregates);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).saveAll(aggregates);
         hasUncommittedChanges = true;
     }
 
@@ -91,8 +97,13 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("insert", true);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection).insert(aggregate);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).insert(aggregate);
         hasUncommittedChanges = true;
+    }
+
+    public <T> void insertAll(T... aggregates)
+    {
+        insertAll(Arrays.asList(aggregates));
     }
 
     public void insertAll(List<?> aggregates)
@@ -103,7 +114,7 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection).insertAll(aggregates);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).insertAll(aggregates);
         hasUncommittedChanges = true;
     }
 
@@ -113,6 +124,11 @@ public class PhotonTransaction implements Closeable
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
         new PhotonAggregateDelete(aggregateBlueprint, connection).delete(aggregate);
         hasUncommittedChanges = true;
+    }
+
+    public <T> void deleteAll(T... aggregates)
+    {
+        deleteAll(Arrays.asList(aggregates));
     }
 
     public void deleteAll(List<?> aggregates)

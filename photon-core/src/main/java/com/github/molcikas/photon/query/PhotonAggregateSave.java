@@ -3,6 +3,7 @@ package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
+import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;
 import java.util.*;
@@ -13,13 +14,16 @@ public class PhotonAggregateSave
 {
     private final AggregateBlueprint aggregateBlueprint;
     private final Connection connection;
+    private final PhotonOptions photonOptions;
 
     public PhotonAggregateSave(
         AggregateBlueprint aggregateBlueprint,
-        Connection connection)
+        Connection connection,
+        PhotonOptions photonOptions)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
+        this.photonOptions = photonOptions;
     }
 
     public void save(Object aggregateRootInstance)
@@ -225,25 +229,45 @@ public class PhotonAggregateSave
         AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
         String insertSql = entityBlueprint.getInsertSql();
 
-        try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(insertSql, entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn(), connection))
+        if(entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && !photonOptions.isEnableBatchInsertsForAutoIncrementEntities())
         {
-            // TODO: SQL Server does not support getting generated keys from batch inserts, so we'll need to optionally do individual inserts here.
-
             for (PopulatedEntity populatedEntity : populatedEntities)
             {
-                populatedEntity.addInsertToBatch(insertStatement, parentPopulatedEntity);
+                try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
+                    insertSql,
+                    entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn(),
+                    connection))
+                {
+                    populatedEntity.addParametersToInsertStatement(insertStatement, parentPopulatedEntity);
+                    insertStatement.executeInsert();
+                    Long generatedKey = insertStatement.getGeneratedKeys().get(0);
+                    populatedEntity.setPrimaryKeyValue(generatedKey);
+                }
             }
-
-            insertStatement.executeBatch();
-
-            if (entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn())
+        }
+        else
+        {
+            try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
+                insertSql,
+                entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn(),
+                connection))
             {
-                List<Long> generatedKeys = insertStatement.getGeneratedKeys();
-                int index = 0;
                 for (PopulatedEntity populatedEntity : populatedEntities)
                 {
-                    populatedEntity.setPrimaryKeyValue(generatedKeys.get(index));
-                    index++;
+                    populatedEntity.addInsertToBatch(insertStatement, parentPopulatedEntity);
+                }
+
+                insertStatement.executeBatch();
+
+                if (entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn())
+                {
+                    List<Long> generatedKeys = insertStatement.getGeneratedKeys();
+                    int index = 0;
+                    for (PopulatedEntity populatedEntity : populatedEntities)
+                    {
+                        populatedEntity.setPrimaryKeyValue(generatedKeys.get(index));
+                        index++;
+                    }
                 }
             }
         }

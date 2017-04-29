@@ -9,7 +9,11 @@ public class MyTableDbSetup
     public static Photon setupDatabase()
     {
         Photon photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password);
+        return setupDatabase(photon);
+    }
 
+    public static Photon setupDatabase(Photon photon)
+    {
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
             transaction.query("DROP TABLE IF EXISTS `mytable`").executeUpdate();
