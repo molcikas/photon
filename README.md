@@ -1,21 +1,21 @@
 # Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
-A micro ORM that supports aggregates and a fluent API to allow aggregates to be modeled from the business domain rather than the database tables without the trade-off of having separate models for the domain and database.
+A micro ORM that gives developers control over the SQL executed while also providing an easy way to do basic CRUD operations on entities.
 
-Traditional ORMs hide the SQL they are executing behind complicated modeling and custom querying languages. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. Also, most traditional ORMs (especially JVM ones) require the object-database mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables, preventing them from being modeled purely from the business domain.
+Traditional ORMs hide the SQL they are executing. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. They usually require the object-to-table mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables, preventing them from being modeled purely from the business domain.
 
-Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving aggregates with multiple entities.
+Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving entities with sub-entities ("aggregates" in DDD terms).
 
-The goal of photon is to capture the best of both worlds by giving developers control over the SQL executed but still provide an easy way to do basic CRUD operations on aggregates, while also allowing entities to be free from the details of how they are persisted.
+The goal of photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It also allows entities to remain free from the details of how they are persisted.
 
 ## Getting Started
 
 ### Initializing Photon
 
-Simply construct a `Photon` object with a `DataSource` (which can be retrieved from connection poolers like `HikariCP`) or a JDBC url, username, and password. Then, register your aggregates using `registerAggregate()`. It is recommended to use the constructed `Photon` object as a singleton in your application.
+Construct a `Photon` object with a `DataSource` (which can be retrieved from connection poolers like `HikariCP`) or a JDBC url, username, and password. Then, register your aggregates using `registerAggregate()`. It is recommended to use the constructed `Photon` object as a singleton in your application.
 
 ### Registering Aggregates
 
-Immediately after constructing the `Photon` object, register each aggregate using the fluent API. For example:
+Immediately after constructing the `Photon` object, register each aggregate by describing how the root entity and sub entities are mapped to database tables. For example:
 
 ```java
 photon.registerAggregate(Recipe.class)
@@ -39,11 +39,11 @@ photon.registerAggregate(Recipe.class)
     .register();
 ```
 
-By default, each field (public or private) is mapped to a database column of the same name and data type. Child objects are ignored by default, so use `withChild()` if an entity contains a child entity as part of the aggregate.
+By default, each field (public or private) is mapped to a database column of the same name and data type. Child objects are ignored by default, so use `withChild()` if an entity contains a child entity that should be mapped to a database table.
 
 ### Creating and Committing Transactions
 
-Every SQL command and query must be executed in the context of a transaction. The transaction must have an explicit `commit()` for changes to saved in the database. Otherwise, the transaction is automatically rolled back, which can be useful in read-only transactions to ensure nothing was accidentally changed.
+Every SQL command and query must be executed in the context of a transaction. The transaction must have an explicit `commit()` for changes to saved in the database. Otherwise, the transaction is automatically rolled back (which can be useful in read-only transactions to ensure nothing was accidentally changed).
 
 ```java
 try (PhotonTransaction transaction = photon.beginTransaction())
@@ -54,7 +54,7 @@ try (PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-### Querying and Updating Aggregates
+### Querying and Updating [Aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)
 
 Aggregates must be queried by ID and must be loaded and saved as whole units. Lazy loading is not supported. This helps ensure that the invariants are properly enforced by the aggregate and that the aggregate is not corrupted in the database due to only partially saving it.
 
@@ -87,9 +87,9 @@ List<MyTable> myTables = transaction
     .fetchList();
 ```
 
-### View Models using Custom SQL Queries
+### Read Models using Custom SQL Queries
 
-User interfaces often need only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom view models using plain SQL.
+User interfaces often need only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom read models using plain SQL.
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
@@ -113,7 +113,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-Queries results are automatically mapped to the view model fields by name. Unlike aggregates, view model classes do not need to be pre-registered with Photon.
+Queries results are automatically mapped to the read model fields by name. Unlike aggregates, view model classes do not need to be pre-registered with Photon.
 
 It's also possible to fetch scalar values and lists using plain SQL:
 
@@ -134,13 +134,22 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 
 ## Limitations
 
-* Currently does not support composite keys in aggregates.
-* Currently does not automatically map fields from super classes. This can be done manually using `withDatabaseColumn()` in Photon's fluent API.
-* Testing has only be done on MySQL and H2, but should work with any database with a JDBC driver.
+* Currently does not support composite primary keys in aggregates.
+* Currently does not automatically map fields from super classes. This can be done manually using `withDatabaseColumn()`.
+* Testing has only be done on MySQL, SQL Server, and H2, but should work with any database with a JDBC driver.
+
+### SQL Server
+
+The SQL Server JDBC Driver does not support getting generated identity keys from batch inserts, which are used by default in Photon. If using SQL Server, be sure to set `enableBatchInsertsForAutoIncrementEntities` to false in the `PhotonOptions`.
+
+```java
+PhotonOptions photonOptions = new PhotonOptions("[", "]", null, false);
+Photon photon = new Photon(url, user, password, photonOptions);
+```
 
 ## Performance
 
-Photon uses JDBC batching to maximize performance for inserts, updates, and deletes. For selects, each entity in the aggregate is queried so that all of the rows for all aggregate instances are retrieved in a single query, which cuts down significantly on the number of database queries needed.
+Photon uses JDBC batching to maximize performance for inserts, updates, and deletes. Photon also groups selects where possible to reduce the number of database queries needed.
 
 Aggregate CRUD comparison with hibernate (see [source code](https://github.com/molcikas/photon/tree/master/photon-perf-test/src/test/java/photon/perf) for testing details).
 
