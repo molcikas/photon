@@ -11,7 +11,7 @@ public class SqlJoinClauseBuilderService
         AggregateEntityBlueprint childEntityBlueprint = entityBlueprint;
         for(AggregateEntityBlueprint parentEntityBlueprint : parentEntityBlueprints)
         {
-            sqlBuilder.append(String.format("\nJOIN `%s` ON `%s`.`%s` = `%s`.`%s`",
+            sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
                 parentEntityBlueprint.getTableName(),
                 parentEntityBlueprint.getTableName(),
                 parentEntityBlueprint.getPrimaryKeyColumnName(),

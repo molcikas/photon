@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.tests.integration.sqlserver.entities;
 
 import java.time.ZonedDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 public class MySqlServerTable
@@ -40,5 +41,23 @@ public class MySqlServerTable
         this.uuidColumn = uuidColumn;
         this.dateColumn = dateColumn;
         this.varcharColumn = varcharColumn;
+    }
+
+    @Override
+    public boolean equals(Object o)
+    {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MySqlServerTable that = (MySqlServerTable) o;
+        return id == that.id &&
+            Objects.equals(uuidColumn, that.uuidColumn) &&
+            Objects.equals(dateColumn, that.dateColumn) &&
+            Objects.equals(varcharColumn, that.varcharColumn);
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return Objects.hash(id, uuidColumn, dateColumn, varcharColumn);
     }
 }

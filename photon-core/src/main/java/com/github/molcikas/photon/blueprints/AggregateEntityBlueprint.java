@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.blueprints;
 
+import com.github.molcikas.photon.options.DefaultTableName;
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -52,6 +54,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
         Map<String, Converter> customToFieldValueConverters,
         Map<String, Converter> customToDatabaseValueConverters,
+        PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         if(entityClass == null)
@@ -73,7 +76,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
-        this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
+        this.tableName = determineTableName(tableName, entityClass, photonOptions);
         this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters);
@@ -185,6 +188,23 @@ public class AggregateEntityBlueprint extends EntityBlueprint
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
     {
         deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
+    }
+
+    private String determineTableName(String tableName, Class entityClass, PhotonOptions photonOptions)
+    {
+        if(StringUtils.isNotBlank(tableName))
+        {
+            return tableName;
+        }
+
+        switch(photonOptions.getDefaultTableName())
+        {
+            default:
+            case ClassName:
+                return entityClass.getSimpleName();
+            case ClassNameLowerCase:
+                return entityClass.getSimpleName().toLowerCase();
+        }
     }
 
     private String determineDefaultIdFieldName(Class entityClass)

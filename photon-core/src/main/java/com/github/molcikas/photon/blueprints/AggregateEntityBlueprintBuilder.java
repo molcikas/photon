@@ -31,11 +31,6 @@ public class AggregateEntityBlueprintBuilder
     private final Map<String, Converter> customToFieldValueConverters;
     private final Map<String, Converter> customToDatabaseValueConverters;
 
-    public AggregateEntityBlueprintBuilder(Class entityClass, AggregateEntityBlueprintBuilder parentBuilder, EntityBlueprintConstructorService entityBlueprintConstructorService)
-    {
-        this(entityClass, parentBuilder, null, entityBlueprintConstructorService);
-    }
-
     public AggregateEntityBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this(entityClass, null, photon, entityBlueprintConstructorService);
@@ -152,7 +147,7 @@ public class AggregateEntityBlueprintBuilder
 
     public AggregateEntityBlueprintBuilder withChild(Class childClass)
     {
-        return new AggregateEntityBlueprintBuilder(childClass, this, entityBlueprintConstructorService);
+        return new AggregateEntityBlueprintBuilder(childClass, this, photon, entityBlueprintConstructorService);
     }
 
     public AggregateEntityBlueprintBuilder addAsChild(String fieldName)
@@ -196,6 +191,7 @@ public class AggregateEntityBlueprintBuilder
             foreignKeyListBlueprints,
             customToFieldValueConverters,
             customToDatabaseValueConverters,
+            photon.getOptions(),
             entityBlueprintConstructorService
         );
     }

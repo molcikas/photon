@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.options.PhotonOptions;
+import com.github.molcikas.photon.sqlbuilders.SqlBuilderApplyOptionsService;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
@@ -18,6 +20,7 @@ public class PhotonAggregateIdsQuery<T>
         String selectIdsSql,
         boolean isWhereClauseOnly,
         Connection connection,
+        PhotonOptions photonOptions,
         PhotonAggregateQuery<T> photonAggregateQuery)
     {
         if(StringUtils.isBlank(selectIdsSql))
@@ -32,11 +35,12 @@ public class PhotonAggregateIdsQuery<T>
         if(isWhereClauseOnly)
         {
             selectIdsSql = String.format(
-                "SELECT `%s` FROM `%s` WHERE %s",
+                "SELECT [%s] FROM [%s] WHERE %s",
                 aggregateEntityBlueprint.getPrimaryKeyColumnName(),
                 aggregateEntityBlueprint.getTableName(),
                 selectIdsSql
             );
+            selectIdsSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectIdsSql, photonOptions);
         }
 
         this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, null);

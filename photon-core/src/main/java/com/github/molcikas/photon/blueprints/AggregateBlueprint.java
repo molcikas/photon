@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints;
 
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.DeleteSqlBuilderService;
 import com.github.molcikas.photon.sqlbuilders.InsertSqlBuilderService;
 import com.github.molcikas.photon.sqlbuilders.SelectSqlBuilderService;
@@ -33,7 +34,8 @@ public class AggregateBlueprint<T>
         SelectSqlBuilderService selectSqlBuilderService,
         UpdateSqlBuilderService updateSqlBuilderService,
         InsertSqlBuilderService insertSqlBuilderService,
-        DeleteSqlBuilderService deleteSqlBuilderService)
+        DeleteSqlBuilderService deleteSqlBuilderService,
+        PhotonOptions photonOptions)
     {
         if(aggregateRootEntityBlueprint == null)
         {
@@ -41,21 +43,21 @@ public class AggregateBlueprint<T>
         }
 
         this.entityBlueprints = new ArrayList<>();
-        findAllAggregateEntityBlueprints(aggregateRootEntityBlueprint);
+        findAllAggregateEntityBlueprintsRecursive(aggregateRootEntityBlueprint);
 
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
-        selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint);
-        updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint);
-        insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint);
-        deleteSqlBuilderService.buildDeleteSqlTemplates(aggregateRootEntityBlueprint);
+        selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        deleteSqlBuilderService.buildDeleteSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
     }
 
-    private void findAllAggregateEntityBlueprints(AggregateEntityBlueprint aggregateEntityBlueprint)
+    private void findAllAggregateEntityBlueprintsRecursive(AggregateEntityBlueprint aggregateEntityBlueprint)
     {
         this.entityBlueprints.add(aggregateEntityBlueprint);
         for(FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getFieldsWithChildEntities())
         {
-            findAllAggregateEntityBlueprints(fieldBlueprint.getChildEntityBlueprint());
+            findAllAggregateEntityBlueprintsRecursive(fieldBlueprint.getChildEntityBlueprint());
         }
     }
 }

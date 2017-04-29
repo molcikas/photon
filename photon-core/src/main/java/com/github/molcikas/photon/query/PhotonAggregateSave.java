@@ -227,6 +227,8 @@ public class PhotonAggregateSave
 
         try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(insertSql, entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn(), connection))
         {
+            // TODO: SQL Server does not support getting generated keys from batch inserts, so we'll need to optionally do individual inserts here.
+
             for (PopulatedEntity populatedEntity : populatedEntities)
             {
                 populatedEntity.addInsertToBatch(insertStatement, parentPopulatedEntity);

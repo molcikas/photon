@@ -4,6 +4,7 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateEntityBlueprintBuilder;
 import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
+import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.*;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
@@ -23,10 +24,28 @@ public class Photon
     private final DeleteSqlBuilderService deleteSqlBuilderService;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
+    private final PhotonOptions photonOptions;
+
+    public Photon(String url, String user, String password)
+    {
+        this(new GenericDataSource(url, user, password));
+    }
+
+    public Photon(String url, String user, String password, PhotonOptions photonOptions)
+    {
+        this(new GenericDataSource(url, user, password), photonOptions);
+    }
+
     public Photon(DataSource dataSource)
+    {
+        this(dataSource, null);
+    }
+
+    public Photon(DataSource dataSource, PhotonOptions photonOptions)
     {
         this.dataSource = dataSource;
         this.registeredAggregates = new HashMap<>();
+        this.photonOptions = photonOptions != null ? photonOptions : PhotonOptions.defaultOptions();
 
         SqlJoinClauseBuilderService sqlJoinClauseBuilderService = new SqlJoinClauseBuilderService();
         this.selectSqlBuilderService = new SelectSqlBuilderService(sqlJoinClauseBuilderService);
@@ -36,14 +55,14 @@ public class Photon
         this.entityBlueprintConstructorService = new EntityBlueprintConstructorService();
     }
 
-    public Photon(String url, String user, String password)
+    public PhotonOptions getOptions()
     {
-        this(new GenericDataSource(url, user, password));
+        return photonOptions;
     }
 
     public PhotonTransaction beginTransaction()
     {
-        return new PhotonTransaction(getConnection(), registeredAggregates, entityBlueprintConstructorService);
+        return new PhotonTransaction(getConnection(), registeredAggregates, photonOptions, entityBlueprintConstructorService);
     }
 
     public AggregateEntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
@@ -68,7 +87,8 @@ public class Photon
                 selectSqlBuilderService,
                 updateSqlBuilderService,
                 insertSqlBuilderService,
-                deleteSqlBuilderService
+                deleteSqlBuilderService,
+                photonOptions
             )
         );
     }

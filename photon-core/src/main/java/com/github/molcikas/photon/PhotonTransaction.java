@@ -1,5 +1,6 @@
 package com.github.molcikas.photon;
 
+import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.query.PhotonAggregateDelete;
 import com.github.molcikas.photon.query.PhotonAggregateQuery;
 import com.github.molcikas.photon.query.PhotonAggregateSave;
@@ -21,6 +22,7 @@ public class PhotonTransaction implements Closeable
 
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
+    private final PhotonOptions photonOptions;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
     private boolean committed = false;
     private boolean hasUncommittedChanges = false;
@@ -28,10 +30,12 @@ public class PhotonTransaction implements Closeable
     public PhotonTransaction(
         Connection connection,
         Map<Class, AggregateBlueprint> registeredAggregates,
+        PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.connection = connection;
         this.registeredAggregates = registeredAggregates;
+        this.photonOptions = photonOptions;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
 
         try
@@ -60,7 +64,7 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("query", false);
         AggregateBlueprint<T> aggregateBlueprint = getAggregateBlueprint(aggregateClass);
-        return new PhotonAggregateQuery<>(aggregateBlueprint, connection);
+        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonOptions);
     }
 
     public void save(Object aggregate)
