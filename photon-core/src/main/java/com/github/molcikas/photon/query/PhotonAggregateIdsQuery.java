@@ -43,7 +43,7 @@ public class PhotonAggregateIdsQuery<T>
             selectIdsSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectIdsSql, photonOptions);
         }
 
-        this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, null);
+        this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, photonOptions, null);
     }
 
     public PhotonAggregateIdsQuery<T> addParameter(String parameter, Object value)

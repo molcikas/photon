@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.blueprints;
 
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -106,6 +107,7 @@ public class EntityBlueprint
         Map<String, String> customFieldToColumnMappings,
         Map<String, Converter> customToFieldValueConverters,
         Map<String, Converter> customToDatabaseValueConverters,
+        PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         if(entityClass == null)
@@ -121,7 +123,7 @@ public class EntityBlueprint
         this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
         this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
 
         try
         {

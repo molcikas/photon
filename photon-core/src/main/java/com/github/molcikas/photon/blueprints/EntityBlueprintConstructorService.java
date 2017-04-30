@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.blueprints;
 
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 
@@ -70,7 +71,8 @@ public class EntityBlueprintConstructorService
         boolean isPrimaryKeyAutoIncrement,
         String foreignKeyToParentColumnName,
         Map<String, Integer> customColumnDataTypes,
-        Map<String, Converter> customToDatabaseValueConverters)
+        Map<String, Converter> customToDatabaseValueConverters,
+        PhotonOptions photonOptions)
     {
         if(customColumnDataTypes == null)
         {
@@ -92,15 +94,15 @@ public class EntityBlueprintConstructorService
         {
             String fieldName = fieldBlueprint.getFieldName();
             String columnName = fieldBlueprint.getMappedColumnName();
-            Integer columnDataType = customColumnDataTypes.containsKey(columnName) ?
-                customColumnDataTypes.get(columnName) :
-                defaultColumnDataTypeForField(fieldBlueprint.getFieldClass());
-            if(columnDataType != null)
+            DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
+                new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
+                defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
+            if(columnDataTypeResult.foundDataType)
             {
                 boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
                 ColumnBlueprint columnBlueprint = new ColumnBlueprint(
                     columnName,
-                    columnDataType,
+                    columnDataTypeResult.dataType,
                     isPrimaryKey,
                     isPrimaryKey && isPrimaryKeyAutoIncrement,
                     foreignKeyToParentColumnName != null && StringUtils.equals(fieldName, foreignKeyToParentColumnName),
@@ -116,51 +118,51 @@ public class EntityBlueprintConstructorService
     }
 
     // TODO: Move this to a static class
-    public static Integer defaultColumnDataTypeForField(Class fieldType)
+    public static DefaultColumnDataTypeResult defaultColumnDataTypeForField(Class fieldType, PhotonOptions photonOptions)
     {
         if(fieldType == null)
         {
-            return null;
+            return DefaultColumnDataTypeResult.notFound();
         }
 
         if(fieldType.equals(int.class) || fieldType.equals(Integer.class))
         {
-            return Types.INTEGER;
+            return new DefaultColumnDataTypeResult(Types.INTEGER);
         }
 
         if(fieldType.equals(long.class) || fieldType.equals(Long.class))
         {
-            return Types.BIGINT;
+            return new DefaultColumnDataTypeResult(Types.BIGINT);
         }
 
         if(fieldType.equals(float.class) || fieldType.equals(Float.class))
         {
-            return Types.FLOAT;
+            return new DefaultColumnDataTypeResult(Types.FLOAT);
         }
 
         if(fieldType.equals(double.class) || fieldType.equals(Double.class))
         {
-            return Types.DOUBLE;
+            return new DefaultColumnDataTypeResult(Types.DOUBLE);
         }
 
         if(fieldType.equals(boolean.class) || fieldType.equals(Boolean.class))
         {
-            return Types.BOOLEAN;
+            return new DefaultColumnDataTypeResult(Types.BOOLEAN);
         }
 
         if(fieldType.equals(UUID.class))
         {
-            return Types.BINARY;
+            return new DefaultColumnDataTypeResult(photonOptions != null ? photonOptions.getDefaultUuidDataType() : PhotonOptions.DEFAULT_UUID_DATA_TYPE);
         }
 
         if(fieldType.equals(String.class))
         {
-            return Types.VARCHAR;
+            return new DefaultColumnDataTypeResult(Types.VARCHAR);
         }
 
         if(fieldType.isEnum())
         {
-            return Types.INTEGER;
+            return new DefaultColumnDataTypeResult(Types.INTEGER);
         }
 
         if(fieldType.equals(Date.class) ||
@@ -169,9 +171,9 @@ public class EntityBlueprintConstructorService
             fieldType.equals(LocalDate.class) ||
             fieldType.equals(LocalDateTime.class))
         {
-            return Types.TIMESTAMP;
+            return new DefaultColumnDataTypeResult(Types.TIMESTAMP);
         }
 
-        return null;
+        return DefaultColumnDataTypeResult.notFound();
     }
 }

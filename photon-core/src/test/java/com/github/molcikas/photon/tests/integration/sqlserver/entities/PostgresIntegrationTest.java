@@ -10,23 +10,21 @@ import org.junit.Test;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-public class SqlServerIntegrationTest
+public class PostgresIntegrationTest
 {
     private Photon photon;
 
     @Before
     public void setup()
     {
-        String url = "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=PhotonTestDb;integratedSecurity=true";
-        PhotonOptions photonOptions = new PhotonOptions("[", "]", DefaultTableName.ClassName, false);
-        photon = new Photon(url, null, null, photonOptions);
+        String url = "jdbc:postgresql://localhost/PhotonTestDb";
+        PhotonOptions photonOptions = new PhotonOptions("\"", "\"", DefaultTableName.ClassName, true, null);
+        photon = new Photon(url, "postgres", "bears", photonOptions);
 
         photon
             .registerAggregate(PhotonTestTable.class)
@@ -36,25 +34,30 @@ public class SqlServerIntegrationTest
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
-            transaction.query(
-                "IF OBJECT_ID('dbo.PhotonTestTable', 'U') IS NOT NULL\n" +
-                "   DROP TABLE [dbo].[PhotonTestTable]"
-            ).executeInsert();
+            transaction
+                .query(
+                "DROP TABLE IF EXISTS \"PhotonTestTable\";\n" +
+                    "CREATE TABLE \"PhotonTestTable\"\n" +
+                    "(\n" +
+                    "    id SERIAL PRIMARY KEY,\n" +
+                    "    \"uuidColumn\" uuid NOT NULL,\n" +
+                    "    \"dateColumn\" timestamp without time zone NOT NULL,\n" +
+                    "    \"varcharColumn\" character varying(32) COLLATE pg_catalog.\"default\" NOT NULL\n" +
+                    ")\n" +
+                    "WITH (\n" +
+                    "    OIDS = FALSE\n" +
+                    ")\n" +
+                    "TABLESPACE pg_default;"
+                ).executeInsert();
 
-            transaction.query(
-                "CREATE TABLE [dbo].[PhotonTestTable](\n" +
-                "\t[id] [int] IDENTITY(1,1) NOT NULL,\n" +
-                "\t[uuidColumn] [uniqueidentifier] NOT NULL,\n" +
-                "\t[dateColumn] [datetime] NOT NULL,\n" +
-                "\t[varcharColumn] [varchar](50) NOT NULL,\n" +
-                " CONSTRAINT [PK_PhotonTestTable] PRIMARY KEY CLUSTERED \n" +
-                "(\n" +
-                "\t[id] ASC\n" +
-                ")WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]\n" +
-                ") ON [PRIMARY]"
-            ).executeInsert();
+            transaction.commit();
+        }
 
-            transaction.query("INSERT INTO PhotonTestTable VALUES ('8ED1E1BD-253E-4469-B4CB-71E1217825B7', DATEADD(SECOND, 1489915698, '1970-01-01'), 'Test String')").executeInsert();
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction
+                .query("INSERT INTO \"PhotonTestTable\" (\"uuidColumn\", \"dateColumn\", \"varcharColumn\") VALUES ('8ED1E1BD-253E-4469-B4CB-71E1217825B7', to_timestamp(1489915698), 'Test String')")
+                .executeInsert();
 
             transaction.commit();
         }
@@ -67,14 +70,12 @@ public class SqlServerIntegrationTest
         {
             PhotonTestTable photonTestTable = transaction.query(PhotonTestTable.class).fetchById(1);
 
-            // The database does not store a time zone, so we assume the date is in the system's time zone. But to make these tests
-            // compare epoch times but still work with any system time zone, we have to offset the epoch to the system's time zone.
-            int currentUtcOffset = TimeZone.getDefault().getOffset(new Date().getTime());
+            // Note: Unlike MySQL and SQL Server, Postgres defaults to UTC when given epoch times with to_timestamp(). No need to apply an offset here.
 
             assertNotNull(photonTestTable);
             assertEquals(1, photonTestTable.getId());
             assertEquals(UUID.fromString("8ED1E1BD-253E-4469-B4CB-71E1217825B7"), photonTestTable.getUuidColumn());
-            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochMilli(1489915698000L - currentUtcOffset), ZoneId.systemDefault()), photonTestTable.getDateColumn());
+            assertEquals(ZonedDateTime.ofInstant(Instant.ofEpochSecond(1489915698), ZoneId.systemDefault()), photonTestTable.getDateColumn());
             assertEquals("Test String", photonTestTable.getVarcharColumn());
         }
     }

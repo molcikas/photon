@@ -152,10 +152,7 @@ public class PhotonPreparedStatement implements Closeable
 
         try
         {
-            if(log.isDebugEnabled())
-            {
-                log.debug("Photon batch query executing with SQL:\n" + sqlText);
-            }
+            log.debug("Photon batch query executing with SQL:\n" + sqlText);
             int[] resultCounts = preparedStatement.executeBatch();
             parameterValues.clear();
             sqlText = originalSqlText;
@@ -448,19 +445,24 @@ public class PhotonPreparedStatement implements Closeable
                 queryType = "";
             }
 
-            if(parameterValues.isEmpty())
+            if(log.isDebugEnabled())
             {
-                log.debug("Photon {}query executing with no params and SQL:\n{}", StringUtils.isBlank(queryType) ? queryType : queryType + " ", sqlText);
-            }
-            else
-            {
-                log.debug(
-                    "Photon {}query executing with params:\n{}\nSQL:\n{}",
-                    StringUtils.isBlank(queryType) ? queryType : queryType + " ",
-                    StringUtils.join(parameterValues.stream()
-                        .map(p -> p.value)
-                        .collect(Collectors.toList()), ','),
-                    sqlText);
+                if (parameterValues.isEmpty())
+                {
+                    log.debug("Photon {}query executing with no params and SQL:\n{}",
+                        StringUtils.isBlank(queryType) ? queryType : queryType + " ",
+                        sqlText);
+                }
+                else
+                {
+                    log.debug(
+                        "Photon {}query executing with params:\n{}\nSQL:\n{}",
+                        StringUtils.isBlank(queryType) ? queryType : queryType + " ",
+                        StringUtils.join(parameterValues.stream()
+                            .map(p -> p.value)
+                            .collect(Collectors.toList()), ','),
+                        sqlText);
+                }
             }
         }
     }

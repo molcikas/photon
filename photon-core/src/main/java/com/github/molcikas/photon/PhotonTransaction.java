@@ -58,7 +58,7 @@ public class PhotonTransaction implements Closeable
     public PhotonQuery query(String sqlText, boolean populateGeneratedKeys)
     {
         verifyConnectionIsAvailable("query", false);
-        return new PhotonQuery(sqlText, populateGeneratedKeys, connection, entityBlueprintConstructorService);
+        return new PhotonQuery(sqlText, populateGeneratedKeys, connection, photonOptions, entityBlueprintConstructorService);
     }
 
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)

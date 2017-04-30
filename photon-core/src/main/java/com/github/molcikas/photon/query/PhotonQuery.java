@@ -5,6 +5,7 @@ import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;
 import java.util.*;
@@ -20,6 +21,7 @@ public class PhotonQuery
     private final String sqlText;
     private final boolean populateGeneratedKeys;
     private final Connection connection;
+    private final PhotonOptions photonOptions;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     private Map<String, PhotonSqlParameter> parameters;
@@ -36,11 +38,12 @@ public class PhotonQuery
         return generatedKeys;
     }
 
-    public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, PhotonOptions photonOptions, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.sqlText = sqlText;
         this.populateGeneratedKeys = populateGeneratedKeys;
         this.connection = connection;
+        this.photonOptions = photonOptions;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
         this.parameters = new HashMap<>();
 
@@ -74,7 +77,7 @@ public class PhotonQuery
         {
             throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
         }
-        parameters.get(parameter).assignValue(value);
+        parameters.get(parameter).assignValue(value, photonOptions);
         return this;
     }
 
@@ -145,6 +148,7 @@ public class PhotonQuery
             null,
             customToFieldValueConverters,
             null,
+            photonOptions,
             entityBlueprintConstructorService
         );
 

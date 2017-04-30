@@ -4,7 +4,7 @@ import java.time.ZonedDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
-public class MySqlServerTable
+public class PhotonTestTable
 {
     private Integer id;
     private UUID uuidColumn;
@@ -31,11 +31,11 @@ public class MySqlServerTable
         return varcharColumn;
     }
 
-    private MySqlServerTable()
+    private PhotonTestTable()
     {
     }
 
-    public MySqlServerTable(Integer id, UUID uuidColumn, ZonedDateTime dateColumn, String varcharColumn)
+    public PhotonTestTable(Integer id, UUID uuidColumn, ZonedDateTime dateColumn, String varcharColumn)
     {
         this.id = id;
         this.uuidColumn = uuidColumn;
@@ -48,7 +48,7 @@ public class MySqlServerTable
     {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MySqlServerTable that = (MySqlServerTable) o;
+        PhotonTestTable that = (PhotonTestTable) o;
         return Objects.equals(id, that.id) &&
             Objects.equals(uuidColumn, that.uuidColumn) &&
             Objects.equals(dateColumn, that.dateColumn) &&

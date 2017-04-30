@@ -73,10 +73,6 @@ public class ColumnBlueprint
         {
             throw new PhotonException(String.format("Column names cannot be blank."));
         }
-        if(columnDataType == null)
-        {
-            throw new PhotonException(String.format("The data type for column '%s' was null.", columnName));
-        }
         if(isAutoIncrementColumn && !isPrimaryKeyColumn)
         {
             throw new PhotonException(String.format("The column '%s' cannot be auto-increment because it is not the primary key.", columnName));

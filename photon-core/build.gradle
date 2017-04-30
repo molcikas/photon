@@ -9,6 +9,7 @@ dependencies {
     testCompile group: 'com.h2database', name: 'h2', version: '1.4.193'
     testCompile group: 'mysql', name: 'mysql-connector-java', version: '5.1.40'
     testCompile group: 'com.microsoft.sqlserver', name: 'sqljdbc4', version: '4.0'
+    testCompile group: 'org.postgresql', name: 'postgresql', version: '9.4.1212'
 
     // Unit testing
     testCompile group: 'junit', name: 'junit', version: '4.12'

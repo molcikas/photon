@@ -8,6 +8,6 @@ public class SqlBuilderApplyOptionsService
     {
         return sql
             .replaceAll("\\[", photonOptions.getDelimitIdentifierStart())
-            .replaceAll("\\]", photonOptions.getGetDelimitIdentifierEnd());
+            .replaceAll("\\]", photonOptions.getDelimitIdentifierEnd());
     }
 }
