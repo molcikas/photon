@@ -1,17 +1,19 @@
 # Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
 A micro ORM that gives developers control over the SQL executed while also providing an easy way to do basic CRUD operations on entities.
 
-Traditional ORMs hide the SQL they are executing. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. They usually require the object-to-table mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables, preventing them from being modeled purely from the business domain.
+Traditional ORMs hide the SQL they are executing. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. They usually require the object-to-table mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables. This prevents them from being modeled purely from the business domain.
 
 Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving entities with sub-entities ("aggregates" in DDD terms).
 
 The goal of photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It also allows entities to remain free from the details of how they are persisted.
 
+Photon does not have its own query language or query functions. Photon automatically does the selects, inserts, updates, and deletes for your entities based on how you define their shapes. For choosing which entities to select, or when selecting custom read models, you write plain SQL `SELECT` statements.
+
 ## Getting Started
 
 ### Initializing Photon
 
-Construct a `Photon` object with a `DataSource` (which can be retrieved from connection poolers like `HikariCP`) or a JDBC url, username, and password. Then, register your aggregates using `registerAggregate()`. It is recommended to use the constructed `Photon` object as a singleton in your application.
+Construct a `Photon` object with a `DataSource` (which can be retrieved from connection poolers like `HikariCP`) or a JDBC url, username, and password. Then, register your aggregates using `registerAggregate()`.
 
 ### Registering Aggregates
 
@@ -39,7 +41,7 @@ photon.registerAggregate(Recipe.class)
     .register();
 ```
 
-By default, each field (public or private) is mapped to a database column of the same name and data type. Child objects are ignored by default, so use `withChild()` if an entity contains a child entity that should be mapped to a database table.
+By default, each class field (public or private) is mapped to a database column of the same name equivalent data type. Use `withChild()` for child entities that should be mapped to a database table.
 
 ### Creating and Committing Transactions
 
@@ -89,7 +91,7 @@ List<MyTable> myTables = transaction
 
 ### Read Models using Custom SQL Queries
 
-User interfaces often need only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom read models using plain SQL.
+User interfaces often only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom read models using plain SQL.
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
@@ -113,7 +115,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-Queries results are automatically mapped to the read model fields by name. Unlike aggregates, view model classes do not need to be pre-registered with Photon.
+Query results are automatically mapped to the read model fields by name. Unlike aggregates, view model classes do not need to be pre-registered with Photon.
 
 It's also possible to fetch scalar values and lists using plain SQL:
 
@@ -136,31 +138,33 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 
 * Currently does not support composite primary keys in aggregates.
 * Currently does not automatically map fields from super classes. This can be done manually using `withDatabaseColumn()`.
-* Testing has only be done on MySQL, SQL Server, and H2, but should work with any database with a JDBC driver.
+* Currently does not support database schemas (e.g. dbo.MyTable for SQL Server).
+
+## Compatibility
+
+Photon requires Java 8. Photon should work with any database that has a JDBC driver. It has been tested with the following databases:
+1. MySQL
+1. PostgreSQL
+1. SQL Server
+1. Oracle
 
 ### SQL Server
 
-The SQL Server JDBC Driver does not support getting generated identity keys from batch inserts, which are used by default in Photon. If using SQL Server, be sure to set `enableBatchInsertsForAutoIncrementEntities` to false in the `PhotonOptions`.
+The SQL Server JDBC Driver does not support getting generated identity keys from batch inserts, which are used by default in Photon. If using SQL Server, be sure to set `enableBatchInsertsForAutoIncrementEntities` to `false` in the `PhotonOptions`.
 
 ```java
-PhotonOptions photonOptions = new PhotonOptions("[", "]", null, false);
+PhotonOptions photonOptions = new PhotonOptions("[", "]", null, false, null);
 Photon photon = new Photon(url, user, password, photonOptions);
 ```
 
-## Performance
+### Oracle
 
-Photon uses JDBC batching to maximize performance for inserts, updates, and deletes. Photon also groups selects where possible to reduce the number of database queries needed.
+The Oracle JDBC Driver does not support JDBC's `Statement.RETURN_GENERATED_KEYS`. If using Oracle, be sure to set `enableJdbcGetGeneratedKeys` to false in the `PhotonOptions`.
 
-Aggregate CRUD comparison with hibernate (see [source code](https://github.com/molcikas/photon/tree/master/photon-perf-test/src/test/java/photon/perf) for testing details).
-
-ORM | 10k Inserts | 10k Selects | 10k Updates | 10k Deletes
---- | --- | --- | --- | ---
-Photon | 1387 ms | 1729 ms | 3588 ms | 2588 ms
-Hibernate | 1882 ms | 1783 ms | 2378 ms | 2172 ms
-
-Photon performance is comparable to Hibernate. Photon is faster with inserts because it uses JDBC batching, but slower on updates because it is session-less.
-
-Hibernate stores the initial state of each entity in its session state. When a transaction is committed, only the fields that changed during the session are updated. This gives Hibernate a performance advantage with updates, but it comes at a price. Entity instances must be attached to the Hibernate session so that Hibernate knows what changes occur during the session, and must be detached (or the session must be closed) before they can be garbage collected. Because the entire aggregate isn't saved, there is a chance that the aggregate was updated by another application, and the save puts the aggregate into an indeterminate (and likely invalid) state in the database.
+```java
+PhotonOptions photonOptions = new PhotonOptions(null, null, null, null, false);
+Photon photon = new Photon(url, user, password, photonOptions);
+```
 
 ## Acknowledgements
 

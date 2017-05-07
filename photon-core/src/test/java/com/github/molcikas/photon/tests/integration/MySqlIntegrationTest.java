@@ -20,7 +20,7 @@ public class MySqlIntegrationTest
     @Before
     public void setup()
     {
-        String url = "jdbc:mysql://localhost:3306/PhotonTestDb";
+        String url = "jdbc:mysql://localhost/PhotonTestDb";
         photon = new Photon(url, "root", "bears");
 
         photon

@@ -16,6 +16,9 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+/**
+ * For running these tests, you will need to download and install the Oracle JDBC driver (ojdbc6.jar) to src/test/libs.
+ */
 public class OracleIntegrationTest
 {
     private Photon photon;
