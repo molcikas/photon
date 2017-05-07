@@ -88,7 +88,7 @@ public class PhotonAggregateQuery<T>
         if(ids != null)
         {
             String selectSql = String.format(entityBlueprint.getSelectSql(), "?");
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection))
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
             {
                 statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType(), entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
@@ -97,7 +97,7 @@ public class PhotonAggregateQuery<T>
         else if(photonQuery != null)
         {
             String selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection))
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
             {
                 for(PhotonSqlParameter photonSqlParameter : photonQuery.getParametersInOrder())
                 {
@@ -132,7 +132,7 @@ public class PhotonAggregateQuery<T>
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
             ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection))
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection, photonOptions))
             {
                 statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
                 List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());

@@ -1,4 +1,4 @@
-package com.github.molcikas.photon.tests.integration.sqlserver.entities;
+package com.github.molcikas.photon.tests.integration;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;

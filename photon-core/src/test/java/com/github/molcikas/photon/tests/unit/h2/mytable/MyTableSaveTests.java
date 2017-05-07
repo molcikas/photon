@@ -218,7 +218,7 @@ public class MyTableSaveTests
     @Test
     public void aggregate_saveWithCustomPhotonOptions_insertAutoIncrementEntityAndChild_savesEntity()
     {
-        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("`", "`", DefaultTableName.ClassNameLowerCase, false));
+        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("`", "`", DefaultTableName.ClassNameLowerCase, false, true));
         MyTableDbSetup.setupDatabase(photon);
         registerMyTableWithAutoIncrementAggregate();
 
@@ -257,7 +257,7 @@ public class MyTableSaveTests
     @Test
     public void aggregate_saveWithInvalidCustomPhotonOptionsForDb_throwsException()
     {
-        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("~", "@", DefaultTableName.ClassNameLowerCase, false));
+        photon = new Photon(H2TestUtil.h2Url, H2TestUtil.h2User, H2TestUtil.h2Password, new PhotonOptions("~", "@", DefaultTableName.ClassNameLowerCase, false, true));
         MyTableDbSetup.setupDatabase(photon);
         registerMyTableWithAutoIncrementAggregate();
 

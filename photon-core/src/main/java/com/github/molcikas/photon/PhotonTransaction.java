@@ -122,7 +122,7 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("delete", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateDelete(aggregateBlueprint, connection).delete(aggregate);
+        new PhotonAggregateDelete(aggregateBlueprint, connection, photonOptions).delete(aggregate);
         hasUncommittedChanges = true;
     }
 
@@ -139,7 +139,7 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateDelete(aggregateBlueprint, connection).deleteAll(aggregates);
+        new PhotonAggregateDelete(aggregateBlueprint, connection, photonOptions).deleteAll(aggregates);
         hasUncommittedChanges = true;
     }
 

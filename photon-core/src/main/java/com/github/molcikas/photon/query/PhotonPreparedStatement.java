@@ -1,4 +1,5 @@
 package com.github.molcikas.photon.query;
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +35,7 @@ public class PhotonPreparedStatement implements Closeable
     private final Connection connection;
     private final String originalSqlText;
     private final boolean populateGeneratedKeys;
+    private final PhotonOptions photonOptions;
     private String sqlText;
     private PreparedStatement preparedStatement;
     private final List<ParameterValue> parameterValues;
@@ -41,12 +43,13 @@ public class PhotonPreparedStatement implements Closeable
 
     private boolean isBatched = false;
 
-    public PhotonPreparedStatement(String sqlText, boolean populateGeneratedKeys, Connection connection)
+    public PhotonPreparedStatement(String sqlText, boolean populateGeneratedKeys, Connection connection, PhotonOptions photonOptions)
     {
         this.connection = connection;
         this.originalSqlText = sqlText;
         this.sqlText = sqlText;
         this.populateGeneratedKeys = populateGeneratedKeys;
+        this.photonOptions = photonOptions;
         this.parameterValues = new ArrayList<>(StringUtils.countMatches(sqlText, "?"));
         this.generatedKeys = populateGeneratedKeys ? new ArrayList<>(100) : null;
     }
@@ -346,7 +349,14 @@ public class PhotonPreparedStatement implements Closeable
             {
                 if(populateGeneratedKeys)
                 {
-                    preparedStatement = connection.prepareStatement(sqlText, Statement.RETURN_GENERATED_KEYS);
+                    if(photonOptions.isEnableJdbcGetGeneratedKeys())
+                    {
+                        preparedStatement = connection.prepareStatement(sqlText, Statement.RETURN_GENERATED_KEYS);
+                    }
+                    else
+                    {
+                        preparedStatement = connection.prepareStatement(sqlText, new int[] {1});
+                    }
                 }
                 else
                 {

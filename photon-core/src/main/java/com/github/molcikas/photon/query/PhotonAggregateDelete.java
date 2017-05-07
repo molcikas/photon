@@ -4,6 +4,7 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
 import com.github.molcikas.photon.blueprints.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.FieldBlueprint;
+import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;
 import java.util.*;
@@ -13,13 +14,16 @@ public class PhotonAggregateDelete
 {
     private final AggregateBlueprint aggregateBlueprint;
     private final Connection connection;
+    private final PhotonOptions photonOptions;
 
     public PhotonAggregateDelete(
         AggregateBlueprint aggregateBlueprint,
-        Connection connection)
+        Connection connection,
+        PhotonOptions photonOptions)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
+        this.photonOptions = photonOptions;
     }
 
     public void delete(Object aggregateRootInstance)
@@ -63,7 +67,11 @@ public class PhotonAggregateDelete
 
         for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
-            try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(), false, connection))
+            try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
+                fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(),
+                false,
+                connection,
+                photonOptions))
             {
                 photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
@@ -72,7 +80,11 @@ public class PhotonAggregateDelete
 
         if(entityBlueprint.isPrimaryKeyMappedToField())
         {
-            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteSql(), false, connection))
+            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
+                entityBlueprint.getDeleteSql(),
+                false,
+                connection,
+                photonOptions))
             {
                 photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
                 photonPreparedStatement.executeUpdate();
@@ -80,7 +92,11 @@ public class PhotonAggregateDelete
         }
         else
         {
-            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(entityBlueprint.getDeleteChildrenExceptSql(), false, connection))
+            try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
+                entityBlueprint.getDeleteChildrenExceptSql(),
+                false,
+                connection,
+                photonOptions))
             {
                 EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
                 photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());

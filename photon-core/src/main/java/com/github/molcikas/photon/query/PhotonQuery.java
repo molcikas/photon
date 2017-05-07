@@ -189,7 +189,7 @@ public class PhotonQuery
 
     private PhotonPreparedStatement prepareStatement()
     {
-        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(getSqlTextWithQuestionMarks(), populateGeneratedKeys, connection);
+        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(getSqlTextWithQuestionMarks(), populateGeneratedKeys, connection, photonOptions);
 
         for(PhotonSqlParameter photonSqlParameter : getParametersInOrder())
         {
