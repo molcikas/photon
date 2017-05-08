@@ -46,17 +46,34 @@ public class PhotonAggregateIdsQuery<T>
         this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, photonOptions, null);
     }
 
+    /**
+     * Adds a parameter to the current query.
+     *
+     * @param parameter - The name of the parameter. Must match the name used in the SQL text for this query.
+     * @param value - The parameter value
+     * @return - The photon query (for chaining)
+     */
     public PhotonAggregateIdsQuery<T> addParameter(String parameter, Object value)
     {
         photonQuery.addParameter(parameter, value);
         return this;
     }
 
+    /**
+     * Execute the query and use the first id in the result to query for the aggregate.
+     *
+     * @return - The aggregate instance
+     */
     public T fetch()
     {
         return photonAggregateQuery.fetchByIdsQuery(photonQuery);
     }
 
+    /**
+     * Execute the query and use the ids in the result to query for aggregates.
+     *
+     * @return - The aggregate instances
+     */
     public List<T> fetchList()
     {
         return photonAggregateQuery.fetchListByIdsQuery(photonQuery);

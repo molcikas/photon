@@ -51,6 +51,30 @@ public class MyTableQueryTests
     }
 
     @Test
+    public void query_fetch_sameParameterTwice_returnsEntity()
+    {
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            String sql =
+                "SELECT * " +
+                "FROM mytable " +
+                "WHERE id >= :id AND myvalue = :myvalue AND id <= :id ";
+
+            MyTable myTable = transaction
+                .query(sql)
+                .addParameter("id", 2)
+                .addParameter("myvalue", "my2dbvalue")
+                .fetch(MyTable.class);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+
+            transaction.commit();
+        }
+    }
+
+    @Test
     public void query_fetch_customParameterDataType_returnsEntity()
     {
         try(PhotonTransaction transaction = photon.beginTransaction())

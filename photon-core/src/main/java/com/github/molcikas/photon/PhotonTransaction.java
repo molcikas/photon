@@ -17,6 +17,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Contains a database transaction for Photon.
+ */
 public class PhotonTransaction implements Closeable
 {
     private static final Logger log = LoggerFactory.getLogger(PhotonTransaction.class);
@@ -49,18 +52,41 @@ public class PhotonTransaction implements Closeable
         }
     }
 
+    /**
+     * Create a photon query. Can be used for ad-hoc queries that return custom read models, or to execute ad-hoc
+     * SQL commands.
+     *
+     * @param sqlText - the plain parameterized SQL text
+     * @return - the phton query
+     */
     public PhotonQuery query(String sqlText)
     {
         verifyConnectionIsAvailable("query", false);
         return query(sqlText, false);
     }
 
+    /**
+     * Create a photon query. Can be used for ad-hoc queries that return custom read models, or to execute ad-hoc
+     * SQL commands. Set populateGeneratedKeys to true if running an insert statement into a table with an auto
+     * incrementing primary key and the generated key needs to be retrieved.
+     *
+     * @param sqlText - the plain parameterized SQL text
+     * @param populateGeneratedKeys - whether to retrieve the generated keys from the query
+     * @return - the photon query
+     */
     public PhotonQuery query(String sqlText, boolean populateGeneratedKeys)
     {
         verifyConnectionIsAvailable("query", false);
         return new PhotonQuery(sqlText, populateGeneratedKeys, connection, photonOptions, entityBlueprintConstructorService);
     }
 
+    /**
+     * Create an aggregate query. Aggregates must be registered with Photon.
+     *
+     * @param aggregateClass - The aggregate root's class
+     * @param <T> - The aggregate root's class
+     * @return - The photon aggregate query
+     */
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)
     {
         verifyConnectionIsAvailable("query", false);
@@ -68,6 +94,12 @@ public class PhotonTransaction implements Closeable
         return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonOptions);
     }
 
+    /**
+     * Save the aggregate instance. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregate - The aggregate instance to save
+     */
     public void save(Object aggregate)
     {
         verifyConnectionIsAvailable("save", false);
@@ -76,11 +108,24 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Save a list of aggregate instances. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregates - The aggregate instances to save
+     * @param <T> - The aggregate root's class
+     */
     public <T> void saveAll(T... aggregates)
     {
         saveAll(Arrays.asList(aggregates));
     }
 
+    /**
+     * Save a list of aggregate instances. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregates - The aggregate instances to save
+     */
     public void saveAll(List<?> aggregates)
     {
         verifyConnectionIsAvailable("save", false);
@@ -93,6 +138,12 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Inserts an aggregate instance. Only call this method if the aggregate does not exist in the database, otherwise
+     * an error will occur when trying to insert it.
+     *
+     * @param aggregate - The aggregate instance to insert
+     */
     public void insert(Object aggregate)
     {
         verifyConnectionIsAvailable("insert", true);
@@ -101,11 +152,24 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Inserts a list of aggregate instances. Only call this method if the aggregates do not exist in the database, otherwise
+     * an error will occur when trying to insert them.
+     *
+     * @param aggregates - The aggregate instances to insert
+     * @param <T> The aggregate root's class
+     */
     public <T> void insertAll(T... aggregates)
     {
         insertAll(Arrays.asList(aggregates));
     }
 
+    /**
+     * Inserts a list of aggregate instances. Only call this method if the aggregates do not exist in the database, otherwise
+     * an error will occur when trying to insert them.
+     *
+     * @param aggregates - The aggregate instances to insert
+     */
     public void insertAll(List<?> aggregates)
     {
         verifyConnectionIsAvailable("insert", true);
@@ -118,6 +182,11 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Delete an aggregate instance.
+     *
+     * @param aggregate - The aggregate instance to delete
+     */
     public void delete(Object aggregate)
     {
         verifyConnectionIsAvailable("delete", false);
@@ -126,11 +195,22 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Delete a list of aggregate instances.
+     *
+     * @param aggregates - The aggregate instances to delete
+     * @param <T> - The aggregate root's class
+     */
     public <T> void deleteAll(T... aggregates)
     {
         deleteAll(Arrays.asList(aggregates));
     }
 
+    /**
+     * Delete a list of aggregate instances.
+     *
+     * @param aggregates - The aggregate instances to delete
+     */
     public void deleteAll(List<?> aggregates)
     {
         verifyConnectionIsAvailable("delete", false);
@@ -143,6 +223,9 @@ public class PhotonTransaction implements Closeable
         hasUncommittedChanges = true;
     }
 
+    /**
+     * Commit the transaction and close the underlying connection.
+     */
     public void commit()
     {
         try
@@ -158,6 +241,10 @@ public class PhotonTransaction implements Closeable
         }
     }
 
+    /**
+     * Close the connection without committing. If commit() was already called, calling this method will have
+     * no effect.
+     */
     public void close()
     {
         if(!committed && hasUncommittedChanges)
@@ -175,6 +262,9 @@ public class PhotonTransaction implements Closeable
         }
     }
 
+    /**
+     * Roll back the current transaction.
+     */
     public void rollbackTransaction()
     {
         if(committed)
@@ -192,6 +282,10 @@ public class PhotonTransaction implements Closeable
         }
     }
 
+    /**
+     * Returns whether the transaction has been committed yet.
+     * @return - True if committed, otherwise false.
+     */
     public boolean isCommitted()
     {
         return committed;

@@ -7,16 +7,10 @@ import java.util.Collection;
 
 public class PhotonSqlParameter
 {
-    private final int index;
     private final String name;
     private Object value;
     private Integer dataType;
     private boolean isCollection;
-
-    public int getIndex()
-    {
-        return index;
-    }
 
     public String getName()
     {
@@ -38,9 +32,8 @@ public class PhotonSqlParameter
         return isCollection;
     }
 
-    public PhotonSqlParameter(int index, String name)
+    public PhotonSqlParameter(String name)
     {
-        this.index = index;
         this.name = name;
     }
 

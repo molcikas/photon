@@ -26,30 +26,51 @@ public class PhotonAggregateSave
         this.photonOptions = photonOptions;
     }
 
-    public void save(Object aggregateRootInstance)
+    /**
+     * Save the aggregate instance. Updates the aggregate first, then performs an insert if the aggregate was not found.
+     *
+     * @param aggregateInstance - The aggregate to save
+     */
+    public void save(Object aggregateInstance)
     {
-        PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
+        PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateInstance);
         saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, false);
     }
 
-    public void saveAll(List<?> aggregateRootInstances)
+    /**
+     * Save the aggregate instances. Updates the aggregates first, then performs an insert if the aggregates were not
+     * found.
+     *
+     * @param aggregateInstances - The aggregates to save
+     */
+    public void saveAll(List<?> aggregateInstances)
     {
-        List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
+        List<PopulatedEntity> aggregateRootEntities =  aggregateInstances
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
         saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, false);
     }
 
-    public void insert(Object aggregateRootInstance)
+    /**
+     * Insert an aggregate instance.
+     *
+     * @param aggregateInstance - The aggregate instance to insert
+     */
+    public void insert(Object aggregateInstance)
     {
-        PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
+        PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(),  aggregateInstance);
         saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, true);
     }
 
-    public void insertAll(List<?> aggregateRootInstances)
+    /**
+     * Inserts a list of entity instances.
+     *
+     * @param aggregateInstances - The aggregate instances to insert.
+     */
+    public void insertAll(List<?> aggregateInstances)
     {
-        List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
+        List<PopulatedEntity> aggregateRootEntities =  aggregateInstances
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());

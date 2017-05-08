@@ -27,34 +27,59 @@ public class PhotonAggregateQuery<T>
         this.photonOptions = photonOptions;
     }
 
+    /**
+     * Fetch an aggregate by its id.
+     *
+     * @param id - The id
+     * @return - The aggregate instance, or null if the aggregate was not found
+     */
     public T fetchById(Object id)
     {
         List<T> populatedAggregateRoots = getPopulatedAggregateRoots(Collections.singletonList(id), null);
         return populatedAggregateRoots.isEmpty() ? null : populatedAggregateRoots.get(0);
     }
 
+    /**
+     * Fetch a list of aggregates by ids.
+     *
+     * @param ids - The ids
+     * @return - The aggregate instances
+     */
     public List<T> fetchByIds(List<?> ids)
     {
         return getPopulatedAggregateRoots(ids, null);
     }
 
+    /**
+     * Fetch a list of aggregates from a query that selects a list of ids.
+     *
+     * @param selectIdsSql - The parameterized SQL query for selecting a list of ids
+     * @return - An ids query object that can be executed to return a list of aggregates
+     */
     public PhotonAggregateIdsQuery<T> fetchByIdsQuery(String selectIdsSql)
     {
         return new PhotonAggregateIdsQuery<>(aggregateBlueprint, selectIdsSql, false, connection, photonOptions, this);
     }
 
+    /**
+     * Fetch a list of aggregates from a query that selects a list of ids. Only the where clause needs be specified,
+     * not including the WHERE keyword.
+     *
+     * @param whereClause - The where clause for a parameterized SQL query for selecting a list of ids
+     * @return - An ids query object that can be executed to return a list of aggregates
+     */
     public PhotonAggregateIdsQuery<T> where(String whereClause)
     {
         return new PhotonAggregateIdsQuery<>(aggregateBlueprint, whereClause, true, connection, photonOptions, this);
     }
 
-    public T fetchByIdsQuery(PhotonQuery photonQuery)
+    T fetchByIdsQuery(PhotonQuery photonQuery)
     {
         List<T> populatedAggregateRoots =  getPopulatedAggregateRoots(null, photonQuery);
         return populatedAggregateRoots.isEmpty() ? null : populatedAggregateRoots.get(0);
     }
 
-    public List<T> fetchListByIdsQuery(PhotonQuery photonQuery)
+    List<T> fetchListByIdsQuery(PhotonQuery photonQuery)
     {
         return getPopulatedAggregateRoots(null, photonQuery);
     }
@@ -90,7 +115,11 @@ public class PhotonAggregateQuery<T>
             String selectSql = String.format(entityBlueprint.getSelectSql(), "?");
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
             {
-                statement.setNextArrayParameter(ids, entityBlueprint.getPrimaryKeyColumn().getColumnDataType(), entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                statement.setNextArrayParameter(
+                    ids,
+                    entityBlueprint.getPrimaryKeyColumn().getColumnDataType(),
+                    entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter()
+                );
                 queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
             }
         }
@@ -99,7 +128,7 @@ public class PhotonAggregateQuery<T>
             String selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
             {
-                for(PhotonSqlParameter photonSqlParameter : photonQuery.getParametersInOrder())
+                for(PhotonSqlParameter photonSqlParameter : photonQuery.getParameters())
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }

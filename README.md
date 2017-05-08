@@ -134,11 +134,17 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
+## Sessionless
+
+Photon does not maintain a cache of entities (often referred to as the ORM's "session") and their pending changes ("dirty checking"). Entity instances do not need to attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
+
+Aggregates are loaded and saved as whole units. Photon does not track pending changes for entities and does not do "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as read models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
+
 ## Limitations
 
 * Currently does not support composite primary keys in aggregates.
 * Currently does not automatically map fields from super classes. This can be done manually using `withDatabaseColumn()`.
-* Currently does not support database schemas (e.g. dbo.MyTable for SQL Server).
+* Currently does not support specifying database schemas (e.g. "dbo" for SQL Server).
 
 ## Compatibility
 
@@ -147,6 +153,15 @@ Photon requires Java 8. Photon should work with any database that has a JDBC dri
 1. PostgreSQL
 1. SQL Server
 1. Oracle
+
+### PostgreSQL
+
+The PostgreSQL JDBC driver requires using `preparedStatement.setObject()` for UUID fields. If using PostgreSQL, be sure to set `defaultUuidDataType` to `null` in the `PhotonOptions`.
+
+```java
+PhotonOptions photonOptions = new PhotonOptions("\"", "\"", DefaultTableName.ClassName, true, null, null);
+photon = new Photon(url, user, password, photonOptions);
+```
 
 ### SQL Server
 
@@ -169,3 +184,5 @@ Photon photon = new Photon(url, user, password, photonOptions);
 ## Acknowledgements
 
 This project was inspired by [sql2o](https://github.com/aaberg/sql2o), another great JVM micro ORM.
+
+This project was also inspired by the leaders in Domain Design Driven, especially Eric Evans, Martin Fowler, and Vaughn Vernon.

@@ -2,6 +2,9 @@ package com.github.molcikas.photon.options;
 
 import java.sql.Types;
 
+/**
+ * The options for photon.
+ */
 public class PhotonOptions
 {
     public static final Integer DEFAULT_UUID_DATA_TYPE = Types.BINARY;
@@ -43,6 +46,17 @@ public class PhotonOptions
         return defaultUuidDataType;
     }
 
+    /**
+     * Constructor. Defaults the UUID data type to PhotonOptions.DEFAULT_UUID_DATA_TYPE.
+     *
+     * @param delimitIdentifierStart - The delimiter identifier start (e.g. "[" for SQL Server or "`" for MySQL)
+     * @param delimitIdentifierEnd - The delimiter identifier end (e.g. "]" for SQL Server or "`" for MySQL)
+     * @param defaultTableName - The strategy for determining the default table name for an entity
+     * @param enableBatchInsertsForAutoIncrementEntities - Whether to enable batch inserts for entities with auto
+     *                                                   increment primary keys. Set this to true for SQL Server.
+     * @param enableJdbcGetGeneratedKeys - Whether to use Statement.RETURN_GENERATED_KEYS when creating prepared
+     *                                   statements. Set this to false for Oracle databases.
+     */
     public PhotonOptions(
         String delimitIdentifierStart,
         String delimitIdentifierEnd,
@@ -53,6 +67,19 @@ public class PhotonOptions
         this(delimitIdentifierStart, delimitIdentifierEnd, defaultTableName, enableBatchInsertsForAutoIncrementEntities, enableJdbcGetGeneratedKeys, DEFAULT_UUID_DATA_TYPE);
     }
 
+    /**
+     * Constructor. Defaults the UUID data type to PhotonOptions.DEFAULT_UUID_DATA_TYPE.
+     *
+     * @param delimitIdentifierStart - The delimiter identifier start (e.g. "[" for SQL Server or "`" for MySQL)
+     * @param delimitIdentifierEnd - The delimiter identifier end (e.g. "]" for SQL Server or "`" for MySQL)
+     * @param defaultTableName - The strategy for determining the default table name for an entity
+     * @param enableBatchInsertsForAutoIncrementEntities - Whether to enable batch inserts for entities with auto
+     *                                                   increment primary keys. Set this to true for SQL Server.
+     * @param enableJdbcGetGeneratedKeys - Whether to use Statement.RETURN_GENERATED_KEYS when creating prepared
+     *                                   statements. Set this to false for Oracle databases.
+     * @param defaultUuidDataType - Default java.sql.Types value for UUID fields. Set this to null for Postgres
+     *                            databases.
+     */
     public PhotonOptions(
         String delimitIdentifierStart,
         String delimitIdentifierEnd,
@@ -69,6 +96,11 @@ public class PhotonOptions
         this.defaultUuidDataType = defaultUuidDataType;
     }
 
+    /**
+     * Creates a PhotonOptions object with the default options.
+     *
+     * @return - the photon options
+     */
     public static PhotonOptions defaultOptions()
     {
         return new PhotonOptions(null, null, null, null, null, DEFAULT_UUID_DATA_TYPE);

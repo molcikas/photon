@@ -8,6 +8,8 @@ import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyThirdTa
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
 
+import java.sql.Types;
+
 import static org.junit.Assert.*;
 
 public class MyOneToManyTableFetchTests
@@ -55,10 +57,9 @@ public class MyOneToManyTableFetchTests
             .withId("id")
             .withPrimaryKeyAutoIncrement()
             .withChild(MyManyTable.class)
-                .withId("id")
-                .withPrimaryKeyAutoIncrement()
+                .withId("id", true)
                 .withForeignKeyToParent("parent")
-                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue", Types.VARCHAR)
                 .withChild(MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()

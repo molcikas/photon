@@ -26,12 +26,22 @@ public class PhotonAggregateDelete
         this.photonOptions = photonOptions;
     }
 
+    /**
+     * Delete an aggregate instance.
+     *
+     * @param aggregateRootInstance - The aggregate instance to delete
+     */
     public void delete(Object aggregateRootInstance)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootInstance);
         deleteEntitiesRecursive(Collections.singletonList(aggregateRootEntity), null);
     }
 
+    /**
+     * Deletes a list of aggregate instances.
+     *
+     * @param aggregateRootInstances - The aggregate instances to delete
+     */
     public void deleteAll(List<?> aggregateRootInstances)
     {
         List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
