@@ -59,7 +59,7 @@ public class MyOneToManyTableFetchTests
             .withChild(MyManyTable.class)
                 .withId("id", true)
                 .withForeignKeyToParent("parent")
-                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue", Types.VARCHAR)
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", Types.VARCHAR)
                 .withChild(MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()

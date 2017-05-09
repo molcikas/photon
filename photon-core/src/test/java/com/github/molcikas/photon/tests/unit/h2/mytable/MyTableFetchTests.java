@@ -192,7 +192,7 @@ public class MyTableFetchTests
     {
         photon.registerAggregate(MyOtherTable.class)
             .withId("id")
-            .withFieldToColumnMapping("myOtherValueWithDiffName", "myvalue")
+            .withDatabaseColumn("myvalue", "myOtherValueWithDiffName")
             .withTableName("mytable")
             .register();
 
@@ -328,7 +328,7 @@ public class MyTableFetchTests
             .withChild(MyOtherTable.class)
                 .withId("id")
                 .withForeignKeyToParent("id")
-                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName")
                 .addAsChild("myOtherTable")
             .register();
     }

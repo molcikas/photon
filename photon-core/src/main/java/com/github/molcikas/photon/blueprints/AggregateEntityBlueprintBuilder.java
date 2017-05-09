@@ -106,6 +106,20 @@ public class AggregateEntityBlueprintBuilder
      * setters for details.
      * @param idFieldName - the id field name
      * @param columnDataType - the column data type for the primary key column
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withId(String idFieldName, Integer columnDataType)
+    {
+        this.idFieldName = idFieldName;
+        this.customColumnDataTypes.put(idFieldName, columnDataType);
+        return this;
+    }
+
+    /**
+     * Sets the id field, column data type, and primary key auto increment in a single method. See the individual
+     * setters for details.
+     * @param idFieldName - the id field name
+     * @param columnDataType - the column data type for the primary key column
      * @param isPrimaryKeyAutoIncrement - whether the primary key is auto incrementing (a.k.a. identity column)
      * @return - builder for chaining
      */
@@ -181,21 +195,9 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the database column data type. Use java.sql.Types.
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withColumnDataType(String columnName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType)
     {
         customColumnDataTypes.put(columnName, columnDataType);
-        return this;
-    }
-
-    /**
-     * Ignore a field and prevent it from being auto-mapped to a database column.
-     *
-     * @param fieldName - the entity field name
-     * @return - builder for chaining
-     */
-    public AggregateEntityBlueprintBuilder withIgnoredField(String fieldName)
-    {
-        ignoredFields.add(fieldName);
         return this;
     }
 
@@ -203,11 +205,11 @@ public class AggregateEntityBlueprintBuilder
      * Create a custom field-to-column name mapping. This only needs to be called if the column name is not the same
      * as the field name.
      *
-     * @param fieldName - the entity field name
      * @param columnName - the database column name
+     * @param fieldName - the entity field name
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withFieldToColumnMapping(String fieldName, String columnName)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         return this;
@@ -217,12 +219,12 @@ public class AggregateEntityBlueprintBuilder
      * Create a custom field-to-column name mapping. This only needs to be called if the column name is not the same
      * as the field name.
      *
-     * @param fieldName - the entity field name
      * @param columnName - the database column name
+     * @param fieldName - the entity field name
      * @param columnDataType - the column data type
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withFieldToColumnMapping(String fieldName, String columnName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName, Integer columnDataType)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         customColumnDataTypes.put(columnName, columnDataType);
@@ -269,6 +271,18 @@ public class AggregateEntityBlueprintBuilder
     public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String columnName, Converter customToDatabaseValueConverter)
     {
         customToDatabaseValueConverters.put(columnName, customToDatabaseValueConverter);
+        return this;
+    }
+
+    /**
+     * Ignore a field and prevent it from being auto-mapped to a database column.
+     *
+     * @param fieldName - the entity field name
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withIgnoredField(String fieldName)
+    {
+        ignoredFields.add(fieldName);
         return this;
     }
 

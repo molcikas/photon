@@ -41,7 +41,7 @@ public class FieldTestDbSetup
     {
         photon.registerAggregate(FieldTest.class)
             .withId("id")
-            .withColumnDataType("testEnumString", Types.VARCHAR)
+            .withDatabaseColumn("testEnumString", Types.VARCHAR)
             .register();
     }
 }

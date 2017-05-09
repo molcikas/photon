@@ -151,7 +151,7 @@ public class MyOneToManyTableSaveTests
                 .withId("id")
                 .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("parent")
-                .withFieldToColumnMapping("myOtherValueWithDiffName", "myothervalue")
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName")
                 .withChild(MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()
