@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.query;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,11 @@ public class PhotonQueryResultRow
     public Set<Map.Entry<String, Object>> getValues()
     {
         return values.entrySet();
+    }
+
+    public Map<String, Object> getValuesMap()
+    {
+        return Collections.unmodifiableMap(values);
     }
 
     public Object getFirstValue()

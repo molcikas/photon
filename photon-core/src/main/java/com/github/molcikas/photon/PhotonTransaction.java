@@ -294,6 +294,17 @@ public class PhotonTransaction implements Closeable
     private <T> AggregateBlueprint<T> getAggregateBlueprint(Class<T> aggregateClass)
     {
         AggregateBlueprint<T> aggregateBlueprint = registeredAggregates.get(aggregateClass);
+        Class superClass = aggregateClass;
+
+        while(aggregateBlueprint == null && superClass != null)
+        {
+            superClass = aggregateClass.getSuperclass();
+            if(superClass != null)
+            {
+                aggregateBlueprint = registeredAggregates.get(superClass);
+            }
+        }
+
         if(aggregateBlueprint == null)
         {
             throw new PhotonException(String.format("The aggregate root class '%s' is not registered with photon.", aggregateClass.getName()));

@@ -45,6 +45,17 @@ public class PhotonAggregateQuery<T>
      * @param ids - The ids
      * @return - The aggregate instances
      */
+    public List<T> fetchByIds(Object... ids)
+    {
+        return fetchByIds(Arrays.asList(ids));
+    }
+
+    /**
+     * Fetch a list of aggregates by ids.
+     *
+     * @param ids - The ids
+     * @return - The aggregate instances
+     */
     public List<T> fetchByIds(List<?> ids)
     {
         return getPopulatedAggregateRoots(ids, null);

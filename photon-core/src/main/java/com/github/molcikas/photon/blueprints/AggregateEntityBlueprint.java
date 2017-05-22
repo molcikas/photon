@@ -1,6 +1,5 @@
 package com.github.molcikas.photon.blueprints;
 
-import com.github.molcikas.photon.options.DefaultTableName;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
@@ -40,6 +39,8 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
     AggregateEntityBlueprint(
         Class entityClass,
+        List<MappedClassBlueprint> mappedClasses,
+        EntityClassDiscriminator entityClassDiscriminator,
         String tableName,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
@@ -61,14 +62,6 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         {
             throw new PhotonException("EntityBlueprint class cannot be null.");
         }
-        if(StringUtils.isBlank(idFieldName))
-        {
-            idFieldName = determineDefaultIdFieldName(entityClass);
-            if(idFieldName == null)
-            {
-                throw new PhotonException(String.format("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName()));
-            }
-        }
         if(orderByDirection == null)
         {
             orderByDirection = SortDirection.Ascending;
@@ -76,23 +69,21 @@ public class AggregateEntityBlueprint extends EntityBlueprint
 
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
+        this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = determineTableName(tableName, entityClass, photonOptions);
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
 
-        try
+        if(StringUtils.isBlank(idFieldName))
         {
-            this.entityConstructor = entityClass.getDeclaredConstructor();
-            entityConstructor.setAccessible(true);
+            idFieldName = determineDefaultIdFieldName();
+            if(idFieldName == null)
+            {
+                throw new PhotonException(String.format("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName()));
+            }
         }
-        catch (Exception ex)
-        {
-            throw new PhotonException(
-                String.format("Error getting constructor for entity '%s'. Make sure the entity has a parameterless constructor (private is ok).", getEntityClassName()),
-                ex
-            );
-        }
+
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
 
         for(ColumnBlueprint columnBlueprint : columns)
         {
@@ -207,19 +198,17 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         }
     }
 
-    private String determineDefaultIdFieldName(Class entityClass)
+    private String determineDefaultIdFieldName()
     {
-        List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
-
-        Optional<Field> idField = reflectedFields.stream().filter(f -> f.getName().equalsIgnoreCase("id")).findFirst();
+        Optional<FieldBlueprint> idField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase("id")).findFirst();
         if(idField.isPresent())
         {
-            return idField.get().getName();
+            return idField.get().getFieldName();
         }
 
         String fullIdName = entityClass.getSimpleName().toLowerCase() + "Id";
-        Optional<Field> fullIdField = reflectedFields.stream().filter(f -> f.getName().equalsIgnoreCase(fullIdName)).findFirst();
+        Optional<FieldBlueprint> fullIdField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase(fullIdName)).findFirst();
 
-        return fullIdField.isPresent() ? fullIdField.get().getName() : null;
+        return fullIdField.isPresent() ? fullIdField.get().getFieldName() : null;
     }
 }

@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 public class EntityBlueprint
 {
     protected Class entityClass;
-    protected Constructor entityConstructor;
+    protected EntityClassDiscriminator entityClassDiscriminator;
     protected String tableName;
     protected String orderByColumnName;
     protected SortDirection orderByDirection;
@@ -33,11 +33,6 @@ public class EntityBlueprint
     public Class getEntityClass()
     {
         return entityClass;
-    }
-
-    public Constructor getEntityConstructor()
-    {
-        return entityConstructor;
     }
 
     public String getOrderByColumnName()
@@ -96,6 +91,8 @@ public class EntityBlueprint
 
     public EntityBlueprint(
         Class entityClass,
+        List<MappedClassBlueprint> mappedClasses,
+        EntityClassDiscriminator entityClassDiscriminator,
         String tableName,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
@@ -120,23 +117,11 @@ public class EntityBlueprint
         }
 
         this.entityClass = entityClass;
+        this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
-
-        try
-        {
-            this.entityConstructor = entityClass.getDeclaredConstructor();
-            entityConstructor.setAccessible(true);
-        }
-        catch (Exception ex)
-        {
-            throw new PhotonException(
-                String.format("Error getting constructor for entity '%s'. Make sure the entity has a parameterless constructor (private is ok).", getEntityClassName()),
-                ex
-            );
-        }
 
         primaryKeyColumn = columns.stream().filter(ColumnBlueprint::isPrimaryKeyColumn).findFirst().orElse(null);
 
@@ -147,6 +132,34 @@ public class EntityBlueprint
         this.orderByColumnName = orderByColumnName;
 
         normalizeColumnOrder();
+    }
+
+    public Constructor getEntityConstructor(Map<String, Object> entityValues)
+    {
+        Class classToConstruct = null;
+
+        if(entityClassDiscriminator != null)
+        {
+            classToConstruct = entityClassDiscriminator.getClassForEntity(entityValues);
+        }
+        if(classToConstruct == null)
+        {
+            classToConstruct = entityClass;
+        }
+
+        try
+        {
+            Constructor constructor = classToConstruct.getDeclaredConstructor();
+            constructor.setAccessible(true);
+            return constructor;
+        }
+        catch (Exception ex)
+        {
+            throw new PhotonException(
+                String.format("Error getting constructor for entity class '%s'. Make sure the class has a parameterless constructor (private is ok).", classToConstruct),
+                ex
+            );
+        }
     }
 
     public Field getReflectedField(String fieldName)

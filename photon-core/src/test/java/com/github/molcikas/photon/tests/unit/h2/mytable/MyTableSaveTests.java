@@ -324,14 +324,7 @@ public class MyTableSaveTests
         photon.registerAggregate(MyTable.class)
             .withId("id")
             .withPrimaryKeyAutoIncrement()
-            .withCustomToDatabaseValueConverter("myvalue", new Converter()
-            {
-                @Override
-                public Object convert(Object val) throws ConverterException
-                {
-                    return ((String) val).toUpperCase();
-                }
-            })
+            .withCustomToDatabaseValueConverter("myvalue", val -> ((String) val).toUpperCase())
             .register();
 
         try(PhotonTransaction transaction = photon.beginTransaction())

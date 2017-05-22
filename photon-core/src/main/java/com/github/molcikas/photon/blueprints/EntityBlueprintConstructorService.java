@@ -1,6 +1,8 @@
 package com.github.molcikas.photon.blueprints;
 
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.apache.commons.collections4.MultiValuedMap;
+import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 
@@ -17,6 +19,7 @@ public class EntityBlueprintConstructorService
 {
     public List<FieldBlueprint> getFieldsForEntity(
         Class entityClass,
+        List<MappedClassBlueprint> mappedClasses,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
@@ -24,6 +27,7 @@ public class EntityBlueprintConstructorService
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
         Map<String, Converter> customToFieldValueConverters)
     {
+        final List<MappedClassBlueprint> mappedClassesFinal = mappedClasses != null ? mappedClasses : Collections.emptyList();
         final List<String> ignoredFieldsFinal = ignoredFields != null ? ignoredFields : Collections.emptyList();
         final Map<String, EntityFieldValueMapping> customDatabaseColumnsFinal = customDatabaseColumns != null ? customDatabaseColumns : new HashMap<>();
         final Map<String, String> customFieldToColumnMappingsFinal = customFieldToColumnMappings != null ? customFieldToColumnMappings : new HashMap<>();
@@ -31,19 +35,33 @@ public class EntityBlueprintConstructorService
         final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
         final Map<String, Converter> customToFieldValueConvertersFinal = customToFieldValueConverters != null ? customToFieldValueConverters : new HashMap<>();
 
-        List<Field> reflectedFields = Arrays.asList(entityClass.getDeclaredFields());
+        MultiValuedMap<Class, Field> reflectedFieldsMap = new HashSetValuedHashMap<>();
+        reflectedFieldsMap.putAll(entityClass, Arrays.asList(entityClass.getDeclaredFields()));
 
-        List<FieldBlueprint> fields = reflectedFields
+        for(MappedClassBlueprint mappedClassBlueprint : mappedClassesFinal)
+        {
+            List<Field> reflectedFieldsForMappedClass = mappedClassBlueprint.getIncludedFields();
+            for(Field field : reflectedFieldsForMappedClass)
+            {
+                if(reflectedFieldsMap.values().stream().noneMatch(c -> c.getName().equals(field.getName())))
+                {
+                    reflectedFieldsMap.put(mappedClassBlueprint.getMappedClass(), field);
+                }
+            }
+        }
+
+        List<FieldBlueprint> fields = reflectedFieldsMap
+            .entries()
             .stream()
-            .filter(f -> !ignoredFieldsFinal.contains(f.getName()))
-            .map(reflectedField -> new FieldBlueprint(
-                reflectedField,
-                customFieldToColumnMappingsFinal.containsKey(reflectedField.getName()) ?
-                    customFieldToColumnMappingsFinal.get(reflectedField.getName()) :
-                    reflectedField.getName(),
-                childEntitiesFinal.get(reflectedField.getName()),
-                foreignKeyListBlueprintsFinal.get(reflectedField.getName()),
-                customToFieldValueConvertersFinal.get(reflectedField.getName()),
+            .filter(entry -> !ignoredFieldsFinal.contains(entry.getValue().getName()))
+            .map(entry -> new FieldBlueprint(
+                entry.getValue(),
+                customFieldToColumnMappingsFinal.containsKey(entry.getValue().getName()) ?
+                    customFieldToColumnMappingsFinal.get(entry.getValue().getName()) :
+                    entry.getValue().getName(),
+                childEntitiesFinal.get(entry.getValue().getName()),
+                foreignKeyListBlueprintsFinal.get(entry.getValue().getName()),
+                customToFieldValueConvertersFinal.get(entry.getValue().getName()),
                 null
             ))
             .collect(Collectors.toList());

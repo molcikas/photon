@@ -94,18 +94,30 @@ public class PopulatedEntity<T>
         {
             return fieldBlueprint.getEntityFieldValueMapping().getFieldValueFromEntityInstance(entityInstance);
         }
-        else
+
+        Exception thrownException;
+
+        try
         {
-            try
-            {
-                Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                return field.get(entityInstance);
-            }
-            catch(Exception ex)
-            {
-                throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
-            }
+            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+            return field.get(entityInstance);
         }
+        catch(IllegalArgumentException ex)
+        {
+            if(ex.getMessage().startsWith("Can not set"))
+            {
+                // If the field is not in the instance, it's probably because the entity blueprint contains multiple
+                // sub-classes with different fields, and this field is not in this sub-class.
+                return null;
+            }
+            thrownException = ex;
+        }
+        catch(Exception ex)
+        {
+            thrownException = ex;
+        }
+
+        throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), thrownException);
     }
 
     public List<PopulatedEntity> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
@@ -299,7 +311,7 @@ public class PopulatedEntity<T>
 
     private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
     {
-        Constructor<T> constructor = entityBlueprint.getEntityConstructor();
+        Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
 
         try
         {

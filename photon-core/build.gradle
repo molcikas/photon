@@ -4,6 +4,7 @@ archivesBaseName = "photon-core"
 
 dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
 
     // Database
     testCompile group: 'com.h2database', name: 'h2', version: '1.4.193'

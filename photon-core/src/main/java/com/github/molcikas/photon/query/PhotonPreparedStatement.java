@@ -379,6 +379,7 @@ public class PhotonPreparedStatement implements Closeable
                 if(parameterValue.value == null)
                 {
                     preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType : Types.VARCHAR);
+                    continue;
                 }
 
                 if (parameterValue.dataType == null)

@@ -1,7 +1,6 @@
 package com.github.molcikas.photon.query;
 
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
+import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -24,8 +23,10 @@ public class PhotonQuery
     private final Connection connection;
     private final PhotonOptions photonOptions;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
+    private final List<MappedClassBlueprint> mappedClasses;
 
     private List<PhotonSqlParameter> parameters;
+    private EntityClassDiscriminator entityClassDiscriminator;
     private List<Long> generatedKeys;
 
     private final Map<String, Converter> customToFieldValueConverters;
@@ -38,6 +39,7 @@ public class PhotonQuery
         this.photonOptions = photonOptions;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
         this.parameters = new ArrayList<>();
+        this.mappedClasses = new ArrayList<>();
 
         Matcher parameterMatcher = parameterPattern.matcher(sqlText);
         while(parameterMatcher.find())
@@ -87,6 +89,24 @@ public class PhotonQuery
         {
             throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
         }
+        return this;
+    }
+
+    public PhotonQuery withMappedClass(Class mappedClass)
+    {
+        mappedClasses.add(new MappedClassBlueprint(mappedClass, true, null));
+        return this;
+    }
+
+    public PhotonQuery withMappedClass(Class mappedClass, List<String> includedFields)
+    {
+        mappedClasses.add(new MappedClassBlueprint(mappedClass, false, includedFields));
+        return this;
+    }
+
+    public PhotonQuery withClassDiscriminator(EntityClassDiscriminator entityClassDiscriminator)
+    {
+        this.entityClassDiscriminator = entityClassDiscriminator;
         return this;
     }
 
@@ -193,6 +213,8 @@ public class PhotonQuery
 
         EntityBlueprint entityBlueprint = new EntityBlueprint(
             classToFetch,
+            mappedClasses,
+            entityClassDiscriminator,
             null,
             null,
             false,

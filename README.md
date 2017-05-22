@@ -132,6 +132,38 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
+## Inheritance
+
+Photon supports mapping fields from super classes and sub classes.
+
+```java
+photon.registerAggregate(Circle.class)
+    .withMappedClass(Shape.class)
+    .register();
+```
+
+Photon supports single-table inheritance by combining `withMappedClass()` and `withClassDiscriminator()`.
+
+```java
+photon.registerAggregate(Shape.class)
+    .withMappedClass(Circle.class)
+    .withMappedClass(Rectangle.class)
+    .withClassDiscriminator(valuesMap ->
+    {
+        String type = (String) valuesMap.get("type");
+        switch (type)
+        {
+            case "circle":
+                return Circle.class;
+            case "rectangle":
+                return Rectangle.class;
+            default:
+                return null;
+        }
+    })
+    .register();
+```
+
 ## Sessionless
 
 Photon does not maintain a cache of entities (often referred to as the ORM's "session") and their pending changes ("dirty checking"). Entity instances do not need to attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
@@ -141,7 +173,6 @@ Aggregates are loaded and saved as whole units. Photon does not track pending ch
 ## Limitations
 
 * Currently does not support composite primary keys in aggregates.
-* Currently does not automatically map fields from super classes. This can be done manually using `withDatabaseColumn()`.
 * Currently does not support specifying database schemas (e.g. "dbo" for SQL Server).
 
 ## Compatibility

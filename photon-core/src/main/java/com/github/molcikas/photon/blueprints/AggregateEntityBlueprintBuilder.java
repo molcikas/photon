@@ -5,10 +5,7 @@ import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The builder for creating aggregate entity blueprints.
@@ -19,6 +16,8 @@ public class AggregateEntityBlueprintBuilder
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
     private final AggregateEntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
+    private final List<MappedClassBlueprint> mappedClasses;
+    private EntityClassDiscriminator entityClassDiscriminator;
     private String tableName;
     private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
@@ -50,10 +49,11 @@ public class AggregateEntityBlueprintBuilder
                                            EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.entityClass = entityClass;
+        this.parentBuilder = parentBuilder;
         this.photon = photon;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
-        this.parentBuilder = parentBuilder;
         this.isPrimaryKeyAutoIncrement = false;
+        this.mappedClasses = new ArrayList<>();
         this.customColumnDataTypes = new HashMap<>();
         this.ignoredFields = new ArrayList<>();
         this.customDatabaseColumns = new HashMap<>();
@@ -62,6 +62,48 @@ public class AggregateEntityBlueprintBuilder
         this.foreignKeyListBlueprints = new HashMap<>();
         this.customToFieldValueConverters = new HashMap<>();
         this.customToDatabaseValueConverters = new HashMap<>();
+    }
+
+    /**
+     * Adds a super or sub class's fields to the entity, and auto-maps them to database columns. This can be used
+     * to simply include fields in a sub or super class, or can be combined with withClassDiscriminator() to implement
+     * single-table inheritance.
+     *
+     * @param mappedClass - the super or sub class whose fields will all be mapped into the entity
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withMappedClass(Class mappedClass)
+    {
+        mappedClasses.add(new MappedClassBlueprint(mappedClass, true, null));
+        return this;
+    }
+
+    /**
+     * Adds a super or sub class's fields to the entity, and auto-maps them to database columns. This can be used
+     * to simply include fields in a sub or super class, or can be combined with withClassDiscriminator() to implement
+     * single-table inheritance.
+     *
+     * @param mappedClass - the super or sub class whose fields will be mapped into the entity
+     * @param includedFields - the list of fields on the super or sub class to map
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withMappedClass(Class mappedClass, List<String> includedFields)
+    {
+        mappedClasses.add(new MappedClassBlueprint(mappedClass, false, includedFields));
+        return this;
+    }
+
+    /**
+     * A custom discriminator that can be used to dynamically set the type of entity to construct. Typically, this
+     * is used to implement single-table inheritance. The column values are provided to the discriminator.
+     *
+     * @param entityClassDiscriminator - the discriminator
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withClassDiscriminator(EntityClassDiscriminator entityClassDiscriminator)
+    {
+        this.entityClassDiscriminator = entityClassDiscriminator;
+        return this;
     }
 
     /**
@@ -155,6 +197,25 @@ public class AggregateEntityBlueprintBuilder
     public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent)
     {
         this.foreignKeyToParent = foreignKeyToParent;
+        return this;
+    }
+
+    /**
+     * Sets the column which is a foreign key to the parent entity.
+     *
+     * If the entity does not have children, then it is not required that this column is mapped to a field on the
+     * entity. However, if it is not mapped, then all rows will be deleted and re-inserted on every save since there
+     * would be no way to map the entities to existing rows. If the entity has children, then the foreign key to
+     * parent must be mapped to a field.
+     *
+     * @param foreignKeyToParent - the foreign key to parent column
+     * @param columnDataType - the column data type for the the foreign key to parent column
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent, Integer columnDataType)
+    {
+        this.foreignKeyToParent = foreignKeyToParent;
+        this.customColumnDataTypes.put(foreignKeyToParent, columnDataType);
         return this;
     }
 
@@ -332,11 +393,11 @@ public class AggregateEntityBlueprintBuilder
     {
         if(parentBuilder == null)
         {
-            throw new PhotonException(String.format("Cannot add entity to field '%s' as a child because it does not have a parent entity.", fieldName));
+            throw new PhotonException(String.format("Cannot add child to field '%s' because there is no parent entity.", fieldName));
         }
         if(StringUtils.isBlank(foreignKeyToParent))
         {
-            throw new PhotonException(String.format("Cannot add entity to parent field '%s' because the entity does not have a foreign key to parent set.", fieldName));
+            throw new PhotonException(String.format("Cannot add child to parent field '%s' because the child does not have a foreign key to parent set.", fieldName));
         }
         parentBuilder.addChild(fieldName, buildEntity());
         return parentBuilder;
@@ -358,6 +419,8 @@ public class AggregateEntityBlueprintBuilder
     {
         return new AggregateEntityBlueprint(
             entityClass,
+            mappedClasses,
+            entityClassDiscriminator,
             tableName,
             idFieldName,
             isPrimaryKeyAutoIncrement,
