@@ -14,6 +14,7 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import java.io.Closeable;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -102,9 +103,35 @@ public class PhotonTransaction implements Closeable
      */
     public void save(Object aggregate)
     {
+        saveWithExcludedFields(aggregate, Collections.emptyList());
+    }
+
+    /**
+     * Save the aggregate instance. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregate - The aggregate instance to save
+     * @param fieldsToExclude - A list of fields that will NOT be saved to the database. Orphaned rows will also
+     *                        not be removed.
+     */
+    public void saveWithExcludedFields(Object aggregate, String... fieldsToExclude)
+    {
+        saveWithExcludedFields(aggregate, Arrays.asList(fieldsToExclude));
+    }
+
+    /**
+     * Save the aggregate instance. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregate - The aggregate instance to save
+     * @param fieldsToExclude - A list of fields that will NOT be saved to the database. Orphaned rows will also
+     *                        not be removed.
+     */
+    public void saveWithExcludedFields(Object aggregate, List<String> fieldsToExclude)
+    {
         verifyConnectionIsAvailable("save", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).save(aggregate);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).save(aggregate, fieldsToExclude);
         hasUncommittedChanges = true;
     }
 
@@ -117,7 +144,7 @@ public class PhotonTransaction implements Closeable
      */
     public <T> void saveAll(T... aggregates)
     {
-        saveAll(Arrays.asList(aggregates));
+        saveAllAndExcludeFields(Arrays.asList(aggregates), null);
     }
 
     /**
@@ -128,13 +155,26 @@ public class PhotonTransaction implements Closeable
      */
     public void saveAll(List<?> aggregates)
     {
+        saveAllAndExcludeFields(aggregates, null);
+    }
+
+    /**
+     * Save a list of aggregate instances. This will perform an update first, then an insert if the entity is not in the
+     * database.
+     *
+     * @param aggregates - The aggregate instances to save
+     * @param fieldsToExclude - A list of fields that will NOT be saved to the database. Orphaned rows will also
+     *                        not be removed.
+     */
+    public void saveAllAndExcludeFields(List<?> aggregates, List<String> fieldsToExclude)
+    {
         verifyConnectionIsAvailable("save", false);
         if(aggregates == null || aggregates.isEmpty())
         {
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).saveAll(aggregates);
+        new PhotonAggregateSave(aggregateBlueprint, connection, photonOptions).saveAll(aggregates, fieldsToExclude);
         hasUncommittedChanges = true;
     }
 
@@ -298,7 +338,7 @@ public class PhotonTransaction implements Closeable
 
         while(aggregateBlueprint == null && superClass != null)
         {
-            superClass = aggregateClass.getSuperclass();
+            superClass = superClass.getSuperclass();
             if(superClass != null)
             {
                 aggregateBlueprint = registeredAggregates.get(superClass);

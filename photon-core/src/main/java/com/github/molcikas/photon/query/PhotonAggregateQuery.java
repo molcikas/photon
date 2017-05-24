@@ -6,6 +6,7 @@ import com.github.molcikas.photon.blueprints.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.ForeignKeyListBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.util.*;
@@ -16,6 +17,7 @@ public class PhotonAggregateQuery<T>
     private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
     private final PhotonOptions photonOptions;
+    private final List<String> excludedFieldPaths;
 
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
@@ -25,6 +27,17 @@ public class PhotonAggregateQuery<T>
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
         this.photonOptions = photonOptions;
+        this.excludedFieldPaths = new ArrayList<>();
+    }
+
+    public PhotonAggregateQuery<T> exclude(String fieldName)
+    {
+        if(StringUtils.isBlank(fieldName))
+        {
+            throw new PhotonException("Excluded field name cannot be blank.");
+        }
+        excludedFieldPaths.add(fieldName);
+        return this;
     }
 
     /**
@@ -99,7 +112,7 @@ public class PhotonAggregateQuery<T>
     {
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
-        for(AggregateEntityBlueprint aggregateEntityBlueprint : aggregateBlueprint.getEntityBlueprints())
+        for(AggregateEntityBlueprint aggregateEntityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths).values())
         {
             ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, aggregateEntityBlueprint, ids, photonQuery);
         }

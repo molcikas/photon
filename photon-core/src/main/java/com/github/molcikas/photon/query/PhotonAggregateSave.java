@@ -4,6 +4,7 @@ import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.util.*;
@@ -26,55 +27,34 @@ public class PhotonAggregateSave
         this.photonOptions = photonOptions;
     }
 
-    /**
-     * Save the aggregate instance. Updates the aggregate first, then performs an insert if the aggregate was not found.
-     *
-     * @param aggregateInstance - The aggregate to save
-     */
-    public void save(Object aggregateInstance)
+    public void save(Object aggregateInstance, List<String> fieldPathsToExclude)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateInstance);
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, false);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, false, fieldPathsToExclude, "");
     }
 
-    /**
-     * Save the aggregate instances. Updates the aggregates first, then performs an insert if the aggregates were not
-     * found.
-     *
-     * @param aggregateInstances - The aggregates to save
-     */
-    public void saveAll(List<?> aggregateInstances)
+    public void saveAll(List<?> aggregateInstances, List<String> fieldPathsToExclude)
     {
         List<PopulatedEntity> aggregateRootEntities =  aggregateInstances
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, false);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, false, fieldPathsToExclude, "");
     }
 
-    /**
-     * Insert an aggregate instance.
-     *
-     * @param aggregateInstance - The aggregate instance to insert
-     */
     public void insert(Object aggregateInstance)
     {
         PopulatedEntity aggregateRootEntity = new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(),  aggregateInstance);
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, true);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), Collections.singletonList(aggregateRootEntity), null, null, true, null, "");
     }
 
-    /**
-     * Inserts a list of entity instances.
-     *
-     * @param aggregateInstances - The aggregate instances to insert.
-     */
     public void insertAll(List<?> aggregateInstances)
     {
         List<PopulatedEntity> aggregateRootEntities =  aggregateInstances
             .stream()
             .map(instance -> new PopulatedEntity(aggregateBlueprint.getAggregateRootEntityBlueprint(), instance))
             .collect(Collectors.toList());
-        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, true);
+        saveEntitiesRecursive(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregateRootEntities, null, null, true, null, "");
     }
 
     private void saveEntitiesRecursive(
@@ -82,11 +62,22 @@ public class PhotonAggregateSave
         List<PopulatedEntity> populatedEntities,
         PopulatedEntity parentPopulatedEntity,
         FieldBlueprint parentFieldBlueprint,
-        boolean isInsert)
+        boolean isInsert,
+        List<String> fieldPathsToExclude,
+        String fieldPath)
     {
         if(populatedEntities == null)
         {
             populatedEntities = Collections.emptyList();
+        }
+        if(fieldPathsToExclude == null)
+        {
+            fieldPathsToExclude = Collections.emptyList();
+        }
+
+        if(fieldPathsToExclude.contains(fieldPath))
+        {
+            return;
         }
 
         if(!isInsert)
@@ -130,8 +121,9 @@ public class PhotonAggregateSave
         {
             for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
             {
+                String childFieldPath = fieldPath + (StringUtils.isBlank(fieldPath) ? "" : ".") + fieldBlueprint.getFieldName();
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint, populatedEntitiesToInsert.contains(populatedEntity));
+                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint, populatedEntitiesToInsert.contains(populatedEntity), fieldPathsToExclude, childFieldPath);
             }
         }
     }

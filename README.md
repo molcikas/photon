@@ -1,15 +1,19 @@
 # Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
-A micro ORM that gives developers control over the SQL executed while also providing an easy way to do basic CRUD operations on entities.
+A micro ORM that gives developers the ability to write complex SELECT statements when performance is critical while also shielding them from having to hand-write routine CRUD SQL.
 
-Traditional ORMs hide the SQL they are executing. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. They usually require the object-to-table mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be structured similarly to the database tables. This prevents them from being modeled purely from the business domain.
+Traditional ORMs hide the SQL they are executing. This often leads to poorly constructed and slow queries that are difficult to diagnose and troubleshoot. They usually require the object-to-table mapping to either be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be modeled after the database tables rather than the business domain.
 
-Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving entities with sub-entities ("aggregates" in DDD terms).
+Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving entities with sub-entities ("[aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)" in DDD terms).
 
-The goal of photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It also allows entities to remain free from the details of how they are persisted.
+The goal of Photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It allows entities to remain free from the details of how they are persisted.
 
-Photon does not have its own query language or query functions. Photon automatically does the selects, inserts, updates, and deletes for your entities based on how you define their shapes. For choosing which entities to select, or when selecting custom read models, you write plain SQL `SELECT` statements.
+Photon does not require you to learn a custom query language or a custom set of query functions. Photon automatically does the selects, inserts, updates, and deletes for your aggregates based on how you define the aggregates. For choosing which rows/aggregates to select, or when selecting custom read models, you write plain SQL `SELECT` statements.
 
 ## Getting Started
+
+### Installation
+
+The latest JAR is available in the [Maven Central Repository](https://mvnrepository.com/artifact/com.github.molcikas/photon-core).
 
 ### Initializing Photon
 
@@ -24,8 +28,7 @@ photon.registerAggregate(Recipe.class)
     .withId("recipeId")
     .withChild(RecipeInstruction.class)
         .withId("recipeInstructionId", Types.BINARY)
-        .withForeignKeyToParent("recipeId")
-        .withDatabaseColumn("recipeId", Types.BINARY)
+        .withForeignKeyToParent("recipeId", Types.BINARY)
         .withOrderBy("stepNumber")
         .addAsChild("instructions")
     .withChild(RecipeIngredient.class)
@@ -56,38 +59,73 @@ try (PhotonTransaction transaction = photon.beginTransaction())
 
 ### Querying and Updating [Aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)
 
-Aggregates must be queried by ID and must be loaded and saved as whole units. Lazy loading is not supported. This helps ensure that the invariants are properly enforced by the aggregate and that the aggregate is not corrupted in the database due to only partially saving it.
+Aggregates are queried by ID and should be loaded and saved as whole units. Lazy loading is not supported. This helps ensure that the invariants are properly enforced by the aggregate and that the aggregate is not corrupted in the database due to only partially saving it.
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
 {
-    MyTable myTable = new MyTable(2, "MySavedValue", null);
+    MyTable myTable = new MyTable(2, "MySavedValue");
     transaction.insert(myTable); // Use "save" instead of "insert" if updating an aggregate.
     transaction.commit();
 }
+```
 
+```java
 try(PhotonTransaction transaction = photon.beginTransaction())
 {
-    MyTable myTableRetrieved = transaction
+    MyTable myTable = transaction
         .query(MyTable.class)
         .fetchById(2);
 
-    assertEquals(2, myTableRetrieved.getId());
-    assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+    return myTable;
 }
 ```
 
-Photon provides an easy interface for fetching aggregates by an IDs query:
+Photon provides an easy interface for fetching aggregates using a `SELECT` statement:
 
 ```java
 List<MyTable> myTables = transaction
     .query(MyTable.class)
+    // Only return aggregates with an id in the result set for this SELECT statement
     .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
     .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
     .fetchList();
 ```
 
-### Read Models using Custom SQL Queries
+While not recommended for most circumstances, Photon does support loading and saving partial aggregates. This can be useful if a simple update is needed and the overhead of loading and re-saving unmodified child entities would cause performance issues. 
+
+```java
+try(PhotonTransaction transaction = photon.beginTransaction())
+{
+    Recipe recipe = transaction
+        .query(Recipe.class)
+        .exclude("ingredients", "instructions") // Do not load the ingredient and instruction lists
+        .fetchById(2);
+
+    recipe.renameTo("Spaghetti and Meatballs");
+    
+    // Do not save the ingredient and instruction lists since we did not load them, otherwise this
+    // recipe would lose all of its ingredients and instructions.
+    transaction.saveWithExcludedFields(recipe, "ingredients", "instructions");
+    
+    transaction.commit();
+}
+```
+
+It can also be useful for creating queries that only retrieve portions of an aggregate.
+
+```java
+try(PhotonTransaction transaction = photon.beginTransaction())
+{
+    Recipe recipe = transaction
+        .query(Recipe.class)
+        .exclude("ingredients") // Do not load the ingredient list
+        .fetchById(2);
+    
+    return recipe;
+```
+    
+### Constructing Read Models using SQL
 
 User interfaces often only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom read models using plain SQL.
 
@@ -104,16 +142,10 @@ try(PhotonTransaction transaction = photon.beginTransaction())
         .query(sql)
         .addParameter("ids", Arrays.asList(2, 4))
         .fetchList(MyTable.class);
-
-    assertEquals(2, myTables.size());
-    assertEquals(4, myTables.get(0).getId());
-    assertEquals("my4dbvalue", myTables.get(0).getMyvalue());
-    assertEquals(2, myTables.get(1).getId());
-    assertEquals("my2dbvalue", myTables.get(1).getMyvalue());
 }
 ```
 
-Query results are automatically mapped to the read model fields by name. Unlike aggregates, view model classes do not need to be pre-registered with Photon.
+Query results are automatically mapped to the read model fields by name. Unlike aggregates, read models do not need to be pre-registered with Photon.
 
 It's also possible to fetch scalar values and lists using plain SQL:
 
@@ -166,9 +198,9 @@ photon.registerAggregate(Shape.class)
 
 ## Sessionless
 
-Photon does not maintain a cache of entities (often referred to as the ORM's "session") and their pending changes ("dirty checking"). Entity instances do not need to attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
+Photon does not maintain any in-memory cache of entities (the "session") that can get stale or consume huge amounts of memory. Entities do not need to be attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
 
-Aggregates are loaded and saved as whole units. Photon does not track pending changes for entities and does not do "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as read models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
+Aggregates should be loaded and saved as whole units (unless this would cause significant performance issues). Photon does not track pending changes for entities and does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as read models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
 
 ## Limitations
 

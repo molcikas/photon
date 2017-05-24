@@ -11,6 +11,7 @@ import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToMa
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class MyOneToManyTableSaveTests
 {
@@ -23,7 +24,7 @@ public class MyOneToManyTableSaveTests
     }
 
     @Test
-    public void aggregate_save_insertWithMultipleChildren_savesEntity()
+    public void aggregateSave_insertWithMultipleChildren_savesEntity()
     {
         registerMyOneToManyTableAggregate();
 
@@ -68,13 +69,11 @@ public class MyOneToManyTableSaveTests
             assertEquals(Integer.valueOf(6), myThirdTable.getId());
             assertEquals(Integer.valueOf(12), myThirdTable.getParent());
             assertEquals("MyThirdTableVal2", myThirdTable.getVal());
-
-            transaction.commit();
         }
     }
 
     @Test
-    public void aggregate_save_deleteEntityWithChildren_savesAggregate()
+    public void aggregateSave_deleteEntityWithChildren_savesAggregate()
     {
         registerMyOneToManyTableAggregate();
 
@@ -111,8 +110,69 @@ public class MyOneToManyTableSaveTests
             assertEquals(Integer.valueOf(3), myThirdTable.getId());
             assertEquals(Integer.valueOf(9), myThirdTable.getParent());
             assertEquals("thirdtableval3", myThirdTable.getVal());
+        }
+    }
 
+    @Test
+    public void aggregateSave_excludeChild_doesNotSaveChild()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            myOneToManyTable.setMyvalue("MyNewValue");
+            myOneToManyTable.getMyManyTables().clear();
+
+            transaction.saveWithExcludedFields(myOneToManyTable, "myManyTables");
             transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTable);
+            assertEquals(Integer.valueOf(6), myOneToManyTable.getId());
+            assertEquals("MyNewValue", myOneToManyTable.getMyvalue());
+            assertEquals(3, myOneToManyTable.getMyManyTables().size());
+        }
+    }
+
+    @Test
+    public void aggregateSave_excludeGrandchild_doesNotSaveGrandchild()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            myOneToManyTable.getMyManyTables().get(2).getMyThirdTables().clear();
+
+            transaction.saveWithExcludedFields(myOneToManyTable, "myManyTables.myThirdTables");
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTable);
+            assertEquals(Integer.valueOf(6), myOneToManyTable.getId());
+            assertEquals(3, myOneToManyTable.getMyManyTables().size());
+
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(2);
+            assertEquals(2, myManyTable.getMyThirdTables().size());
         }
     }
 
@@ -138,7 +198,6 @@ public class MyOneToManyTableSaveTests
                 .fetchById(6);
 
             assertNull(myOneToManyTable);
-            transaction.commit();
         }
     }
 

@@ -33,4 +33,9 @@ public class MyOneToManyTable
         this.myvalue = myvalue;
         this.myManyTables = myManyTables;
     }
+
+    public void setMyvalue(String myvalue)
+    {
+        this.myvalue = myvalue;
+    }
 }
