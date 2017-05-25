@@ -18,7 +18,7 @@ public class PhotonPreparedStatement implements Closeable
 {
     private static final Logger log = LoggerFactory.getLogger(PhotonPreparedStatement.class);
 
-    private class ParameterValue
+    private static class ParameterValue
     {
         public final Object value;
         public final Integer dataType;

@@ -8,7 +8,7 @@ import java.util.Date;
 
 public class LocalDateConverter implements Converter<LocalDate>
 {
-    private final long MILLSECONDS_PER_DAY = 86400000;
+    private static final long MILLSECONDS_PER_DAY = 86400000;
 
     public LocalDate convert(Object val) throws ConverterException
     {
