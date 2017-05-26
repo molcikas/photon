@@ -21,7 +21,7 @@ Construct a `Photon` object with a `DataSource` (which can be retrieved from con
 
 ### Registering Aggregates
 
-Immediately after constructing the `Photon` object, register each aggregate by describing how the root entity and sub entities are mapped to database tables. For example:
+After constructing the `Photon` object, register each aggregate by describing how the root entity and sub entities are mapped to database tables. For example:
 
 ```java
 photon.registerAggregate(Recipe.class)
@@ -33,8 +33,7 @@ photon.registerAggregate(Recipe.class)
         .addAsChild("instructions")
     .withChild(RecipeIngredient.class)
         .withId("recipeIngredientId", Types.BINARY)
-        .withForeignKeyToParent("recipeId")
-        .withDatabaseColumn("recipeId", Types.BINARY)
+        .withForeignKeyToParent("recipeId", Types.BINARY)
         .withDatabaseColumn("quantity", Types.VARCHAR)
         .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
         .withOrderBy("orderBy", ingredientSortDirection)
@@ -42,7 +41,7 @@ photon.registerAggregate(Recipe.class)
     .register();
 ```
 
-By default, each class field (public or private) is mapped to a database column of the same name equivalent data type. Use `withChild()` for child entities that should be mapped to a database table.
+By default, each class field (public or private) is mapped to a database column of the same name and equivalent data type. Use `withChild()` for child entities that should be mapped to a database table.
 
 ### Creating and Committing Transactions
 
@@ -87,7 +86,7 @@ Photon provides an easy interface for fetching aggregates using a `SELECT` state
 List<MyTable> myTables = transaction
     .query(MyTable.class)
     // Only return aggregates with an id in the result set for this SELECT statement
-    .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
+    .whereIdIn("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
     .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
     .fetchList();
 ```

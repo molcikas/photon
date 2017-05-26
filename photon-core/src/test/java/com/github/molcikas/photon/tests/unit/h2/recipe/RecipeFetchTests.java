@@ -176,7 +176,7 @@ public class RecipeFetchTests
     }
 
     @Test
-    public void aggregate_fetchByIdsQuery_recipesWithMoreThan3Steps_returnsCorrectRecipes()
+    public void aggregate_whereIdIn_recipesWithMoreThan3Steps_returnsCorrectRecipes()
     {
         RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
 
@@ -184,7 +184,7 @@ public class RecipeFetchTests
         {
             List<Recipe> recipes = transaction
                 .query(Recipe.class)
-                .fetchByIdsQuery("SELECT r.recipeId FROM recipe r JOIN recipeinstruction i ON i.recipeId = r.recipeId GROUP BY r.recipeId HAVING COUNT(*) > :instructionCount")
+                .whereIdIn("SELECT r.recipeId FROM recipe r JOIN recipeinstruction i ON i.recipeId = r.recipeId GROUP BY r.recipeId HAVING COUNT(*) > :instructionCount")
                 .addParameter("instructionCount", 3)
                 .fetchList();
 

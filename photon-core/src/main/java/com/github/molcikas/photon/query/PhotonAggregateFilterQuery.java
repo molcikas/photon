@@ -4,46 +4,40 @@ import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.SqlBuilderApplyOptionsService;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
 import java.sql.Connection;
 import java.util.List;
 
-public class PhotonAggregateIdsQuery<T>
+public class PhotonAggregateFilterQuery<T>
 {
     private final PhotonAggregateQuery<T> photonAggregateQuery;
     private final PhotonQuery photonQuery;
+    private final boolean isQueryIdsOnly;
 
-    public PhotonAggregateIdsQuery(
+    PhotonAggregateFilterQuery(
         AggregateBlueprint<T> aggregateBlueprint,
-        String selectIdsSql,
+        String selectSql,
         boolean isWhereClauseOnly,
         Connection connection,
         PhotonOptions photonOptions,
         PhotonAggregateQuery<T> photonAggregateQuery)
     {
-        if(StringUtils.isBlank(selectIdsSql))
+        if(StringUtils.isBlank(selectSql))
         {
-            throw new PhotonException("Photon aggregate SELECT by ids SQL cannot be blank.");
+            throw new PhotonException("Photon aggregate SELECT SQL cannot be blank.");
         }
 
         this.photonAggregateQuery = photonAggregateQuery;
-
-        AggregateEntityBlueprint aggregateEntityBlueprint = aggregateBlueprint.getAggregateRootEntityBlueprint();
+        this.isQueryIdsOnly = !isWhereClauseOnly;
 
         if(isWhereClauseOnly)
         {
-            selectIdsSql = String.format(
-                "SELECT [%s] FROM [%s] WHERE %s",
-                aggregateEntityBlueprint.getPrimaryKeyColumnName(),
-                aggregateEntityBlueprint.getTableName(),
-                selectIdsSql
-            );
-            selectIdsSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectIdsSql, photonOptions);
+            selectSql = String.format(aggregateBlueprint.getAggregateRootEntityBlueprint().getSelectWhereSql(), selectSql);
+            selectSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectSql, photonOptions);
         }
 
-        this.photonQuery = new PhotonQuery(selectIdsSql, false, connection, photonOptions, null);
+        this.photonQuery = new PhotonQuery(selectSql, false, connection, photonOptions, null);
     }
 
     /**
@@ -53,29 +47,43 @@ public class PhotonAggregateIdsQuery<T>
      * @param value - The parameter value
      * @return - The photon query (for chaining)
      */
-    public PhotonAggregateIdsQuery<T> addParameter(String parameter, Object value)
+    public PhotonAggregateFilterQuery<T> addParameter(String parameter, Object value)
     {
         photonQuery.addParameter(parameter, value);
         return this;
     }
 
     /**
-     * Execute the query and use the first id in the result to query for the aggregate.
+     * Execute the query and use the first id in the result set to query for the aggregate.
      *
      * @return - The aggregate instance
      */
     public T fetch()
     {
-        return photonAggregateQuery.fetchByIdsQuery(photonQuery);
+        if(isQueryIdsOnly)
+        {
+            return photonAggregateQuery.fetchByIdsQuery(photonQuery);
+        }
+        else
+        {
+            return photonAggregateQuery.fetchByQuery(photonQuery);
+        }
     }
 
     /**
-     * Execute the query and use the ids in the result to query for aggregates.
+     * Execute the query and use the ids in the result set to query for aggregates.
      *
      * @return - The aggregate instances
      */
     public List<T> fetchList()
     {
-        return photonAggregateQuery.fetchListByIdsQuery(photonQuery);
+        if(isQueryIdsOnly)
+        {
+            return photonAggregateQuery.fetchListByIdsQuery(photonQuery);
+        }
+        else
+        {
+            return photonAggregateQuery.fetchListByQuery(photonQuery);
+        }
     }
 }

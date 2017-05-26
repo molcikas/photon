@@ -33,19 +33,8 @@ public class SelectSqlBuilderService
         List<AggregateEntityBlueprint> parentEntityBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
-        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
-
-        buildSelectClauseSql(sqlBuilder, entityBlueprint);
-        buildFromClauseSql(sqlBuilder, entityBlueprint);
-        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
-        buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
-        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
-
-        String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Select Sql:\n" + sql);
-        entityBlueprint.setSelectSql(sql);
-
+        buildSelectSql(entityBlueprint, aggregateRootEntityBlueprint, parentEntityBlueprints, photonOptions);
+        buildSelectWhereSql(entityBlueprint, aggregateRootEntityBlueprint, parentEntityBlueprints, photonOptions);
         buildSelectOrphansSql(entityBlueprint, photonOptions);
         entityBlueprint.getForeignKeyListFields().forEach(e -> this.buildSelectKeysFromForeignTableSql(e, photonOptions));
 
@@ -60,6 +49,46 @@ public class SelectSqlBuilderService
                 childParentEntityBlueprints,
                 photonOptions
             ));
+    }
+
+    private void buildSelectSql(
+        AggregateEntityBlueprint entityBlueprint,
+        AggregateEntityBlueprint aggregateRootEntityBlueprint,
+        List<AggregateEntityBlueprint> parentEntityBlueprints,
+        PhotonOptions photonOptions)
+    {
+        int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
+        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
+
+        buildSelectClauseSql(sqlBuilder, entityBlueprint);
+        buildFromClauseSql(sqlBuilder, entityBlueprint);
+        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+        buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
+        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+
+        String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
+        log.debug("Select Sql:\n" + sql);
+        entityBlueprint.setSelectSql(sql);
+    }
+
+    private void buildSelectWhereSql(
+        AggregateEntityBlueprint entityBlueprint,
+        AggregateEntityBlueprint aggregateRootEntityBlueprint,
+        List<AggregateEntityBlueprint> parentEntityBlueprints,
+        PhotonOptions photonOptions)
+    {
+        int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
+        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
+
+        buildSelectClauseSql(sqlBuilder, entityBlueprint);
+        buildFromClauseSql(sqlBuilder, entityBlueprint);
+        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+        buildOpenWhereClauseSql(sqlBuilder);
+        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+
+        String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
+        log.debug("Select Where Sql:\n" + sql);
+        entityBlueprint.setSelectWhereSql(sql);
     }
 
     private void buildSelectClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
@@ -88,6 +117,11 @@ public class SelectSqlBuilderService
             aggregateRootEntityBlueprint.getPrimaryKeyColumnName(),
             "%s"
         ));
+    }
+
+    private void buildOpenWhereClauseSql(StringBuilder sqlBuilder)
+    {
+        sqlBuilder.append("\nWHERE (%s)");
     }
 
     private void buildOrderBySql(

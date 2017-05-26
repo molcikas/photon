@@ -48,7 +48,7 @@ public class PhotonAggregateQuery<T>
      */
     public T fetchById(Object id)
     {
-        List<T> populatedAggregateRoots = getPopulatedAggregateRoots(Collections.singletonList(id), null);
+        List<T> populatedAggregateRoots = getPopulatedAggregateRoots(Collections.singletonList(id), null, false);
         return populatedAggregateRoots.isEmpty() ? null : populatedAggregateRoots.get(0);
     }
 
@@ -71,50 +71,61 @@ public class PhotonAggregateQuery<T>
      */
     public List<T> fetchByIds(List<?> ids)
     {
-        return getPopulatedAggregateRoots(ids, null);
+        return getPopulatedAggregateRoots(ids, null, false);
     }
 
     /**
      * Fetch a list of aggregates from a query that selects a list of ids.
      *
-     * @param selectIdsSql - The parameterized SQL query for selecting a list of ids
-     * @return - An ids query object that can be executed to return a list of aggregates
+     * @param selectSql - The parameterized SQL query for selecting a list of ids
+     * @return - A filter query object that can be executed to return a list of aggregate ids to fetch
      */
-    public PhotonAggregateIdsQuery<T> fetchByIdsQuery(String selectIdsSql)
+    public PhotonAggregateFilterQuery<T> whereIdIn(String selectSql)
     {
-        return new PhotonAggregateIdsQuery<>(aggregateBlueprint, selectIdsSql, false, connection, photonOptions, this);
+        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, selectSql, false, connection, photonOptions, this);
     }
 
     /**
-     * Fetch a list of aggregates from a query that selects a list of ids. Only the where clause needs be specified,
+     * Fetch a list of aggregates that meet a specified set of conditions. Only the WHERE clause needs to be specified,
      * not including the WHERE keyword.
      *
-     * @param whereClause - The where clause for a parameterized SQL query for selecting a list of ids
-     * @return - An ids query object that can be executed to return a list of aggregates
+     * @param whereClause - The where clause for a parameterized SQL query
+     * @return - A filter query object that can be executed to return a list of aggregates
      */
-    public PhotonAggregateIdsQuery<T> where(String whereClause)
+    public PhotonAggregateFilterQuery<T> where(String whereClause)
     {
-        return new PhotonAggregateIdsQuery<>(aggregateBlueprint, whereClause, true, connection, photonOptions, this);
+        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, whereClause, true, connection, photonOptions, this);
     }
 
     T fetchByIdsQuery(PhotonQuery photonQuery)
     {
-        List<T> populatedAggregateRoots =  getPopulatedAggregateRoots(null, photonQuery);
+        List<T> populatedAggregateRoots =  getPopulatedAggregateRoots(null, photonQuery, true);
+        return populatedAggregateRoots.isEmpty() ? null : populatedAggregateRoots.get(0);
+    }
+
+    T fetchByQuery(PhotonQuery photonQuery)
+    {
+        List<T> populatedAggregateRoots =  getPopulatedAggregateRoots(null, photonQuery, false);
         return populatedAggregateRoots.isEmpty() ? null : populatedAggregateRoots.get(0);
     }
 
     List<T> fetchListByIdsQuery(PhotonQuery photonQuery)
     {
-        return getPopulatedAggregateRoots(null, photonQuery);
+        return getPopulatedAggregateRoots(null, photonQuery, true);
     }
 
-    private List<T> getPopulatedAggregateRoots(List<?> ids, PhotonQuery photonQuery)
+    List<T> fetchListByQuery(PhotonQuery photonQuery)
+    {
+        return getPopulatedAggregateRoots(null, photonQuery, false);
+    }
+
+    private List<T> getPopulatedAggregateRoots(List<?> ids, PhotonQuery photonQuery, boolean isQueryIdsOnly)
     {
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
         for(AggregateEntityBlueprint aggregateEntityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths).values())
         {
-            ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, aggregateEntityBlueprint, ids, photonQuery);
+            ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, aggregateEntityBlueprint, ids, photonQuery, isQueryIdsOnly);
         }
 
         populatedEntityMap.mapAllEntityInstanceChildren();
@@ -130,7 +141,8 @@ public class PhotonAggregateQuery<T>
         PopulatedEntityMap populatedEntityMap,
         AggregateEntityBlueprint entityBlueprint,
         List<?> ids,
-        PhotonQuery photonQuery)
+        PhotonQuery photonQuery,
+        boolean isQueryIdsOnly)
     {
         List<PhotonQueryResultRow> queryResultRows;
 
@@ -149,7 +161,15 @@ public class PhotonAggregateQuery<T>
         }
         else if(photonQuery != null)
         {
-            String selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+            String selectSql;
+            if(isQueryIdsOnly)
+            {
+                selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+            }
+            else
+            {
+                selectSql = photonQuery.getSqlTextWithQuestionMarks();
+            }
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
             {
                 for(PhotonSqlParameter photonSqlParameter : photonQuery.getParameters())

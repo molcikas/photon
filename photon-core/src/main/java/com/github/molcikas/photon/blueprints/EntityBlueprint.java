@@ -25,6 +25,7 @@ public class EntityBlueprint
     protected ColumnBlueprint primaryKeyColumn;
 
     protected String selectSql;
+    protected String selectWhereSql;
     protected String updateSql;
     protected String insertSql;
     protected String deleteSql;
@@ -63,6 +64,11 @@ public class EntityBlueprint
     public String getSelectSql()
     {
         return selectSql;
+    }
+
+    public String getSelectWhereSql()
+    {
+        return selectWhereSql;
     }
 
     public String getUpdateSql()
@@ -233,6 +239,15 @@ public class EntityBlueprint
             throw new PhotonException("Select SQL cannot be blank.");
         }
         this.selectSql = selectSql;
+    }
+
+    public void setSelectWhereSql(String selectWhereSql)
+    {
+        if(StringUtils.isBlank(selectWhereSql))
+        {
+            throw new PhotonException("Select Where SQL cannot be blank.");
+        }
+        this.selectWhereSql = selectWhereSql;
     }
 
     public void setUpdateSql(String updateSql)

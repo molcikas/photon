@@ -276,7 +276,7 @@ public class MyTableFetchTests
         {
             List<MyTable> myTables = transaction
                 .query(MyTable.class)
-                .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue = :myothervalue1 OR myothervalue = :myothervalue2")
+                .whereIdIn("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue = :myothervalue1 OR myothervalue = :myothervalue2")
                 .addParameter("myothervalue1", "my4otherdbvalue")
                 .addParameter("myothervalue2", "my5otherdbvalue")
                 .fetchList();
@@ -299,7 +299,7 @@ public class MyTableFetchTests
         {
             List<MyTable> myTables = transaction
                 .query(MyTable.class)
-                .fetchByIdsQuery("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
+                .whereIdIn("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
                 .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
                 .fetchList();
 
