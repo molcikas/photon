@@ -133,7 +133,7 @@ public class PhotonAggregateQuery<T>
         return populatedEntityMap
             .getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass())
             .stream()
-            .map(pe -> (T) pe.getEntityInstance())
+            .map(pe -> (T) pe.constructInstance())
             .collect(Collectors.toList());
     }
 
@@ -209,7 +209,7 @@ public class PhotonAggregateQuery<T>
             {
                 statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
                 List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
-                populatedEntityMap.setFieldValuesOnEntityInstances(queryResultRows, fieldBlueprint, entityBlueprint);
+                populatedEntityMap.setFieldValuesOnEntities(queryResultRows, fieldBlueprint, entityBlueprint);
             }
         }
     }

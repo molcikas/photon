@@ -15,18 +15,14 @@ public class PopulatedEntity<T>
 {
     private final EntityBlueprint entityBlueprint;
     private final AggregateEntityBlueprint aggregateEntityBlueprint;
-    private T entityInstance;
+    private T existingEntityInstance;
+    private Map<String, Object> entityValues;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
 
     public EntityBlueprint getEntityBlueprint()
     {
         return entityBlueprint;
-    }
-
-    public T getEntityInstance()
-    {
-        return entityInstance;
     }
 
     public Object getPrimaryKeyValue()
@@ -50,10 +46,11 @@ public class PopulatedEntity<T>
         {
             this.aggregateEntityBlueprint = null;
         }
-        constructOrphanEntityInstance(queryResultRow);
+
+        extractValues(queryResultRow);
     }
 
-    public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
+    public PopulatedEntity(EntityBlueprint entityBlueprint, T existingEntityInstance)
     {
         this.entityBlueprint = entityBlueprint;
         if(AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
@@ -64,66 +61,61 @@ public class PopulatedEntity<T>
         {
             this.aggregateEntityBlueprint = null;
         }
-        this.entityInstance = entityInstance;
-        this.primaryKeyValue = getInstanceValue(entityBlueprint.getPrimaryKeyColumn());
+        this.existingEntityInstance = existingEntityInstance;
 
-        if(aggregateEntityBlueprint != null)
-        {
-            this.foreignKeyToParentValue = getInstanceValue(aggregateEntityBlueprint.getForeignKeyToParentColumn());
-        }
+        extractValues(existingEntityInstance);
     }
 
-    public Object getInstanceValue(ColumnBlueprint columnBlueprint)
+    public T constructInstance()
     {
-        if(columnBlueprint == null)
+        T entityInstance;
+        Constructor<T> constructor = entityBlueprint.getEntityConstructor(entityValues);
+
+        try
         {
-            return null;
+            entityInstance = constructor.newInstance();
+        }
+        catch (Exception ex)
+        {
+            throw new RuntimeException(ex);
         }
 
-        return getInstanceValue(columnBlueprint.getMappedFieldBlueprint());
+        for (FieldBlueprint fieldBlueprint : entityBlueprint.getFields())
+        {
+            Object value = getEntityValue(fieldBlueprint);
+            if(value != null)
+            {
+                setInstanceFieldToValue(entityInstance, fieldBlueprint, value);
+            }
+        }
+
+        // TODO: Move this to extractValues()???
+//        if(aggregateEntityBlueprint != null)
+//        {
+//            for (FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getForeignKeyListFields())
+//            {
+//                Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
+//                setInstanceFieldToValue(entityInstance, fieldBlueprint, fieldCollection);
+//            }
+//        }
+
+        return entityInstance;
     }
 
-    public Object getInstanceValue(FieldBlueprint fieldBlueprint)
+    public Object getEntityValue(FieldBlueprint fieldBlueprint)
     {
         if(fieldBlueprint == null)
         {
             return null;
         }
 
-        if(fieldBlueprint.getEntityFieldValueMapping() != null)
-        {
-            return fieldBlueprint.getEntityFieldValueMapping().getFieldValueFromEntityInstance(entityInstance);
-        }
-
-        Exception thrownException;
-
-        try
-        {
-            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-            return field.get(entityInstance);
-        }
-        catch(IllegalArgumentException ex)
-        {
-            if(ex.getMessage().startsWith("Can not set"))
-            {
-                // If the field is not in the instance, it's probably because the entity blueprint contains multiple
-                // sub-classes with different fields, and this field is not in this sub-class.
-                return null;
-            }
-            thrownException = ex;
-        }
-        catch(Exception ex)
-        {
-            thrownException = ex;
-        }
-
-        throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), thrownException);
+        return entityValues.get(fieldBlueprint.getFieldName());
     }
 
     public List<PopulatedEntity> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
     {
         Collection childEntityInstances;
-        Object fieldValue = getInstanceValue(fieldBlueprint);
+        Object fieldValue = getEntityValue(fieldBlueprint);
 
         if(fieldValue == null)
         {
@@ -146,7 +138,14 @@ public class PopulatedEntity<T>
 
     public void setPrimaryKeyValue(Object primaryKeyValue)
     {
-        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+        checkAndSetColumnValues(entityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+        FieldBlueprint fieldBlueprint = entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint();
+        entityValues.put(fieldBlueprint.getFieldName(), primaryKeyValue);
+        if(existingEntityInstance != null)
+        {
+            Object value = extractValue(entityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+            setInstanceFieldToValue(existingEntityInstance, fieldBlueprint, value);
+        }
     }
 
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
@@ -157,7 +156,17 @@ public class PopulatedEntity<T>
         }
         AggregateEntityBlueprint aggregateEntityBlueprint = (AggregateEntityBlueprint) this.entityBlueprint;
 
-        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        checkAndSetColumnValues(aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        FieldBlueprint fieldBlueprint = aggregateEntityBlueprint.getForeignKeyToParentColumn().getMappedFieldBlueprint();
+        if(fieldBlueprint != null)
+        {
+            entityValues.put(fieldBlueprint.getFieldName(), foreignKeyToParentValue);
+            if(existingEntityInstance != null)
+            {
+                Object value = extractValue(aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+                setInstanceFieldToValue(existingEntityInstance, fieldBlueprint, value);
+            }
+        }
     }
 
     public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
@@ -167,7 +176,7 @@ public class PopulatedEntity<T>
             throw new PhotonException(String.format("Field '%s' is not a foreign key list field.", fieldBlueprint.getFieldName()));
         }
 
-        Object fieldCollection = getInstanceValue(fieldBlueprint);
+        Object fieldCollection = getEntityValue(fieldBlueprint);
 
         Converter converter = Convert.getConverterIfExists(fieldBlueprint.getForeignKeyListBlueprint().getFieldListItemClass());
         Object fieldValue = converter.convert(value);
@@ -191,31 +200,14 @@ public class PopulatedEntity<T>
             {
                 Collection collection = createCompatibleCollection(fieldBlueprint.getFieldClass());
                 populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
-
-                try
-                {
-                    Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                    field.set(entityInstance, collection);
-                }
-                catch(Exception ex)
-                {
-                    throw new PhotonException(String.format("Error setting collection field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
-                }
+                entityValues.put(fieldBlueprint.getFieldName(), collection);
             }
             else if(fieldBlueprint.getFieldClass().equals(fieldBlueprint.getChildEntityBlueprint().getEntityClass()))
             {
                 Object childInstance = populatedEntityMap.getNextInstanceWithClassAndForeignKeyToParent(childEntityClass, primaryKey);
                 if(childInstance != null)
                 {
-                    try
-                    {
-                        Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                        field.set(entityInstance, childInstance);
-                    }
-                    catch (Exception ex)
-                    {
-                        throw new PhotonException(String.format("Error setting one-to-one field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), ex);
-                    }
+                    entityValues.put(fieldBlueprint.getFieldName(), childInstance);
                 }
             }
         }
@@ -243,7 +235,7 @@ public class PopulatedEntity<T>
 
             if (fieldBlueprint != null)
             {
-                fieldValue = getInstanceValue(fieldBlueprint);
+                fieldValue = getEntityValue(fieldBlueprint);
                 customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
             }
             else if (columnBlueprint.isForeignKeyToParentColumn())
@@ -285,7 +277,7 @@ public class PopulatedEntity<T>
 
             if(fieldBlueprint != null)
             {
-                fieldValue = getInstanceValue(fieldBlueprint);
+                fieldValue = getEntityValue(fieldBlueprint);
                 customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
             }
             else if(columnBlueprint.isForeignKeyToParentColumn())
@@ -309,38 +301,51 @@ public class PopulatedEntity<T>
         }
     }
 
-    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
+    private void extractValues(T entityInstance)
     {
-        Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
+        this.entityValues = new HashMap<>();
 
-        try
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFields())
         {
-            entityInstance = constructor.newInstance();
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException(ex);
-        }
+            Object value = extractValue(fieldBlueprint, entityInstance);
 
-        for(Map.Entry<String, Object> entry : queryResultRow.getValues())
-        {
-            setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue());
-        }
-
-        if(aggregateEntityBlueprint != null)
-        {
-            for (FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getForeignKeyListFields())
+            if(fieldBlueprint.equals(entityBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint()))
             {
-                Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
-                setInstanceFieldToValue(fieldBlueprint, fieldCollection);
+                primaryKeyValue = value;
             }
+            if(aggregateEntityBlueprint != null &&
+                aggregateEntityBlueprint.getForeignKeyToParentColumn() != null &&
+                fieldBlueprint.equals(aggregateEntityBlueprint.getForeignKeyToParentColumn().getMappedFieldBlueprint()))
+            {
+                foreignKeyToParentValue = value;
+            }
+            this.entityValues.put(fieldBlueprint.getFieldName(), value);
         }
     }
 
-    private void setInstanceFieldToDatabaseValue(String columnName, Object databaseValue)
+    private void extractValues(PhotonQueryResultRow photonQueryResultRow)
     {
-        FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
+        this.entityValues = new HashMap<>();
 
+        for(Map.Entry<String, Object> entry : photonQueryResultRow.getValues())
+        {
+            String columnName = entry.getKey();
+            Object databaseValue = entry.getValue();
+            checkAndSetColumnValues(columnName, databaseValue);
+
+            FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
+            if(fieldBlueprint == null)
+            {
+                continue;
+            }
+
+            Object value = extractValue(columnName, databaseValue);
+            this.entityValues.put(fieldBlueprint.getFieldName(), value);
+        }
+    }
+
+    private void checkAndSetColumnValues(String columnName, Object databaseValue)
+    {
         if(StringUtils.equals(columnName, entityBlueprint.getPrimaryKeyColumnName()))
         {
             primaryKeyValue = databaseValue;
@@ -349,10 +354,47 @@ public class PopulatedEntity<T>
         {
             foreignKeyToParentValue = databaseValue;
         }
+    }
+
+    private Object extractValue(FieldBlueprint fieldBlueprint, T entityInstance)
+    {
+        if(fieldBlueprint.getEntityFieldValueMapping() != null)
+        {
+            return fieldBlueprint.getEntityFieldValueMapping().getFieldValue(entityValues);
+        }
+
+        Exception thrownException;
+
+        try
+        {
+            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+            return field.get(entityInstance);
+        }
+        catch(IllegalArgumentException ex)
+        {
+            if(ex.getMessage().startsWith("Can not set"))
+            {
+                // If the field is not in the instance, it's probably because the entity blueprint contains multiple
+                // sub-classes with different fields, and this field is not in this sub-class.
+                return null;
+            }
+            thrownException = ex;
+        }
+        catch(Exception ex)
+        {
+            thrownException = ex;
+        }
+
+        throw new PhotonException(String.format("Error getting value for field '%s' on entity '%s'.", fieldBlueprint.getFieldName(), entityBlueprint.getEntityClassName()), thrownException);
+    }
+
+    private Object extractValue(String columnName, Object databaseValue)
+    {
+        FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
 
         if(fieldBlueprint == null)
         {
-            return;
+            return null;
         }
 
         Converter converter = fieldBlueprint.getCustomToFieldValueConverter();
@@ -365,26 +407,18 @@ public class PopulatedEntity<T>
         {
             // If we don't know how to convert the database value to a field value, then don't try setting the field on the entity instance
             // unless the field has a custom field value mapping (in which case the mapping class will get the database value).
-            return;
+            return null;
         }
 
-        Object fieldValue = converter != null ? converter.convert(databaseValue) : databaseValue;
-        setInstanceFieldToValue(fieldBlueprint, fieldValue);
+        return converter != null ? converter.convert(databaseValue) : databaseValue;
     }
 
-    private void setInstanceFieldToValue(FieldBlueprint fieldBlueprint, Object value)
+    private void setInstanceFieldToValue(T entityInstance, FieldBlueprint fieldBlueprint, Object value)
     {
         try
         {
-            if(fieldBlueprint.getEntityFieldValueMapping() != null)
-            {
-                fieldBlueprint.getEntityFieldValueMapping().setFieldValueOnEntityInstance(entityInstance, value);
-            }
-            else
-            {
-                Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                field.set(entityInstance, value);
-            }
+            Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+            field.set(entityInstance, value);
         }
         catch (Exception ex)
         {

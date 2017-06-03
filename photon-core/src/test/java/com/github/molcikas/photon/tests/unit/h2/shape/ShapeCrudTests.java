@@ -75,9 +75,9 @@ public class ShapeCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(2, "blue", 4);
+            Circle circle = new Circle(3, "blue", 4);
 
-            transaction.save(circle);
+            transaction.insert(circle);
             transaction.commit();
         }
 
@@ -85,11 +85,11 @@ public class ShapeCrudTests
         {
             Shape shape = transaction
                 .query(Shape.class)
-                .fetchById(2);
+                .fetchById(3);
 
             assertNotNull(shape);
             assertEquals(Circle.class, shape.getClass());
-            assertEquals(Integer.valueOf(2), shape.getId());
+            assertEquals(Integer.valueOf(3), shape.getId());
             assertEquals("blue", shape.getColor());
             assertEquals(4, ((Circle) shape).getRadius());
         }

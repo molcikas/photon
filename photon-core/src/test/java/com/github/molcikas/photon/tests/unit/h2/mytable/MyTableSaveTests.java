@@ -461,31 +461,31 @@ public class MyTableSaveTests
             .withId("id")
             .withPrimaryKeyAutoIncrement()
             .withIgnoredField("myvalue")
-            .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
-                {
-                    @Override
-                    public String getFieldValueFromEntityInstance(MyTable entityInstance)
-                    {
-                        return entityInstance.getMyOtherTable().getMyOtherValueWithDiffName();
-                    }
-
-                    @Override
-                    public void setFieldValueOnEntityInstance(MyTable entityInstance, String value)
-                    {
-                        try
-                        {
-                            MyOtherTable myOtherTable = new MyOtherTable(0, value);
-                            Field field = MyTable.class.getDeclaredField("myOtherTable");
-                            field.setAccessible(true);
-                            field.set(entityInstance, myOtherTable);
-                        }
-                        catch(Exception ex)
-                        {
-                            throw new RuntimeException(ex);
-                        }
-                    }
-                }
-            )
+//            .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
+//                {
+//                    @Override
+//                    public String getFieldValue(MyTable entityInstance)
+//                    {
+//                        return entityInstance.getMyOtherTable().getMyOtherValueWithDiffName();
+//                    }
+//
+//                    @Override
+//                    public void setFieldValue(MyTable entityInstance, String value)
+//                    {
+//                        try
+//                        {
+//                            MyOtherTable myOtherTable = new MyOtherTable(0, value);
+//                            Field field = MyTable.class.getDeclaredField("myOtherTable");
+//                            field.setAccessible(true);
+//                            field.set(entityInstance, myOtherTable);
+//                        }
+//                        catch(Exception ex)
+//                        {
+//                            throw new RuntimeException(ex);
+//                        }
+//                    }
+//                }
+//            )
             .register();
     }
 }

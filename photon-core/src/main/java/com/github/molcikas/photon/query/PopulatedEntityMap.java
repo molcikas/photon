@@ -51,7 +51,7 @@ public class PopulatedEntityMap
         }
         while (index < populatedEntities.size() && keysAreEqual(key, populatedEntities.get(index).getForeignKeyToParentValue()))
         {
-            collection.add(populatedEntities.get(index).getEntityInstance());
+            collection.add(populatedEntities.get(index).constructInstance());
             index++;
         }
         childIndexes.put(entityClass, index);
@@ -72,7 +72,7 @@ public class PopulatedEntityMap
         if (index < populatedEntities.size() && keysAreEqual(foreignKeyToParentValue, populatedEntities.get(index).getForeignKeyToParentValue()))
         {
             childIndexes.put(entityClass, index + 1);
-            return populatedEntities.get(index).getEntityInstance();
+            return populatedEntities.get(index).constructInstance();
         }
         return null;
     }
@@ -84,7 +84,7 @@ public class PopulatedEntityMap
             .forEach(populatedEntities -> populatedEntities.forEach(populatedEntity -> populatedEntity.mapEntityInstanceChildren(this)));
     }
 
-    public void setFieldValuesOnEntityInstances(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
+    public void setFieldValuesOnEntities(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
     {
         ColumnBlueprint primaryKeyColumn = entityBlueprint.getPrimaryKeyColumn();
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());

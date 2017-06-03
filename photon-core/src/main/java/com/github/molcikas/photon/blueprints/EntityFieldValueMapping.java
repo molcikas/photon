@@ -1,7 +1,9 @@
 package com.github.molcikas.photon.blueprints;
 
-public interface EntityFieldValueMapping<E, F>
+import java.util.Map;
+
+public interface EntityFieldValueMapping<T>
 {
-    F getFieldValueFromEntityInstance(E entityInstance);
-    void setFieldValueOnEntityInstance(E entityInstance, F fieldValue);
+    T getFieldValue(Map<String, Object> entityValues);
+    void setFieldValue(Map<String, Object> entityValues, T fieldValue);
 }

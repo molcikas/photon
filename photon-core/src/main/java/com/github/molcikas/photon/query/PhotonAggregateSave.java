@@ -337,7 +337,7 @@ public class PhotonAggregateSave
                         databaseForeignKeyListValuesForEntity = Collections.emptyList();
                     }
                     final Collection databaseForeignKeyListValuesForEntityFinal = databaseForeignKeyListValuesForEntity;
-                    Collection currentForeignKeyListValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint);
+                    Collection currentForeignKeyListValues = (Collection) populatedEntity.getEntityValue(fieldBlueprint);
                     if(currentForeignKeyListValues == null)
                     {
                         currentForeignKeyListValues = Collections.emptyList();

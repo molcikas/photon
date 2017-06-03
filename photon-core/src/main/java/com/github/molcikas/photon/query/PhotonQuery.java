@@ -238,7 +238,7 @@ public class PhotonQuery
 
         return populatedEntities
             .stream()
-            .map(PopulatedEntity::getEntityInstance)
+            .map(PopulatedEntity::constructInstance)
             .collect(Collectors.toList());
     }
 
