@@ -22,6 +22,7 @@ public class EntityBlueprintConstructorService
         List<MappedClassBlueprint> mappedClasses,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
+        Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
@@ -31,6 +32,7 @@ public class EntityBlueprintConstructorService
         final List<String> ignoredFieldsFinal = ignoredFields != null ? ignoredFields : Collections.emptyList();
         final Map<String, EntityFieldValueMapping> customDatabaseColumnsFinal = customDatabaseColumns != null ? customDatabaseColumns : new HashMap<>();
         final Map<String, String> customFieldToColumnMappingsFinal = customFieldToColumnMappings != null ? customFieldToColumnMappings : new HashMap<>();
+        final Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumnsFinal = customCompoundDatabaseColumns != null ? customCompoundDatabaseColumns : new HashMap<>();
         final Map<String, AggregateEntityBlueprint> childEntitiesFinal = childEntities != null ? childEntities : new HashMap<>();
         final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
         final Map<String, Converter> customToFieldValueConvertersFinal = customToFieldValueConverters != null ? customToFieldValueConverters : new HashMap<>();
@@ -56,12 +58,13 @@ public class EntityBlueprintConstructorService
             .filter(entry -> !ignoredFieldsFinal.contains(entry.getValue().getName()))
             .map(entry -> new FieldBlueprint(
                 entry.getValue(),
-                customFieldToColumnMappingsFinal.containsKey(entry.getValue().getName()) ?
+                Collections.singletonList(customFieldToColumnMappingsFinal.containsKey(entry.getValue().getName()) ?
                     customFieldToColumnMappingsFinal.get(entry.getValue().getName()) :
-                    entry.getValue().getName(),
+                    entry.getValue().getName()),
                 childEntitiesFinal.get(entry.getValue().getName()),
                 foreignKeyListBlueprintsFinal.get(entry.getValue().getName()),
                 customToFieldValueConvertersFinal.get(entry.getValue().getName()),
+                null,
                 null
             ))
             .collect(Collectors.toList());
@@ -71,7 +74,23 @@ public class EntityBlueprintConstructorService
                 .stream()
                 .map(e -> new FieldBlueprint(
                     null,
+                    Collections.singletonList(e.getKey()),
+                    null,
+                    null,
+                    null,
+                    e.getValue(),
+                    null
+                ))
+                .collect(Collectors.toList())
+        );
+
+        fields.addAll(
+            customCompoundDatabaseColumnsFinal.entrySet()
+                .stream()
+                .map(e -> new FieldBlueprint(
+                    null,
                     e.getKey(),
+                    null,
                     null,
                     null,
                     null,
@@ -111,24 +130,28 @@ public class EntityBlueprintConstructorService
         for(FieldBlueprint fieldBlueprint : fieldsWithColumnMappings)
         {
             String fieldName = fieldBlueprint.getFieldName();
-            String columnName = fieldBlueprint.getMappedColumnName();
-            DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
-                new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
-                defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
-            if(columnDataTypeResult.foundDataType)
+            List<String> columnNames = fieldBlueprint.getMappedColumnNames();
+            for(String columnName : columnNames)
             {
-                boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
-                ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                    columnName,
-                    columnDataTypeResult.dataType,
-                    isPrimaryKey,
-                    isPrimaryKey && isPrimaryKeyAutoIncrement,
-                    foreignKeyToParentColumnName != null && StringUtils.equals(fieldName, foreignKeyToParentColumnName),
-                    customToDatabaseValueConverters.get(columnName),
-                    fieldBlueprint,
-                    columns.size()
-                );
-                columns.add(columnBlueprint);
+                DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
+                    new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
+                    defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
+                if (columnDataTypeResult.foundDataType)
+                {
+                    boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
+                    ColumnBlueprint columnBlueprint = new ColumnBlueprint(
+                        columnName,
+                        columnDataTypeResult.dataType,
+                        isPrimaryKey,
+                        isPrimaryKey && isPrimaryKeyAutoIncrement,
+                        foreignKeyToParentColumnName != null && StringUtils.equals(fieldName,
+                            foreignKeyToParentColumnName),
+                        customToDatabaseValueConverters.get(columnName),
+                        fieldBlueprint,
+                        columns.size()
+                    );
+                    columns.add(columnBlueprint);
+                }
             }
         }
 

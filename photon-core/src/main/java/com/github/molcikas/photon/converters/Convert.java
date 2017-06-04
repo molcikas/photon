@@ -116,8 +116,6 @@ public class Convert {
         return null;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
-    @Deprecated
     public static void registerConverter(Class clazz, Converter converter) {
         wl.lock();
         try {

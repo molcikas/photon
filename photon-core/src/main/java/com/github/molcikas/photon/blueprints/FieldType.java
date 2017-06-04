@@ -6,5 +6,6 @@ public enum FieldType
     Entity,
     EntityList,
     CustomValueMapper,
+    CompoundCustomValueMapper,
     ForeignKeyList,
 }

@@ -50,6 +50,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         Map<String, Integer> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
+        Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
@@ -72,7 +73,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = determineTableName(tableName, entityClass, photonOptions);
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
 
         if(StringUtils.isBlank(idFieldName))
         {

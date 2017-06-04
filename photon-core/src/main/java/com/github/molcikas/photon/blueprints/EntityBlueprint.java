@@ -7,10 +7,7 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class EntityBlueprint
@@ -107,6 +104,7 @@ public class EntityBlueprint
         Map<String, Integer> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
+        Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
         Map<String, Converter> customToFieldValueConverters,
         Map<String, Converter> customToDatabaseValueConverters,
@@ -126,7 +124,7 @@ public class EntityBlueprint
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
         this.orderByDirection = orderByDirection;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
 
         primaryKeyColumn = columns.stream().filter(ColumnBlueprint::isPrimaryKeyColumn).findFirst().orElse(null);
@@ -200,6 +198,14 @@ public class EntityBlueprint
             .filter(f -> StringUtils.equals(f.getMappedColumnName(), columnName))
             .findFirst()
             .orElse(null);
+    }
+
+    public List<FieldBlueprint> getCompoundCustomValueMapperFields()
+    {
+        return fields
+            .stream()
+            .filter(f -> f.getFieldType() == FieldType.CompoundCustomValueMapper)
+            .collect(Collectors.toList());
     }
 
     public Optional<ColumnBlueprint> getColumn(String columnName)
@@ -291,7 +297,7 @@ public class EntityBlueprint
         // Sort columns by putting primary key columns at the end, then sort by current column index.
         columns = columns
             .stream()
-            .sorted((c1, c2) -> c1.getColumnIndex() - c2.getColumnIndex())
+            .sorted(Comparator.comparingInt(ColumnBlueprint::getColumnIndex))
             .sorted((c1, c2) -> c1.isPrimaryKeyColumn() == c2.isPrimaryKeyColumn() ? 0 : c1.isPrimaryKeyColumn() ? 1 : -1)
             .collect(Collectors.toList());
 

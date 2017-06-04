@@ -6,6 +6,7 @@ import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The builder for creating aggregate entity blueprints.
@@ -27,6 +28,7 @@ public class AggregateEntityBlueprintBuilder
     private final Map<String, Integer> customColumnDataTypes;
     private final List<String> ignoredFields;
     private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
+    private final Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns;
     private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
@@ -57,6 +59,7 @@ public class AggregateEntityBlueprintBuilder
         this.customColumnDataTypes = new HashMap<>();
         this.ignoredFields = new ArrayList<>();
         this.customDatabaseColumns = new HashMap<>();
+        this.customCompoundDatabaseColumns = new HashMap<>();
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
         this.foreignKeyListBlueprints = new HashMap<>();
@@ -293,19 +296,50 @@ public class AggregateEntityBlueprintBuilder
     }
 
     /**
-     * Creates a database column that is mapped to and from a field value via a custom value mapper. This method should
-     * be used if a database row value does not map directly to a field (e.g. if the value consists of multiple fields
+     * Creates a database column that is mapped to and from an entity field via a custom value mapper. This method should
+     * be used if a database value does not map directly to a field (e.g. if the value consists of multiple fields
      * or a field on a child entity).
      *
      * @param columnName - the database column name
      * @param columnDataType - the database column data type
-     * @param entityFieldValueMapping - the mapper that maps the entity field value to and from the database column value
+     * @param entityFieldValueMapping - the mapper that maps the entity value to and from the database column value
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType, EntityFieldValueMapping entityFieldValueMapping)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType,
+                                                              EntityFieldValueMapping entityFieldValueMapping)
     {
         customColumnDataTypes.put(columnName, columnDataType);
         customDatabaseColumns.put(columnName, entityFieldValueMapping);
+        return this;
+    }
+
+    /**
+     * Creates database columns that are mapped to and from one or more fields via a custom value mapper. This method
+     * should be used if a field(s) maps to more than one database column.
+     *
+     * @param columnDefinitions - the database columns
+     * @param compoundEntityFieldValueMapping - the mapper that maps field value(s) to and from the database values
+     * @return - builder for chaining
+     */
+    public AggregateEntityBlueprintBuilder withDatabaseColumns(
+        List<DatabaseColumnDefinition> columnDefinitions,
+        CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
+    {
+        if(columnDefinitions == null || columnDefinitions.isEmpty())
+        {
+            throw new PhotonException("Column definitions list cannot be null or empty.");
+        }
+
+        for(DatabaseColumnDefinition columnDefinition : columnDefinitions)
+        {
+            customColumnDataTypes.put(columnDefinition.getColumnName(), columnDefinition.getColumnDataType());
+        }
+
+        customCompoundDatabaseColumns.put(
+            columnDefinitions.stream().map(DatabaseColumnDefinition::getColumnName).collect(Collectors.toList()),
+            compoundEntityFieldValueMapping
+        );
+
         return this;
     }
 
@@ -430,6 +464,7 @@ public class AggregateEntityBlueprintBuilder
             customColumnDataTypes,
             ignoredFields,
             customDatabaseColumns,
+            customCompoundDatabaseColumns,
             customFieldToColumnMappings,
             childEntities,
             foreignKeyListBlueprints,

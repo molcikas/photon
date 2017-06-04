@@ -224,6 +224,7 @@ public class PhotonQuery
             null,
             null,
             null,
+            null,
             customToFieldValueConverters,
             null,
             photonOptions,

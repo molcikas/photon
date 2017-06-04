@@ -71,7 +71,7 @@ public class ColumnBlueprint
     {
         if(StringUtils.isBlank(columnName))
         {
-            throw new PhotonException(String.format("Column names cannot be blank."));
+            throw new PhotonException("Column name cannot be blank.");
         }
         if(isAutoIncrementColumn && !isPrimaryKeyColumn)
         {

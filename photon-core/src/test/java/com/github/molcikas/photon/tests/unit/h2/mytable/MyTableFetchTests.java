@@ -9,10 +9,12 @@ import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 
-import java.lang.reflect.Field;
+
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -342,25 +344,18 @@ public class MyTableFetchTests
             .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
                 {
                     @Override
-                    public String getFieldValueFromEntityInstance(MyTable entityInstance)
+                    public String getFieldValue(MyTable entityInstance)
                     {
                         return entityInstance.getMyOtherTable().getMyOtherValueWithDiffName();
                     }
 
                     @Override
-                    public void setFieldValueOnEntityInstance(MyTable entityInstance, String value)
+                    public Map<String, Object> setFieldValue(MyTable entityInstance, String value)
                     {
-                        try
-                        {
-                            MyOtherTable myOtherTable = new MyOtherTable(0, value);
-                            Field field = MyTable.class.getDeclaredField("myOtherTable");
-                            field.setAccessible(true);
-                            field.set(entityInstance, myOtherTable);
-                        }
-                        catch(Exception ex)
-                        {
-                            throw new RuntimeException(ex);
-                        }
+                        MyOtherTable myOtherTable = new MyOtherTable(0, value);
+                        Map<String, Object> valuesToSet = new HashMap<>();
+                        valuesToSet.put("myOtherTable", myOtherTable);
+                        return valuesToSet;
                     }
                 }
             )
