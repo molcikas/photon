@@ -7,19 +7,19 @@ public class DatabaseColumnDefinition
 {
     private final String columnName;
 
-    private final Integer columnDataType;
+    private final ColumnDataType columnDataType;
 
     public String getColumnName()
     {
         return columnName;
     }
 
-    public Integer getColumnDataType()
+    public ColumnDataType getColumnDataType()
     {
         return columnDataType;
     }
 
-    public DatabaseColumnDefinition(String columnName, Integer columnDataType)
+    public DatabaseColumnDefinition(String columnName, ColumnDataType columnDataType)
     {
         if(StringUtils.isBlank(columnName))
         {

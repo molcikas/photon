@@ -3,9 +3,9 @@ package com.github.molcikas.photon.blueprints;
 public class DefaultColumnDataTypeResult
 {
     public final boolean foundDataType;
-    public final Integer dataType;
+    public final ColumnDataType dataType;
 
-    public DefaultColumnDataTypeResult(Integer dataType)
+    public DefaultColumnDataTypeResult(ColumnDataType dataType)
     {
         this.foundDataType = true;
         this.dataType = dataType;

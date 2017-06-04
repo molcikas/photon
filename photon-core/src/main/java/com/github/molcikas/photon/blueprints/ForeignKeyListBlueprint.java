@@ -11,7 +11,7 @@ public class ForeignKeyListBlueprint
     private final String foreignTableName;
     private final String foreignTableJoinColumnName;
     private final String foreignTableKeyColumnName;
-    private final Integer foreignTableKeyColumnType;
+    private final ColumnDataType foreignTableKeyColumnType;
     private final Class fieldListItemClass;
 
     private String selectSql;
@@ -34,7 +34,7 @@ public class ForeignKeyListBlueprint
         return foreignTableKeyColumnName;
     }
 
-    public Integer getForeignTableKeyColumnType()
+    public ColumnDataType getForeignTableKeyColumnType()
     {
         return foreignTableKeyColumnType;
     }
@@ -68,7 +68,7 @@ public class ForeignKeyListBlueprint
         String foreignTableName,
         String foreignTableJoinColumnName,
         String foreignTableKeyColumnName,
-        Integer foreignTableKeyColumnType,
+        ColumnDataType foreignTableKeyColumnType,
         Class fieldListItemClass)
     {
         this.foreignTableName = foreignTableName;

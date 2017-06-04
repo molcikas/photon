@@ -1,9 +1,6 @@
 package com.github.molcikas.photon.query;
 
-import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;
@@ -73,7 +70,7 @@ public class PhotonAggregateDelete
             .stream()
             .map(PopulatedEntity::getPrimaryKeyValue)
             .collect(Collectors.toList());
-        Integer primaryKeyColumnDataType = entityBlueprint.getPrimaryKeyColumn().getColumnDataType();
+        ColumnDataType primaryKeyColumnDataType = entityBlueprint.getPrimaryKeyColumn().getColumnDataType();
 
         for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {

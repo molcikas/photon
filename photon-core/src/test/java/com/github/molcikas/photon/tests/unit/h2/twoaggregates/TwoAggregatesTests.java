@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.twoaggregates;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -7,7 +8,6 @@ import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.tests.unit.entities.twoaggregates.AggregateOne;
 import com.github.molcikas.photon.tests.unit.entities.twoaggregates.AggregateTwo;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -185,12 +185,12 @@ public class TwoAggregatesTests
     {
         photon.registerAggregate(AggregateOne.class)
             .withId("aggregateOneId")
-            .withForeignKeyListToOtherAggregate("aggregateTwos", "aggregatemapping", "aggregateOneId", "aggregateTwoId", Types.BINARY, UUID.class)
+            .withForeignKeyListToOtherAggregate("aggregateTwos", "aggregatemapping", "aggregateOneId", "aggregateTwoId", ColumnDataType.BINARY, UUID.class)
             .register();
 
         photon.registerAggregate(AggregateTwo.class)
             .withId("aggregateTwoId")
-            .withForeignKeyListToOtherAggregate("aggregateOnes", "aggregatemapping", "aggregateTwoId", "aggregateOneId", Types.BINARY, UUID.class)
+            .withForeignKeyListToOtherAggregate("aggregateOnes", "aggregatemapping", "aggregateTwoId", "aggregateOneId", ColumnDataType.BINARY, UUID.class)
             .register();
     }
 }

@@ -2,6 +2,7 @@ package com.github.molcikas.photon.tests.unit.h2.product;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.blueprints.CompoundEntityFieldValueMapping;
 import com.github.molcikas.photon.blueprints.DatabaseColumnDefinition;
 import com.github.molcikas.photon.tests.unit.entities.product.Product;
@@ -9,7 +10,6 @@ import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -102,7 +102,7 @@ public class ProductTests
             .withDatabaseColumns(
                 Arrays.asList(
                     new DatabaseColumnDefinition("numerator"),
-                    new DatabaseColumnDefinition("denominator", Types.INTEGER)
+                    new DatabaseColumnDefinition("denominator", ColumnDataType.INTEGER)
                 ),
                 new CompoundEntityFieldValueMapping<Product>()
                 {

@@ -27,14 +27,14 @@ After constructing the `Photon` object, register each aggregate by describing ho
 photon.registerAggregate(Recipe.class)
     .withId("recipeId")
     .withChild(RecipeInstruction.class)
-        .withId("recipeInstructionId", Types.BINARY)
-        .withForeignKeyToParent("recipeId", Types.BINARY)
+        .withId("recipeInstructionId", ColumnDataType.BINARY)
+        .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
         .withOrderBy("stepNumber")
         .addAsChild("instructions")
     .withChild(RecipeIngredient.class)
-        .withId("recipeIngredientId", Types.BINARY)
-        .withForeignKeyToParent("recipeId", Types.BINARY)
-        .withDatabaseColumn("quantity", Types.VARCHAR)
+        .withId("recipeIngredientId", ColumnDataType.BINARY)
+        .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
+        .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
         .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
         .withOrderBy("orderBy", ingredientSortDirection)
         .addAsChild("ingredients")
@@ -164,7 +164,7 @@ If you have a value object that does not neatly map between an entity field and 
 
 ```java
 photon.registerAggregate(Product.class)
-    .withDatabaseColumn("quantity", Types.INTEGER, new EntityFieldValueMapping<MyTable, Integer>()
+    .withDatabaseColumn("quantity", ColumnDataType.INTEGER, new EntityFieldValueMapping<MyTable, Integer>()
         {
             @Override
             public String getFieldValue(MyTable entityInstance)
@@ -189,8 +189,8 @@ If you have a value object that maps to multiple database columns, you can creat
 photon.registerAggregate(Product.class)
     .withDatabaseColumns(
         Arrays.asList(
-            new DatabaseColumnDefinition("numerator", Types.INTEGER),
-            new DatabaseColumnDefinition("denominator", Types.INTEGER)
+            new DatabaseColumnDefinition("numerator", ColumnDataType.INTEGER),
+            new DatabaseColumnDefinition("denominator", ColumnDataType.INTEGER)
         ),
         new CompoundEntityFieldValueMapping<Product>()
         {

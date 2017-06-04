@@ -2,10 +2,9 @@ package com.github.molcikas.photon.tests.unit.h2.fieldtest;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.tests.unit.entities.fieldtest.FieldTest;
 import com.github.molcikas.photon.tests.unit.h2.H2TestUtil;
-
-import java.sql.Types;
 
 public class FieldTestDbSetup
 {
@@ -41,7 +40,7 @@ public class FieldTestDbSetup
     {
         photon.registerAggregate(FieldTest.class)
             .withId("id")
-            .withDatabaseColumn("testEnumString", Types.VARCHAR)
+            .withDatabaseColumn("testEnumString", ColumnDataType.VARCHAR)
             .register();
     }
 }

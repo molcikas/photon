@@ -118,7 +118,7 @@ public class PhotonQuery
      * @param dataType - the data type of parameter. See java.sql.Types.
      * @return - The photon query (for chaining)
      */
-    public PhotonQuery addParameter(String parameter, Object value, Integer dataType)
+    public PhotonQuery addParameter(String parameter, Object value, ColumnDataType dataType)
     {
         boolean foundMatch = false;
 

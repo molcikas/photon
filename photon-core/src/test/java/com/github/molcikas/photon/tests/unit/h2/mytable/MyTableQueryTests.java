@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -11,7 +12,6 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.query.PhotonQuery;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,7 +86,7 @@ public class MyTableQueryTests
 
             MyTable myTable = transaction
                 .query(sql)
-                .addParameter("id", "2", Types.INTEGER)
+                .addParameter("id", "2", ColumnDataType.INTEGER)
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
@@ -109,7 +109,7 @@ public class MyTableQueryTests
 
             MyTable myTable = transaction
                 .query(sql)
-                .addParameter("id", "2", Types.INTEGER)
+                .addParameter("id", "2", ColumnDataType.INTEGER)
                 .withCustomToFieldValueConverter("myvalue", new Converter()
                 {
                     @Override

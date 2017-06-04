@@ -7,7 +7,7 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 public class ColumnBlueprint
 {
     private final String columnName;
-    private final Integer columnDataType;
+    private final ColumnDataType columnDataType;
     private final boolean isPrimaryKeyColumn;
     private final boolean isAutoIncrementColumn;
     private final boolean isForeignKeyToParentColumn;
@@ -24,7 +24,7 @@ public class ColumnBlueprint
         return columnName;
     }
 
-    public Integer getColumnDataType()
+    public ColumnDataType getColumnDataType()
     {
         return columnDataType;
     }
@@ -61,7 +61,7 @@ public class ColumnBlueprint
 
     public ColumnBlueprint(
         String columnName,
-        Integer columnDataType,
+        ColumnDataType columnDataType,
         boolean isPrimaryKeyColumn,
         boolean isAutoIncrementColumn,
         boolean isForeignKeyToParentColumn,

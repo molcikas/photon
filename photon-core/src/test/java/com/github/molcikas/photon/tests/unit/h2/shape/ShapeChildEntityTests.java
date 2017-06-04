@@ -2,14 +2,13 @@ package com.github.molcikas.photon.tests.unit.h2.shape;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.tests.unit.entities.shape.Circle;
 import com.github.molcikas.photon.tests.unit.entities.shape.CornerCoordinates;
 import com.github.molcikas.photon.tests.unit.entities.shape.Rectangle;
 import com.github.molcikas.photon.tests.unit.entities.shape.Shape;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.sql.Types;
 
 import static org.junit.Assert.*;
 
@@ -94,7 +93,7 @@ public class ShapeChildEntityTests
                 }
             })
             .withChild(CornerCoordinates.class)
-                .withForeignKeyToParent("shapeId", Types.INTEGER)
+                .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
                 .addAsChild("corners")
             .register();
     }

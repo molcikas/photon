@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 
 import java.lang.reflect.Field;
-import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -107,7 +106,7 @@ public class EntityBlueprintConstructorService
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
         String foreignKeyToParentColumnName,
-        Map<String, Integer> customColumnDataTypes,
+        Map<String, ColumnDataType> customColumnDataTypes,
         Map<String, Converter> customToDatabaseValueConverters,
         PhotonOptions photonOptions)
     {
@@ -168,27 +167,27 @@ public class EntityBlueprintConstructorService
 
         if(fieldType.equals(int.class) || fieldType.equals(Integer.class))
         {
-            return new DefaultColumnDataTypeResult(Types.INTEGER);
+            return new DefaultColumnDataTypeResult(ColumnDataType.INTEGER);
         }
 
         if(fieldType.equals(long.class) || fieldType.equals(Long.class))
         {
-            return new DefaultColumnDataTypeResult(Types.BIGINT);
+            return new DefaultColumnDataTypeResult(ColumnDataType.BIGINT);
         }
 
         if(fieldType.equals(float.class) || fieldType.equals(Float.class))
         {
-            return new DefaultColumnDataTypeResult(Types.FLOAT);
+            return new DefaultColumnDataTypeResult(ColumnDataType.FLOAT);
         }
 
         if(fieldType.equals(double.class) || fieldType.equals(Double.class))
         {
-            return new DefaultColumnDataTypeResult(Types.DOUBLE);
+            return new DefaultColumnDataTypeResult(ColumnDataType.DOUBLE);
         }
 
         if(fieldType.equals(boolean.class) || fieldType.equals(Boolean.class))
         {
-            return new DefaultColumnDataTypeResult(Types.BOOLEAN);
+            return new DefaultColumnDataTypeResult(ColumnDataType.BOOLEAN);
         }
 
         if(fieldType.equals(UUID.class))
@@ -198,12 +197,12 @@ public class EntityBlueprintConstructorService
 
         if(fieldType.equals(String.class))
         {
-            return new DefaultColumnDataTypeResult(Types.VARCHAR);
+            return new DefaultColumnDataTypeResult(ColumnDataType.VARCHAR);
         }
 
         if(fieldType.isEnum())
         {
-            return new DefaultColumnDataTypeResult(Types.INTEGER);
+            return new DefaultColumnDataTypeResult(ColumnDataType.INTEGER);
         }
 
         if(fieldType.equals(Date.class) ||
@@ -212,7 +211,7 @@ public class EntityBlueprintConstructorService
             fieldType.equals(LocalDate.class) ||
             fieldType.equals(LocalDateTime.class))
         {
-            return new DefaultColumnDataTypeResult(Types.TIMESTAMP);
+            return new DefaultColumnDataTypeResult(ColumnDataType.TIMESTAMP);
         }
 
         return DefaultColumnDataTypeResult.notFound();

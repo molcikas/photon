@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
 import com.github.molcikas.photon.options.PhotonOptions;
 
@@ -9,7 +10,7 @@ public class PhotonSqlParameter
 {
     private final String name;
     private Object value;
-    private Integer dataType;
+    private ColumnDataType dataType;
     private boolean isCollection;
 
     public String getName()
@@ -22,7 +23,7 @@ public class PhotonSqlParameter
         return value;
     }
 
-    public Integer getDataType()
+    public ColumnDataType getDataType()
     {
         return dataType;
     }
@@ -44,7 +45,7 @@ public class PhotonSqlParameter
         this.isCollection = value != null && Collection.class.isAssignableFrom(value.getClass());
     }
 
-    public void assignValue(Object value, Integer dataType)
+    public void assignValue(Object value, ColumnDataType dataType)
     {
         this.value = value;
         this.dataType = dataType;

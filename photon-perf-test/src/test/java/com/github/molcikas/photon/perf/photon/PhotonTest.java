@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.perf.photon;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.apache.commons.lang3.time.StopWatch;
 import org.junit.Before;
 import org.junit.Test;
@@ -8,7 +9,6 @@ import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.perf.RecipeDbSetup;
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.UUID;
 
@@ -26,15 +26,15 @@ public class PhotonTest
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
             .withChild(RecipeInstruction.class)
-                .withId("recipeInstructionId", Types.BINARY)
+                .withId("recipeInstructionId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
-                .withDatabaseColumn("recipeId", Types.BINARY)
+                .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withOrderBy("stepNumber")
                 .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
-                .withId("recipeIngredientId", Types.BINARY)
+                .withId("recipeIngredientId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
-                .withDatabaseColumn("recipeId", Types.BINARY)
+                .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withOrderBy("orderBy", SortDirection.Ascending)
                 .addAsChild("ingredients")
             .register();

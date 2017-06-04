@@ -1,4 +1,5 @@
 package com.github.molcikas.photon.query;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -21,10 +22,10 @@ public class PhotonPreparedStatement implements Closeable
     private static class ParameterValue
     {
         public final Object value;
-        public final Integer dataType;
+        public final ColumnDataType dataType;
         public final Converter customToDatabaseValueConverter;
 
-        public ParameterValue(Object value, Integer dataType, Converter customToDatabaseValueConverter)
+        public ParameterValue(Object value, ColumnDataType dataType, Converter customToDatabaseValueConverter)
         {
             this.value = value;
             this.dataType = dataType;
@@ -66,7 +67,7 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    public void setNextArrayParameter(Collection values, Integer dataType, Converter customToDatabaseValueConverter)
+    public void setNextArrayParameter(Collection values, ColumnDataType dataType, Converter customToDatabaseValueConverter)
     {
         if(isBatched)
         {
@@ -104,7 +105,7 @@ public class PhotonPreparedStatement implements Closeable
         sqlText = newSqlText.toString();
     }
 
-    public void setNextParameter(Object value, Integer dataType, Converter customToDatabaseValueConverter)
+    public void setNextParameter(Object value, ColumnDataType dataType, Converter customToDatabaseValueConverter)
     {
         parameterValues.add(new ParameterValue(value, dataType, customToDatabaseValueConverter));
     }
@@ -378,7 +379,7 @@ public class PhotonPreparedStatement implements Closeable
             {
                 if(parameterValue.value == null)
                 {
-                    preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType : Types.VARCHAR);
+                    preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType.getJdbcType() : ColumnDataType.VARCHAR.getJdbcType());
                     continue;
                 }
 
@@ -390,54 +391,54 @@ public class PhotonPreparedStatement implements Closeable
 
                 switch (parameterValue.dataType)
                 {
-                    case Types.BIT:
-                    case Types.BOOLEAN:
+                    case BIT:
+                    case BOOLEAN:
                         preparedStatement.setBoolean(parameterIndex, convertValue(parameterValue, Boolean.class));
                         continue;
-                    case Types.TINYINT:
-                    case Types.SMALLINT:
-                    case Types.INTEGER:
+                    case TINYINT:
+                    case SMALLINT:
+                    case INTEGER:
                         preparedStatement.setInt(parameterIndex, convertValue(parameterValue, Integer.class));
                         continue;
-                    case Types.BIGINT:
+                    case BIGINT:
                         preparedStatement.setLong(parameterIndex, convertValue(parameterValue, Long.class));
                         continue;
-                    case Types.FLOAT:
+                    case FLOAT:
                         preparedStatement.setFloat(parameterIndex, convertValue(parameterValue, Float.class));
                         continue;
-                    case Types.REAL:
-                    case Types.DOUBLE:
-                    case Types.NUMERIC:
-                    case Types.DECIMAL:
+                    case REAL:
+                    case DOUBLE:
+                    case NUMERIC:
+                    case DECIMAL:
                         preparedStatement.setDouble(parameterIndex, convertValue(parameterValue, Double.class));
                         continue;
-                    case Types.CHAR:
-                    case Types.VARCHAR:
-                    case Types.LONGVARCHAR:
+                    case CHAR:
+                    case VARCHAR:
+                    case LONGVARCHAR:
                         preparedStatement.setString(parameterIndex, convertValue(parameterValue, String.class));
                         continue;
-                    case Types.DATE:
-                    case Types.TIME:
-                    case Types.TIMESTAMP:
+                    case DATE:
+                    case TIME:
+                    case TIMESTAMP:
                         preparedStatement.setTimestamp(parameterIndex, convertValue(parameterValue, Timestamp.class));
                         continue;
-                    case Types.BINARY:
-                    case Types.VARBINARY:
-                    case Types.LONGVARBINARY:
+                    case BINARY:
+                    case VARBINARY:
+                    case LONGVARBINARY:
                         preparedStatement.setBytes(parameterIndex, convertValue(parameterValue, byte[].class));
                         continue;
-                    case Types.NULL:
-                    case Types.OTHER:
-                    case Types.JAVA_OBJECT:
-                    case Types.DISTINCT:
-                    case Types.STRUCT:
-                    case Types.ARRAY:
-                    case Types.BLOB:
-                    case Types.CLOB:
-                    case Types.REF:
-                    case Types.DATALINK:
+                    case NULL:
+                    case OTHER:
+                    case JAVA_OBJECT:
+                    case DISTINCT:
+                    case STRUCT:
+                    case ARRAY:
+                    case BLOB:
+                    case CLOB:
+                    case REF:
+                    case DATALINK:
                     default:
-                        preparedStatement.setObject(parameterIndex, parameterValue.value, parameterValue.dataType);
+                        preparedStatement.setObject(parameterIndex, parameterValue.value, parameterValue.dataType.getJdbcType());
                 }
             }
             catch(Exception ex)

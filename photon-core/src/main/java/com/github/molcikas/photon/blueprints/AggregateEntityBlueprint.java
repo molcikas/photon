@@ -5,7 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,7 +46,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         String foreignKeyToParentColumnName,
         String orderByColumnName,
         SortDirection orderByDirection,
-        Map<String, Integer> customColumnDataTypes,
+        Map<String, ColumnDataType> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,

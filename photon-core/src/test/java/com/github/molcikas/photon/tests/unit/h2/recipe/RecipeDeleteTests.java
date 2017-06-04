@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.recipe;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -9,7 +10,6 @@ import com.github.molcikas.photon.tests.unit.entities.recipe.Recipe;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeIngredient;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeInstruction;
 
-import java.sql.Types;
 import java.util.UUID;
 
 import static org.junit.Assert.assertNull;
@@ -56,16 +56,16 @@ public class RecipeDeleteTests
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
             .withChild(RecipeInstruction.class)
-                .withId("recipeInstructionId", Types.BINARY)
+                .withId("recipeInstructionId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
-                .withDatabaseColumn("recipeId", Types.BINARY)
+                .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withOrderBy("stepNumber")
             .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
                 .withId("recipeIngredientId")
                 .withForeignKeyToParent("recipeId")
-                .withDatabaseColumn("recipeIngredientId", Types.BINARY)
-                .withDatabaseColumn("recipeId", Types.BINARY)
+                .withDatabaseColumn("recipeIngredientId", ColumnDataType.BINARY)
+                .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withOrderBy("orderBy", ingredientSortDirection)
                 .addAsChild("ingredients")
             .register();

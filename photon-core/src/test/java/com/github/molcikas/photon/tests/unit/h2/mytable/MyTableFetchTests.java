@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -10,7 +11,6 @@ import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 
 
-import java.sql.Types;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -341,7 +341,7 @@ public class MyTableFetchTests
             .withId("id")
             .withPrimaryKeyAutoIncrement()
             .withIgnoredField("myvalue")
-            .withDatabaseColumn("myvalue", Types.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
+            .withDatabaseColumn("myvalue", ColumnDataType.VARCHAR, new EntityFieldValueMapping<MyTable, String>()
                 {
                     @Override
                     public String getFieldValue(MyTable entityInstance)

@@ -101,7 +101,7 @@ public class EntityBlueprint
         boolean isPrimaryKeyAutoIncrement,
         String orderByColumnName,
         SortDirection orderByDirection,
-        Map<String, Integer> customColumnDataTypes,
+        Map<String, ColumnDataType> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,

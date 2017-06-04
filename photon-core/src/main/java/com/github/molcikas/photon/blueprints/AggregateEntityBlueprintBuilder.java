@@ -25,7 +25,7 @@ public class AggregateEntityBlueprintBuilder
     private String foreignKeyToParent;
     private String orderByColumnName;
     private SortDirection orderByDirection;
-    private final Map<String, Integer> customColumnDataTypes;
+    private final Map<String, ColumnDataType> customColumnDataTypes;
     private final List<String> ignoredFields;
     private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
     private final Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns;
@@ -153,7 +153,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type for the primary key column
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType)
     {
         this.idFieldName = idFieldName;
         this.customColumnDataTypes.put(idFieldName, columnDataType);
@@ -168,7 +168,7 @@ public class AggregateEntityBlueprintBuilder
      * @param isPrimaryKeyAutoIncrement - whether the primary key is auto incrementing (a.k.a. identity column)
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName, Integer columnDataType, boolean isPrimaryKeyAutoIncrement)
+    public AggregateEntityBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType, boolean isPrimaryKeyAutoIncrement)
     {
         this.idFieldName = idFieldName;
         this.customColumnDataTypes.put(idFieldName, columnDataType);
@@ -215,7 +215,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type for the the foreign key to parent column
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent, ColumnDataType columnDataType)
     {
         this.foreignKeyToParent = foreignKeyToParent;
         this.customColumnDataTypes.put(foreignKeyToParent, columnDataType);
@@ -238,7 +238,7 @@ public class AggregateEntityBlueprintBuilder
         String foreignTableName,
         String foreignTableJoinColumnName,
         String foreignTableKeyColumnName,
-        Integer foreignTableKeyColumnType,
+        ColumnDataType foreignTableKeyColumnType,
         Class fieldListItemClass)
     {
         foreignKeyListBlueprints.put(fieldName, new ForeignKeyListBlueprint(
@@ -256,10 +256,10 @@ public class AggregateEntityBlueprintBuilder
      * a non-default type.
      *
      * @param columnName - the database column name
-     * @param columnDataType - the database column data type. Use java.sql.Types.
+     * @param columnDataType - the database column data type.
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType)
     {
         customColumnDataTypes.put(columnName, columnDataType);
         return this;
@@ -288,7 +288,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName, Integer columnDataType)
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName, ColumnDataType columnDataType)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         customColumnDataTypes.put(columnName, columnDataType);
@@ -305,7 +305,7 @@ public class AggregateEntityBlueprintBuilder
      * @param entityFieldValueMapping - the mapper that maps the entity value to and from the database column value
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, Integer columnDataType,
+    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType,
                                                               EntityFieldValueMapping entityFieldValueMapping)
     {
         customColumnDataTypes.put(columnName, columnDataType);

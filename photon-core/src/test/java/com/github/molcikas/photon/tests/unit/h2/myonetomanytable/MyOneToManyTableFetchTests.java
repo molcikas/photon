@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -9,8 +10,6 @@ import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyThirdTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
-
-import java.sql.Types;
 
 import static org.junit.Assert.*;
 
@@ -125,7 +124,7 @@ public class MyOneToManyTableFetchTests
             .withChild(MyManyTable.class)
                 .withId("id", true)
                 .withForeignKeyToParent("parent")
-                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", Types.VARCHAR)
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", ColumnDataType.VARCHAR)
                 .withChild(MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()

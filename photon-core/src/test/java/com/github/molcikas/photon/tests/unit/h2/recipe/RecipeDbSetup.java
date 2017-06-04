@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.recipe;
 
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import org.apache.commons.lang3.math.Fraction;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
@@ -8,8 +9,6 @@ import com.github.molcikas.photon.tests.unit.h2.H2TestUtil;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeIngredient;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeInstruction;
 import com.github.molcikas.photon.tests.unit.entities.recipe.Recipe;
-
-import java.sql.Types;
 
 public class RecipeDbSetup
 {
@@ -237,15 +236,15 @@ public class RecipeDbSetup
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
             .withChild(RecipeInstruction.class)
-                .withId("recipeInstructionId", Types.BINARY)
-                .withForeignKeyToParent("recipeId", Types.BINARY)
+                .withId("recipeInstructionId", ColumnDataType.BINARY)
+                .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
                 .withOrderBy("stepNumber")
                 .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
-                .withId("recipeIngredientId", Types.BINARY)
+                .withId("recipeIngredientId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
-                .withDatabaseColumn("recipeId", Types.BINARY)
-                .withDatabaseColumn("quantity", Types.VARCHAR)
+                .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
+                .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
                 .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
                 .withOrderBy("orderBy", ingredientSortDirection)
                 .addAsChild("ingredients")

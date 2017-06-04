@@ -1,20 +1,20 @@
 package com.github.molcikas.photon.options;
 
-import java.sql.Types;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 
 /**
  * The options for photon.
  */
 public class PhotonOptions
 {
-    public static final Integer DEFAULT_UUID_DATA_TYPE = Types.BINARY;
+    public static final ColumnDataType DEFAULT_UUID_DATA_TYPE = ColumnDataType.BINARY;
 
     private final String delimitIdentifierStart;
     private final String delimitIdentifierEnd;
     private final DefaultTableName defaultTableName;
     private final boolean enableBatchInsertsForAutoIncrementEntities;
     private final boolean enableJdbcGetGeneratedKeys;
-    private final Integer defaultUuidDataType;
+    private final ColumnDataType defaultUuidDataType;
 
     public String getDelimitIdentifierStart()
     {
@@ -41,7 +41,7 @@ public class PhotonOptions
         return enableJdbcGetGeneratedKeys;
     }
 
-    public Integer getDefaultUuidDataType()
+    public ColumnDataType getDefaultUuidDataType()
     {
         return defaultUuidDataType;
     }
@@ -86,7 +86,7 @@ public class PhotonOptions
         DefaultTableName defaultTableName,
         Boolean enableBatchInsertsForAutoIncrementEntities,
         Boolean enableJdbcGetGeneratedKeys,
-        Integer defaultUuidDataType)
+        ColumnDataType defaultUuidDataType)
     {
         this.delimitIdentifierStart = delimitIdentifierStart != null ? delimitIdentifierStart : "";
         this.delimitIdentifierEnd = delimitIdentifierEnd != null ? delimitIdentifierEnd : "";
