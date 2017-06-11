@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.tests.unit.entities.recipe.Recipe;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeIngredient;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeInstruction;
@@ -149,7 +148,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_fetchById_validAggregateAndQueryWithDescendingSort_returnsCorrectAggregate()
     {
-        RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
+        RecipeDbSetup.registerRecipeAggregate(photon, "recipeingredient.orderBy DESC");
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
@@ -178,7 +177,7 @@ public class RecipeFetchTests
     @Test
     public void aggregate_whereIdIn_recipesWithMoreThan3Steps_returnsCorrectRecipes()
     {
-        RecipeDbSetup.registerRecipeAggregate(photon, SortDirection.Descending);
+        RecipeDbSetup.registerRecipeAggregate(photon, "recipeingredient.orderBy DESC");
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {

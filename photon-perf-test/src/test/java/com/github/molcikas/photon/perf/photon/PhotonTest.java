@@ -6,7 +6,6 @@ import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.perf.RecipeDbSetup;
 
 import java.util.Arrays;
@@ -29,13 +28,13 @@ public class PhotonTest
                 .withId("recipeInstructionId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
-                .withOrderBy("stepNumber")
+                .withOrderBySql("stepNumber")
                 .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
                 .withId("recipeIngredientId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
-                .withOrderBy("orderBy", SortDirection.Ascending)
+                .withOrderBySql("recipeingredient.orderBy DESC")
                 .addAsChild("ingredients")
             .register();
     }

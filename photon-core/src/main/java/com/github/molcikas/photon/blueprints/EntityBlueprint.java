@@ -15,8 +15,7 @@ public class EntityBlueprint
     protected Class entityClass;
     protected EntityClassDiscriminator entityClassDiscriminator;
     protected String tableName;
-    protected String orderByColumnName;
-    protected SortDirection orderByDirection;
+    protected String orderBySql;
     protected List<FieldBlueprint> fields;
     protected List<ColumnBlueprint> columns;
     protected ColumnBlueprint primaryKeyColumn;
@@ -33,14 +32,9 @@ public class EntityBlueprint
         return entityClass;
     }
 
-    public String getOrderByColumnName()
+    public String getOrderBySql()
     {
-        return orderByColumnName;
-    }
-
-    public SortDirection getOrderByDirection()
-    {
-        return orderByDirection;
+        return orderBySql;
     }
 
     public List<FieldBlueprint> getFields()
@@ -99,8 +93,7 @@ public class EntityBlueprint
         String tableName,
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
-        String orderByColumnName,
-        SortDirection orderByDirection,
+        String orderBySql,
         Map<String, ColumnDataType> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
@@ -115,25 +108,20 @@ public class EntityBlueprint
         {
             throw new PhotonException("EntityBlueprint class cannot be null.");
         }
-        if(orderByDirection == null)
-        {
-            orderByDirection = SortDirection.Ascending;
-        }
 
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
-        this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
         this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
 
         primaryKeyColumn = columns.stream().filter(ColumnBlueprint::isPrimaryKeyColumn).findFirst().orElse(null);
 
-        if(StringUtils.isBlank(orderByColumnName) && primaryKeyColumn != null)
+        if(StringUtils.isBlank(orderBySql) && primaryKeyColumn != null)
         {
-            orderByColumnName = primaryKeyColumn.getColumnName();
+            orderBySql = primaryKeyColumn.getColumnName();
         }
-        this.orderByColumnName = orderByColumnName;
+        this.orderBySql = orderBySql;
 
         normalizeColumnOrder();
     }

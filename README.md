@@ -29,14 +29,14 @@ photon.registerAggregate(Recipe.class)
     .withChild(RecipeInstruction.class)
         .withId("recipeInstructionId", ColumnDataType.BINARY)
         .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
-        .withOrderBy("stepNumber")
+        .withOrderBySql("stepNumber")
         .addAsChild("instructions")
     .withChild(RecipeIngredient.class)
         .withId("recipeIngredientId", ColumnDataType.BINARY)
         .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
         .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
         .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
-        .withOrderBy("orderBy", ingredientSortDirection)
+        .withOrderBySql("RecipeIngredient.orderBy DESC")
         .addAsChild("ingredients")
     .register();
 ```
@@ -83,12 +83,23 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 Photon provides an easy interface for fetching aggregates using a `SELECT` statement:
 
 ```java
-List<MyTable> myTables = transaction
-    .query(MyTable.class)
-    // Only return aggregates with an id in the result set for this SELECT statement
-    .whereIdIn("SELECT mytable.id FROM mytable JOIN myothertable ON myothertable.id = mytable.id WHERE myothervalue IN (:myOtherValues)")
-    .addParameter("myOtherValues", Arrays.asList("my4otherdbvalue", "my5otherdbvalue"))
-    .fetchList();
+try(PhotonTransaction transaction = photon.beginTransaction())
+{
+    String sql =
+        "SELECT Product.id " +
+        "FROM Product " +
+        "JOIN ProductOrders ON ProductOrders.productId = Product.id " +
+        "JOIN Orders ON Orders.id = ProductOrder.orderId " +
+        "WHERE Orders.total > :orderTotal ";
+    
+    List<Product> productsInLargeOrders = transaction
+        .query(MyTable.class)
+        .whereIdIn(sql)
+        .addParameter("orderTotal", 1000)
+        .fetchList();
+    
+    return productsInLargeOrders;
+}
 ```
     
 ### Constructing Read Models using SQL

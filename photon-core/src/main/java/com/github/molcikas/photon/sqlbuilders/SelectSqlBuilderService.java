@@ -136,26 +136,27 @@ public class SelectSqlBuilderService
 
         sqlBuilder.append("\nORDER BY ");
 
+        StringBuilder orderBySqlBuilder = new StringBuilder();
+
         for (AggregateEntityBlueprint entityBlueprint : entityBlueprints)
         {
-            boolean isPrimaryKeySort = StringUtils.equals(entityBlueprint.getOrderByColumnName(), entityBlueprint.getPrimaryKeyColumnName());
-            sqlBuilder.append(String.format("[%s].[%s] %s%s",
+            orderBySqlBuilder.append(entityBlueprint.getOrderBySql()).append(", ");
+
+            // We need to add the primary key as a secondary sort, otherwise entity selects might fail because
+            // it expects child entities to be sorted by parent.
+            orderBySqlBuilder.append(String.format("[%s].[%s], ",
                 entityBlueprint.getTableName(),
-                entityBlueprint.getOrderByColumnName(),
-                entityBlueprint.getOrderByDirection().sqlSortDirection,
-                isPrimaryKeySort && entityBlueprint.equals(childBlueprint) ? "" : ", "
+                entityBlueprint.getPrimaryKeyColumnName()
             ));
-            if(!isPrimaryKeySort)
-            {
-                // If it's not a primary key sort, we need to add the primary key as a secondary sort, otherwise the
-                // entity connecting might fail because it expects entities to be sorted by parent.
-                sqlBuilder.append(String.format("[%s].[%s]%s",
-                    entityBlueprint.getTableName(),
-                    entityBlueprint.getPrimaryKeyColumnName(),
-                    entityBlueprint.equals(childBlueprint) ? "" : ", "
-                ));
-            }
         }
+
+        // Replace repeated commas with a single comma and trim commas at the end
+        String orderBySql = orderBySqlBuilder
+            .toString()
+            .replaceAll(", *, *", ", ")
+            .replaceAll(", *$", "");
+
+        sqlBuilder.append(orderBySql);
     }
 
     private void buildSelectOrphansSql(AggregateEntityBlueprint entityBlueprint, PhotonOptions photonOptions)

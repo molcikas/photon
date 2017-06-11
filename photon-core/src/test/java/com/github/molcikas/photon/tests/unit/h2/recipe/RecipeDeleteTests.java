@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.tests.unit.entities.recipe.Recipe;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeIngredient;
 import com.github.molcikas.photon.tests.unit.entities.recipe.RecipeInstruction;
@@ -48,10 +47,10 @@ public class RecipeDeleteTests
 
     private void registerRecipeAggregate()
     {
-        registerRecipeAggregate(SortDirection.Ascending);
+        registerRecipeAggregate("recipeingredient.orderBy");
     }
 
-    private void registerRecipeAggregate(SortDirection ingredientSortDirection)
+    private void registerRecipeAggregate(String orderBySql)
     {
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
@@ -59,14 +58,14 @@ public class RecipeDeleteTests
                 .withId("recipeInstructionId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
-                .withOrderBy("stepNumber")
+                .withOrderBySql("stepNumber")
             .addAsChild("instructions")
             .withChild(RecipeIngredient.class)
                 .withId("recipeIngredientId")
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeIngredientId", ColumnDataType.BINARY)
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
-                .withOrderBy("orderBy", ingredientSortDirection)
+                .withOrderBySql(orderBySql)
                 .addAsChild("ingredients")
             .register();
     }

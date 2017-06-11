@@ -44,8 +44,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         String idFieldName,
         boolean isPrimaryKeyAutoIncrement,
         String foreignKeyToParentColumnName,
-        String orderByColumnName,
-        SortDirection orderByDirection,
+        String orderBySql,
         Map<String, ColumnDataType> customColumnDataTypes,
         List<String> ignoredFields,
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
@@ -62,16 +61,11 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         {
             throw new PhotonException("EntityBlueprint class cannot be null.");
         }
-        if(orderByDirection == null)
-        {
-            orderByDirection = SortDirection.Ascending;
-        }
 
         this.deleteOrphansSql = new HashMap<>();
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = determineTableName(tableName, entityClass, photonOptions);
-        this.orderByDirection = orderByDirection;
         this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
 
         if(StringUtils.isBlank(idFieldName))
@@ -136,16 +130,11 @@ public class AggregateEntityBlueprint extends EntityBlueprint
             columns.add(foreignKeyToParentColumn);
         }
 
-        if(StringUtils.isBlank(orderByColumnName))
+        if(StringUtils.isBlank(orderBySql) && primaryKeyColumn != null)
         {
-            orderByColumnName = primaryKeyColumn.getColumnName();
+            orderBySql = primaryKeyColumn.getColumnName();
         }
-        this.orderByColumnName = orderByColumnName;
-
-        if(!getColumn(orderByColumnName).isPresent())
-        {
-            throw new PhotonException(String.format("The order by column '%s' is not a column for the entity '%s'.", orderByColumnName, entityClass.getName()));
-        }
+        this.orderBySql = orderBySql;
 
         normalizeColumnOrder();
     }

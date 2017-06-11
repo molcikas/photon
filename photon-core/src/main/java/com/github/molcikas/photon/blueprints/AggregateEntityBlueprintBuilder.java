@@ -23,8 +23,7 @@ public class AggregateEntityBlueprintBuilder
     private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
     private String foreignKeyToParent;
-    private String orderByColumnName;
-    private SortDirection orderByDirection;
+    private String orderBySql;
     private final Map<String, ColumnDataType> customColumnDataTypes;
     private final List<String> ignoredFields;
     private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
@@ -382,27 +381,16 @@ public class AggregateEntityBlueprintBuilder
     }
 
     /**
-     * Sets the database column to use for sorting the database entities. Defaults to ascending order.
+     * Sets the database order to use for sorting the database entities. Defaults to id ascending. If this entity is
+     * not the aggregate root, it is highly recommend to include the table column with each column to avoid
+     * ambiguity errors (e.g. "MyTable.myColumn DESC" vs. "myColumn DESC").
      *
-     * @param orderByColumnName - The database column name
+     * @param orderBySql - The SQL order by clause (excluding the ORDER BY keywords)
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withOrderBy(String orderByColumnName)
+    public AggregateEntityBlueprintBuilder withOrderBySql(String orderBySql)
     {
-        return withOrderBy(orderByColumnName, SortDirection.Ascending);
-    }
-
-    /**
-     * Sets the database column to use for sorting the database entities. Defaults to ascending order.
-     *
-     * @param orderByColumnName - The database column name
-     * @param orderByDirection - The sort direction, ascending or descending.
-     * @return - builder for chaining
-     */
-    public AggregateEntityBlueprintBuilder withOrderBy(String orderByColumnName, SortDirection orderByDirection)
-    {
-        this.orderByColumnName = orderByColumnName;
-        this.orderByDirection = orderByDirection;
+        this.orderBySql = orderBySql;
         return this;
     }
 
@@ -459,8 +447,7 @@ public class AggregateEntityBlueprintBuilder
             idFieldName,
             isPrimaryKeyAutoIncrement,
             foreignKeyToParent,
-            orderByColumnName,
-            orderByDirection,
+            orderBySql,
             customColumnDataTypes,
             ignoredFields,
             customDatabaseColumns,

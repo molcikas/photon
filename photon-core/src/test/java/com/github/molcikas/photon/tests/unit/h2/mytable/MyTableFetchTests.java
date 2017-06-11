@@ -6,7 +6,6 @@ import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.blueprints.EntityFieldValueMapping;
-import com.github.molcikas.photon.blueprints.SortDirection;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 
@@ -82,7 +81,7 @@ public class MyTableFetchTests
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
-            .withOrderBy("id", SortDirection.Descending)
+            .withOrderBySql("id DESC")
             .register();
 
         try(PhotonTransaction transaction = photon.beginTransaction())
