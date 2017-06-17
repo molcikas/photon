@@ -11,12 +11,14 @@ import java.util.stream.Collectors;
 /**
  * The builder for creating aggregate entity blueprints.
  */
-public class AggregateEntityBlueprintBuilder
+public class AggregateBlueprintBuilder
 {
     private final Photon photon;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
-    private final AggregateEntityBlueprintBuilder parentBuilder;
+    private final AggregateBlueprintBuilder parentBuilder;
     private final Class entityClass;
+    private final String aggregateBlueprintName;
+    private final boolean registerBlueprintForSaving;
     private final List<MappedClassBlueprint> mappedClasses;
     private EntityClassDiscriminator entityClassDiscriminator;
     private String tableName;
@@ -34,22 +36,27 @@ public class AggregateEntityBlueprintBuilder
     private final Map<String, Converter> customToFieldValueConverters;
     private final Map<String, Converter> customToDatabaseValueConverters;
 
-    /**
-     * Constructor. This should not be called directly. Use photon.registerAggregate() to create a builder.
-     *
-     * @param entityClass - the entity class
-     * @param photon - the photon object
-     * @param entityBlueprintConstructorService - the service for constructing entity blueprints
-     */
-    public AggregateEntityBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public AggregateBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
-        this(entityClass, null, photon, entityBlueprintConstructorService);
+        this(entityClass, null, true, null, photon, entityBlueprintConstructorService);
     }
 
-    private AggregateEntityBlueprintBuilder(Class entityClass, AggregateEntityBlueprintBuilder parentBuilder, Photon photon,
-                                           EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public AggregateBlueprintBuilder(Class entityClass, AggregateBlueprintBuilder parentBuilder, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    {
+        this(entityClass, null, false, parentBuilder, photon, entityBlueprintConstructorService);
+    }
+
+    public AggregateBlueprintBuilder(Class entityClass, String aggregateBlueprintName, boolean registerBlueprintForSaving, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    {
+        this(entityClass, aggregateBlueprintName,
+            registerBlueprintForSaving, null, photon, entityBlueprintConstructorService);
+    }
+
+    private AggregateBlueprintBuilder(Class entityClass, String aggregateBlueprintName, boolean registerBlueprintForSaving, AggregateBlueprintBuilder parentBuilder, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.entityClass = entityClass;
+        this.aggregateBlueprintName = aggregateBlueprintName;
+        this.registerBlueprintForSaving = registerBlueprintForSaving;
         this.parentBuilder = parentBuilder;
         this.photon = photon;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
@@ -74,7 +81,7 @@ public class AggregateEntityBlueprintBuilder
      * @param mappedClass - the super or sub class whose fields will all be mapped into the entity
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withMappedClass(Class mappedClass)
+    public AggregateBlueprintBuilder withMappedClass(Class mappedClass)
     {
         mappedClasses.add(new MappedClassBlueprint(mappedClass, true, null));
         return this;
@@ -89,7 +96,7 @@ public class AggregateEntityBlueprintBuilder
      * @param includedFields - the list of fields on the super or sub class to map
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withMappedClass(Class mappedClass, List<String> includedFields)
+    public AggregateBlueprintBuilder withMappedClass(Class mappedClass, List<String> includedFields)
     {
         mappedClasses.add(new MappedClassBlueprint(mappedClass, false, includedFields));
         return this;
@@ -102,7 +109,7 @@ public class AggregateEntityBlueprintBuilder
      * @param entityClassDiscriminator - the discriminator
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withClassDiscriminator(EntityClassDiscriminator entityClassDiscriminator)
+    public AggregateBlueprintBuilder withClassDiscriminator(EntityClassDiscriminator entityClassDiscriminator)
     {
         this.entityClassDiscriminator = entityClassDiscriminator;
         return this;
@@ -114,7 +121,7 @@ public class AggregateEntityBlueprintBuilder
      * @param tableName - table name
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withTableName(String tableName)
+    public AggregateBlueprintBuilder withTableName(String tableName)
     {
         this.tableName = tableName;
         return this;
@@ -126,7 +133,7 @@ public class AggregateEntityBlueprintBuilder
      * @param idFieldName - the id field name
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName)
+    public AggregateBlueprintBuilder withId(String idFieldName)
     {
         this.idFieldName = idFieldName;
         return this;
@@ -138,7 +145,7 @@ public class AggregateEntityBlueprintBuilder
      * @param isPrimaryKeyAutoIncrement - whether the primary key is auto incrementing (a.k.a. identity column)
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName, boolean isPrimaryKeyAutoIncrement)
+    public AggregateBlueprintBuilder withId(String idFieldName, boolean isPrimaryKeyAutoIncrement)
     {
         this.idFieldName = idFieldName;
         this.isPrimaryKeyAutoIncrement = isPrimaryKeyAutoIncrement;
@@ -152,7 +159,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type for the primary key column
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType)
+    public AggregateBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType)
     {
         this.idFieldName = idFieldName;
         this.customColumnDataTypes.put(idFieldName, columnDataType);
@@ -167,7 +174,7 @@ public class AggregateEntityBlueprintBuilder
      * @param isPrimaryKeyAutoIncrement - whether the primary key is auto incrementing (a.k.a. identity column)
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType, boolean isPrimaryKeyAutoIncrement)
+    public AggregateBlueprintBuilder withId(String idFieldName, ColumnDataType columnDataType, boolean isPrimaryKeyAutoIncrement)
     {
         this.idFieldName = idFieldName;
         this.customColumnDataTypes.put(idFieldName, columnDataType);
@@ -179,7 +186,7 @@ public class AggregateEntityBlueprintBuilder
      * Sets the primary key as auto incrementing (a.k.a. identity column).
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withPrimaryKeyAutoIncrement()
+    public AggregateBlueprintBuilder withPrimaryKeyAutoIncrement()
     {
         this.isPrimaryKeyAutoIncrement = true;
         return this;
@@ -196,7 +203,7 @@ public class AggregateEntityBlueprintBuilder
      * @param foreignKeyToParent - the foreign key to parent column
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent)
+    public AggregateBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent)
     {
         this.foreignKeyToParent = foreignKeyToParent;
         return this;
@@ -214,7 +221,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type for the the foreign key to parent column
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent, ColumnDataType columnDataType)
+    public AggregateBlueprintBuilder withForeignKeyToParent(String foreignKeyToParent, ColumnDataType columnDataType)
     {
         this.foreignKeyToParent = foreignKeyToParent;
         this.customColumnDataTypes.put(foreignKeyToParent, columnDataType);
@@ -232,7 +239,7 @@ public class AggregateEntityBlueprintBuilder
      * @param fieldListItemClass - the class type for the items in the field list.
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withForeignKeyListToOtherAggregate(
+    public AggregateBlueprintBuilder withForeignKeyListToOtherAggregate(
         String fieldName,
         String foreignTableName,
         String foreignTableJoinColumnName,
@@ -258,7 +265,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the database column data type.
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType)
+    public AggregateBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType)
     {
         customColumnDataTypes.put(columnName, columnDataType);
         return this;
@@ -272,7 +279,7 @@ public class AggregateEntityBlueprintBuilder
      * @param fieldName - the entity field name
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName)
+    public AggregateBlueprintBuilder withDatabaseColumn(String columnName, String fieldName)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         return this;
@@ -287,7 +294,7 @@ public class AggregateEntityBlueprintBuilder
      * @param columnDataType - the column data type
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, String fieldName, ColumnDataType columnDataType)
+    public AggregateBlueprintBuilder withDatabaseColumn(String columnName, String fieldName, ColumnDataType columnDataType)
     {
         customFieldToColumnMappings.put(fieldName, columnName);
         customColumnDataTypes.put(columnName, columnDataType);
@@ -304,8 +311,8 @@ public class AggregateEntityBlueprintBuilder
      * @param entityFieldValueMapping - the mapper that maps the entity value to and from the database column value
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType,
-                                                              EntityFieldValueMapping entityFieldValueMapping)
+    public AggregateBlueprintBuilder withDatabaseColumn(String columnName, ColumnDataType columnDataType,
+                                                        EntityFieldValueMapping entityFieldValueMapping)
     {
         customColumnDataTypes.put(columnName, columnDataType);
         customDatabaseColumns.put(columnName, entityFieldValueMapping);
@@ -320,7 +327,7 @@ public class AggregateEntityBlueprintBuilder
      * @param compoundEntityFieldValueMapping - the mapper that maps field value(s) to and from the database values
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withDatabaseColumns(
+    public AggregateBlueprintBuilder withDatabaseColumns(
         List<DatabaseColumnDefinition> columnDefinitions,
         CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
     {
@@ -349,7 +356,7 @@ public class AggregateEntityBlueprintBuilder
      * @param customToFieldValueConverter - the converter
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
+    public AggregateBlueprintBuilder withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
     {
         customToFieldValueConverters.put(fieldName, customToFieldValueConverter);
         return this;
@@ -362,7 +369,7 @@ public class AggregateEntityBlueprintBuilder
      * @param customToDatabaseValueConverter - the converter
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withCustomToDatabaseValueConverter(String columnName, Converter customToDatabaseValueConverter)
+    public AggregateBlueprintBuilder withCustomToDatabaseValueConverter(String columnName, Converter customToDatabaseValueConverter)
     {
         customToDatabaseValueConverters.put(columnName, customToDatabaseValueConverter);
         return this;
@@ -374,7 +381,7 @@ public class AggregateEntityBlueprintBuilder
      * @param fieldName - the entity field name
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withIgnoredField(String fieldName)
+    public AggregateBlueprintBuilder withIgnoredField(String fieldName)
     {
         ignoredFields.add(fieldName);
         return this;
@@ -388,7 +395,7 @@ public class AggregateEntityBlueprintBuilder
      * @param orderBySql - The SQL order by clause (excluding the ORDER BY keywords)
      * @return - builder for chaining
      */
-    public AggregateEntityBlueprintBuilder withOrderBySql(String orderBySql)
+    public AggregateBlueprintBuilder withOrderBySql(String orderBySql)
     {
         this.orderBySql = orderBySql;
         return this;
@@ -400,9 +407,9 @@ public class AggregateEntityBlueprintBuilder
      * @param childClass - the child entity class
      * @return - the child builder
      */
-    public AggregateEntityBlueprintBuilder withChild(Class childClass)
+    public AggregateBlueprintBuilder withChild(Class childClass)
     {
-        return new AggregateEntityBlueprintBuilder(childClass, this, photon, entityBlueprintConstructorService);
+        return new AggregateBlueprintBuilder(childClass, this, photon, entityBlueprintConstructorService);
     }
 
     /**
@@ -411,7 +418,7 @@ public class AggregateEntityBlueprintBuilder
      * @param fieldName - the field name on the parent that references the child entity.
      * @return - the parent builder for chaining
      */
-    public AggregateEntityBlueprintBuilder addAsChild(String fieldName)
+    public AggregateBlueprintBuilder addAsChild(String fieldName)
     {
         if(parentBuilder == null)
         {
@@ -421,7 +428,7 @@ public class AggregateEntityBlueprintBuilder
         {
             throw new PhotonException(String.format("Cannot add child to parent field '%s' because the child does not have a foreign key to parent set.", fieldName));
         }
-        parentBuilder.addChild(fieldName, buildEntity());
+        parentBuilder.addChild(fieldName, buildBlueprint());
         return parentBuilder;
     }
 
@@ -434,10 +441,10 @@ public class AggregateEntityBlueprintBuilder
         {
             throw new PhotonException("Cannot register entityBlueprint because it is not the aggregate root.");
         }
-        photon.registerAggregate(buildEntity());
+        photon.registerBuiltAggregateBlueprint(aggregateBlueprintName, registerBlueprintForSaving, buildBlueprint());
     }
 
-    private AggregateEntityBlueprint buildEntity()
+    private AggregateEntityBlueprint buildBlueprint()
     {
         return new AggregateEntityBlueprint(
             entityClass,

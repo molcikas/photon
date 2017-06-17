@@ -1,13 +1,13 @@
 # Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
 A micro ORM that gives developers the ability to write complex SELECT statements when performance is critical while also shielding them from having to hand-write routine CRUD SQL.
 
-Traditional ORMs are complex and cryptic. They are often orders of magnitude slower than lower-level frameworks like JDBC. Since they hide the SQL they are executing, diagnosing and troubleshooting issues requires deep knowledge about how the ORM works. They usually require the object-to-table mapping to be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence logic and require the entities to be modeled after the database tables rather than the business domain.
+Traditional ORMs are complex and cryptic. They are often orders of magnitude slower than lower-level frameworks like JDBC. Since they hide the SQL they are executing, diagnosing and troubleshooting issues requires deep knowledge about how the ORM works. They usually require the object-to-table mapping to be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence details and require the entities to be modeled after the database tables rather than the business domain.
 
 Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving clusters of entities ("[aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)" in DDD terms).
 
 The goal of Photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It allows entities to remain free from the details of how they are persisted.
 
-Photon does not require you to learn a custom query language or a custom set of query functions. Photon automatically does the selects, inserts, updates, and deletes for your aggregates based on how you define the aggregates. For choosing which rows/aggregates to select, or when selecting custom read models, you write plain SQL `SELECT` statements.
+Photon does not require you to learn a custom query language or a complex set of query functions, but you do need to to know SQL, especially `SELECT` statements.
 
 ## Getting Started
 
@@ -27,21 +27,19 @@ After constructing the `Photon` object, register each aggregate by describing ho
 photon.registerAggregate(Recipe.class)
     .withId("recipeId")
     .withChild(RecipeInstruction.class)
-        .withId("recipeInstructionId", ColumnDataType.BINARY)
-        .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
+        .withForeignKeyToParent("recipeId")
         .withOrderBySql("stepNumber")
         .addAsChild("instructions")
     .withChild(RecipeIngredient.class)
-        .withId("recipeIngredientId", ColumnDataType.BINARY)
-        .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
-        .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
+        .withForeignKeyToParent("recipeId")
+        .withDatabaseColumn("quantity", ColumnDataType.INTEGER)
         .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
         .withOrderBySql("RecipeIngredient.orderBy DESC")
         .addAsChild("ingredients")
     .register();
 ```
 
-By default, each class field (public or private) is mapped to a database column of the same name and equivalent data type. Use `withChild()` for child entities that should be mapped to a database table.
+To keep boilerplate to a minimum, by default, each field (public or private) is implicitly mapped to a database column of the same name and equivalent data type.
 
 ### Creating and Committing Transactions
 
@@ -102,31 +100,33 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
     
-### Constructing Read Models using SQL
+### Constructing View Models using SQL
 
-User interfaces often only need a few fields from an aggregate, or need pieces of data from multiple aggregates. Photon makes it easy to construct custom read models using plain SQL.
+User interfaces often need to display data from many different tables. Or, they need to show summaries and aggregations of data, such as averages, counts, or sums. One method for getting this data is to select all the entities that contain the necessary data and construct the data model in code. But there are several problems with this approach. First, you end up selecting more data than you need from the database, which creates unnecessary latency in your query and load on your database and application servers. Second, your entity object graphs become too large because they have to support these queries. A better approach is to have separate models that are specifically for display.
+
+Photon makes it easy to construct custom read models using plain SQL.
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
 {
     String sql =
-        "SELECT Product.id, Product.name, Order.total AS orderTotal, Order.orderDate " +
+        "SELECT Product.id, Product.name, Order.orderDate " +
         "FROM Product " +
         "JOIN ProductOrders ON ProductOrders.productId = Product.id " +
         "JOIN Orders ON Orders.id = ProductOrder.orderId " +
-        "WHERE Orders.total > :orderTotal " +
+        "WHERE Orders.orderDate > :orderDate " +
         "ORDER Orders.orderDate DESC ";
 
-    List<ProductOrderDto> expensiveProductOrders = transaction
+    List<ProductOrderDto> productOrdersAfterDate = transaction
         .query(sql)
-        .addParameter("orderTotal", 1000)
+        .addParameter("orderDate", new Date("2017/06/15"))
         .fetchList(ProductOrderDto.class);
     
-    return expensiveProductOrders;
+    return productOrdersAfterDate;
 }
 ```
 
-Query results are automatically mapped to the read model fields by name. Unlike aggregates, read models do not need to be pre-registered with Photon.
+Query results are automatically mapped to the view model fields by name. Unlike aggregates, view models do not need to be pre-registered with Photon.
 
 It's also possible to fetch scalar values and lists using plain SQL:
 
@@ -149,26 +149,22 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 
 ## Working with Value Objects
 
-Other ORMs offer very little support for [value objects](https://en.wikipedia.org/wiki/Value_object). They typically expect you to only use primitive values likes strings and integers in your entities. Photon provides several mechanisms to make it easier for you to use value objects in your entities.
+ORMs typically very little support for [value objects](https://en.wikipedia.org/wiki/Value_object). They expect you to only use primitive values likes strings and integers in your entities. Photon provides several mechanisms to make it easier for you to use value objects.
 
-If you have a custom value object for an entity, you can customize how that value object is converted to an entity field value and/or converted to a database value.
+If you have a value object in an entity, you can customize how that value object is hydrated from the database or serialized into the database.
 
 ```java
 photon.registerAggregate(RecipeIngredient.class)
-    .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
+    // The quantity is a VARCHAR in the database but is converted to a Fraction value object when hydrated.
+    .withCustomToDatabaseValueConverter("quantity", fraction -> fraction.getNumerator() + "/" + fraction.getDenominator())
+    .withCustomToFieldValueConverter("quantity", fractionString -> Fraction.getFraction(fractionString))
     .register();
 ```
 
-```java
-photon.registerAggregate(MyTable.class)
-    .withCustomToDatabaseValueConverter("myvalue", val -> ((String) val).toUpperCase())
-    .register();
-```
-
-If you have a common value object that is used in multiple entities in your application, and the value object maps to a single database column value using its `toString()` method, you can register a global custom converter for it.
+If you have a common value object that is used in multiple entities in your application, and the value object maps to a single database column value using its `toString()` method, you can register a global custom converter for hydrating it.
 
 ```java
-Convert.registerConverter(Fraction.class, val -> val != null ? Fraction.getFraction((String) val) : null);
+Convert.registerConverter(Fraction.class, fraction -> Fraction.getFraction(fraction));
 ```
 
 If you have a value object that does not neatly map between an entity field and a database column, you can create a custom field value mapper.
@@ -263,7 +259,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-It can also be useful for creating queries that only retrieve portions of an aggregate (although creating read models is preferred).
+It can also be useful for creating queries that only retrieve portions of an aggregate (although creating view models is preferred).
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
@@ -301,8 +297,6 @@ photon.registerAggregate(Shape.class)
                 return Circle.class;
             case "rectangle":
                 return Rectangle.class;
-            default:
-                return null;
         }
     })
     .register();
@@ -312,7 +306,7 @@ photon.registerAggregate(Shape.class)
 
 Photon does not maintain any in-memory cache of entities (the "session") that can get stale or consume large amounts of memory. Entities do not need to be attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
 
-Aggregates should be loaded and saved as whole units (unless this would cause significant performance issues). Photon does not track pending changes for entities and does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as read models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
+Aggregates should be loaded and saved as whole units (unless this would cause significant performance issues). Photon does not track pending changes for entities and does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as view models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
 
 ## Limitations
 

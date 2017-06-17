@@ -1,6 +1,8 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
 import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.exceptions.PhotonException;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -312,6 +314,44 @@ public class MyTableFetchTests
             assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
 
             transaction.commit();
+        }
+    }
+
+    @Test
+    public void registerViewModelAggregate_fetchAggregate_fetchesAggregate()
+    {
+        photon.registerViewModelAggregate(MyTable.class, "MyCustomName", false)
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class, "MyCustomName")
+                .fetchById(2);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void registerViewModelAggregate_fetchAggregateWithWrongName_throwsEsception()
+    {
+        photon.registerViewModelAggregate(MyTable.class, "MyCustomName", false)
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class, "MyWrongCustomName")
+                .fetchById(2);
+
+            Assert.fail("Failed to throw PhotonException.");
+        }
+        catch(PhotonException ex)
+        {
+            assertTrue(ex.getMessage().contains("MyWrongCustomName"));
         }
     }
 

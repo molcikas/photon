@@ -416,6 +416,53 @@ public class MyTableSaveTests
         }
     }
 
+    @Test
+    public void registerViewModelAggregateAndAlsoForSaving_saveAggregate_savesSuccessfully()
+    {
+        photon.registerViewModelAggregate(MyTable.class, "MyCustomName", true)
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(1111, "MyInsertedSavedValue", null);
+            transaction.save(myTable);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(1111);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
+            transaction.commit();
+        }
+    }
+
+    @Test
+    public void registerViewModelAggregate_trySavingIt_throwsError()
+    {
+        photon.registerViewModelAggregate(MyTable.class, "MyCustomName", false)
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(1111, "MyInsertedSavedValue", null);
+            transaction.save(myTable);
+            transaction.commit();
+
+            Assert.fail("Failed to throw PhotonException.");
+        }
+        catch(PhotonException ex)
+        {
+            assertTrue(ex.getMessage().contains("MyTable"));
+            assertTrue(ex.getMessage().contains("register"));
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)

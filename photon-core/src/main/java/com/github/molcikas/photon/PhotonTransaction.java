@@ -27,6 +27,7 @@ public class PhotonTransaction implements Closeable
 
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
+    private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
     private final PhotonOptions photonOptions;
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
     private boolean committed = false;
@@ -35,11 +36,13 @@ public class PhotonTransaction implements Closeable
     public PhotonTransaction(
         Connection connection,
         Map<Class, AggregateBlueprint> registeredAggregates,
+        Map<String, AggregateBlueprint> registeredViewModelAggregates,
         PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
         this.connection = connection;
         this.registeredAggregates = registeredAggregates;
+        this.registeredViewModelAggregates = registeredViewModelAggregates;
         this.photonOptions = photonOptions;
         this.entityBlueprintConstructorService = entityBlueprintConstructorService;
 
@@ -92,6 +95,21 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("query", false);
         AggregateBlueprint<T> aggregateBlueprint = getAggregateBlueprint(aggregateClass);
+        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonOptions);
+    }
+
+    /**
+     * Create an aggregate query. Aggregates must be registered with Photon.
+     *
+     * @param aggregateClass - The aggregate root's class
+     * @param viewModelAggregateBlueprintName - the name of the view model aggregate blueprint to use for querying
+     * @param <T> - The aggregate root's class
+     * @return - The photon aggregate query
+     */
+    public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass, String viewModelAggregateBlueprintName)
+    {
+        verifyConnectionIsAvailable("query", false);
+        AggregateBlueprint<T> aggregateBlueprint = getViewModelAggregateBlueprint(aggregateClass, viewModelAggregateBlueprintName);
         return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonOptions);
     }
 
@@ -329,6 +347,27 @@ public class PhotonTransaction implements Closeable
     public boolean isCommitted()
     {
         return committed;
+    }
+
+    private <T> AggregateBlueprint<T> getViewModelAggregateBlueprint(Class<T> aggregateClass, String viewModelAggregateBlueprintName)
+    {
+        AggregateBlueprint<T> aggregateBlueprint = registeredViewModelAggregates.get(viewModelAggregateBlueprintName);
+        if(aggregateBlueprint == null)
+        {
+            throw new PhotonException(String.format(
+                "The aggregate view model named '%s' is not registered with photon.",
+                viewModelAggregateBlueprintName)
+            );
+        }
+        if(aggregateBlueprint.getAggregateRootClass().isAssignableFrom(aggregateClass.getClass()))
+        {
+            throw new PhotonException(String.format(
+                "The aggregate blueprint view model '%s' is not compatible with class '%s'.",
+                viewModelAggregateBlueprintName,
+                aggregateClass.getName())
+            );
+        }
+        return aggregateBlueprint;
     }
 
     private <T> AggregateBlueprint<T> getAggregateBlueprint(Class<T> aggregateClass)
