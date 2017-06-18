@@ -11,7 +11,7 @@ public class ColumnBlueprint
     private final boolean isPrimaryKeyColumn;
     private final boolean isAutoIncrementColumn;
     private final boolean isForeignKeyToParentColumn;
-    private final Converter customToDatabaseValueConverter;
+    private final Converter customSerializer;
 
     // Reference to the entity field that this database column is mapped to. This can (but does not have to)
     // be null if this column is an unmapped primary key or a foreign key to the parent.
@@ -44,9 +44,9 @@ public class ColumnBlueprint
         return isForeignKeyToParentColumn;
     }
 
-    public Converter getCustomToDatabaseValueConverter()
+    public Converter getCustomSerializer()
     {
-        return customToDatabaseValueConverter;
+        return customSerializer;
     }
 
     public FieldBlueprint getMappedFieldBlueprint()
@@ -65,7 +65,7 @@ public class ColumnBlueprint
         boolean isPrimaryKeyColumn,
         boolean isAutoIncrementColumn,
         boolean isForeignKeyToParentColumn,
-        Converter customToDatabaseValueConverter,
+        Converter customSerializer,
         FieldBlueprint mappedFieldBlueprint,
         int columnIndex)
     {
@@ -82,7 +82,7 @@ public class ColumnBlueprint
         this.isPrimaryKeyColumn = isPrimaryKeyColumn;
         this.isAutoIncrementColumn = isAutoIncrementColumn;
         this.isForeignKeyToParentColumn = isForeignKeyToParentColumn;
-        this.customToDatabaseValueConverter = customToDatabaseValueConverter;
+        this.customSerializer = customSerializer;
         this.mappedFieldBlueprint = mappedFieldBlueprint;
         this.columnIndex = columnIndex;
     }

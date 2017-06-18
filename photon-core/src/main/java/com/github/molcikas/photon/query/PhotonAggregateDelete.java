@@ -80,7 +80,7 @@ public class PhotonAggregateDelete
                 connection,
                 photonOptions))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.executeUpdate();
             }
         }
@@ -93,7 +93,7 @@ public class PhotonAggregateDelete
                 connection,
                 photonOptions))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.executeUpdate();
             }
         }
@@ -106,7 +106,7 @@ public class PhotonAggregateDelete
                 photonOptions))
             {
                 EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
-                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter());
+                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.setNextArrayParameter(Collections.emptyList(), null, null);
                 photonPreparedStatement.executeUpdate();
             }

@@ -244,7 +244,7 @@ public class RecipeDbSetup
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
-                .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
+                .withFieldHydrater("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
                 .withOrderBySql(orderBySql)
                 .addAsChild("ingredients")
             .register();

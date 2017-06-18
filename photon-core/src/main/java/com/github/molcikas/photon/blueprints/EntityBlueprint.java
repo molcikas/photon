@@ -99,8 +99,8 @@ public class EntityBlueprint
         Map<String, EntityFieldValueMapping> customDatabaseColumns,
         Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns,
         Map<String, String> customFieldToColumnMappings,
-        Map<String, Converter> customToFieldValueConverters,
-        Map<String, Converter> customToDatabaseValueConverters,
+        Map<String, Converter> customFieldHydraters,
+        Map<String, Converter> customDatabaseColumnSerializers,
         PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -112,15 +112,10 @@ public class EntityBlueprint
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = StringUtils.isBlank(tableName) ? entityClass.getSimpleName().toLowerCase() : tableName;
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, null, null, customToFieldValueConverters);
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, null, null, customFieldHydraters);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, null, customColumnDataTypes, customDatabaseColumnSerializers, photonOptions);
 
         primaryKeyColumn = columns.stream().filter(ColumnBlueprint::isPrimaryKeyColumn).findFirst().orElse(null);
-
-        if(StringUtils.isBlank(orderBySql) && primaryKeyColumn != null)
-        {
-            orderBySql = primaryKeyColumn.getColumnName();
-        }
         this.orderBySql = orderBySql;
 
         normalizeColumnOrder();
@@ -220,10 +215,10 @@ public class EntityBlueprint
             .collect(Collectors.toList());
     }
 
-    public Converter getPrimaryKeyCustomToDatabaseValueConverter()
+    public Converter getPrimaryKeyColumnSerializer()
     {
         ColumnBlueprint primaryKeyColumn = getPrimaryKeyColumn();
-        return primaryKeyColumn.getCustomToDatabaseValueConverter();
+        return primaryKeyColumn.getCustomSerializer();
     }
 
     public void setSelectSql(String selectSql)

@@ -52,8 +52,8 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
-        Map<String, Converter> customToFieldValueConverters,
-        Map<String, Converter> customToDatabaseValueConverters,
+        Map<String, Converter> customFieldHydraters,
+        Map<String, Converter> customDatabaseColumnSerializers,
         PhotonOptions photonOptions,
         EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -66,7 +66,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.tableName = determineTableName(tableName, entityClass, photonOptions);
-        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customToFieldValueConverters);
+        this.fields = entityBlueprintConstructorService.getFieldsForEntity(entityClass, mappedClasses, ignoredFields, customDatabaseColumns, customCompoundDatabaseColumns, customFieldToColumnMappings, childEntities, foreignKeyListBlueprints, customFieldHydraters);
 
         if(StringUtils.isBlank(idFieldName))
         {
@@ -77,7 +77,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
             }
         }
 
-        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customToDatabaseValueConverters, photonOptions);
+        this.columns = entityBlueprintConstructorService.getColumnsForEntityFields(fields, idFieldName, isPrimaryKeyAutoIncrement, foreignKeyToParentColumnName, customColumnDataTypes, customDatabaseColumnSerializers, photonOptions);
 
         for(ColumnBlueprint columnBlueprint : columns)
         {
@@ -103,7 +103,7 @@ public class AggregateEntityBlueprint extends EntityBlueprint
                 true,
                 isPrimaryKeyAutoIncrement,
                 idFieldName.equals(foreignKeyToParentColumnName),
-                customToDatabaseValueConverters.get(idFieldName),
+                customDatabaseColumnSerializers.get(idFieldName),
                 null,
                 columns.size()
             );
@@ -123,17 +123,13 @@ public class AggregateEntityBlueprint extends EntityBlueprint
                 false,
                 false,
                 true,
-                customToDatabaseValueConverters.get(foreignKeyToParentColumnName),
+                customDatabaseColumnSerializers.get(foreignKeyToParentColumnName),
                 null,
                 columns.size()
             );
             columns.add(foreignKeyToParentColumn);
         }
 
-        if(StringUtils.isBlank(orderBySql) && primaryKeyColumn != null)
-        {
-            orderBySql = primaryKeyColumn.getColumnName();
-        }
         this.orderBySql = orderBySql;
 
         normalizeColumnOrder();

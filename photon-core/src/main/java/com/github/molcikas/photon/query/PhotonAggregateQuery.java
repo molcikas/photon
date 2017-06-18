@@ -154,7 +154,7 @@ public class PhotonAggregateQuery<T>
                 statement.setNextArrayParameter(
                     ids,
                     entityBlueprint.getPrimaryKeyColumn().getColumnDataType(),
-                    entityBlueprint.getPrimaryKeyCustomToDatabaseValueConverter()
+                    entityBlueprint.getPrimaryKeyColumnSerializer()
                 );
                 queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
             }

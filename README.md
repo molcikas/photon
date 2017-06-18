@@ -33,7 +33,7 @@ photon.registerAggregate(Recipe.class)
     .withChild(RecipeIngredient.class)
         .withForeignKeyToParent("recipeId")
         .withDatabaseColumn("quantity", ColumnDataType.INTEGER)
-        .withCustomToFieldValueConverter("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
+        .withFieldHydrater("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
         .withOrderBySql("RecipeIngredient.orderBy DESC")
         .addAsChild("ingredients")
     .register();
@@ -147,6 +147,59 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
+If you want to construct a view model that consists of root objects each containing a list of child objects, you could write multiple `SELECT` statements and aggregate the data yourself into a single DTO, but this quickly becomes tedious and error prone. Photon offers support for constructing aggregate view models so that you only have to write one `SELECT` statement. Aggregate view models use the same builder as regular aggregates.
+
+```java
+public class ProductOrdersDto
+{
+    public long productId;
+    
+    public String productName;
+    
+    public List<ProductOrderDto> productOrders;
+}
+
+public class ProductOrderDto
+{
+    public long orderId;
+    
+    public Date orderDate;
+}
+
+// Register the view model aggregate. You can re-use the same DTO classes in multiple view model aggregates (e.g. if you want different
+// view models with different sort orders), just give each aggregate view model a unique name.
+
+photon
+    .registerViewModelAggregate(ProductOrdersDto.class, "ProductOrdersMostRecentFirst")
+    .withId("productId")
+    .withChild(ProductOrderDto.class)
+        .withForeignKeyToParent("productOrderId")
+        .withOrderBySql("Order.orderDate DESC")
+        .addChild("productOrders")
+    .register();
+
+// Create a query similar to querying for a regular aggregate.
+
+try(PhotonTransaction transaction = photon.beginTransaction())
+{
+    String sql =
+        "SELECT Product.id " +
+        "FROM Product " +
+        "JOIN ProductOrders ON ProductOrders.productId = Product.id " +
+        "JOIN Orders ON Orders.id = ProductOrder.orderId " +
+        "GROUP BY Product.id " +
+        "HAVING COUNT(DISTINCT Orders.id) >= :minOrderCount ";
+
+    List<ProductOrdersDto> productOrders = transaction
+        .query(ProductOrdersDto.class, "ProductOrdersMostRecentFirst")
+        .whereIdIn(sql)
+        .addParameter("minOrderCount", 3)
+        .fetchList();
+    
+    return productOrders;
+}
+```
+
 ## Working with Value Objects
 
 ORMs typically very little support for [value objects](https://en.wikipedia.org/wiki/Value_object). They expect you to only use primitive values likes strings and integers in your entities. Photon provides several mechanisms to make it easier for you to use value objects.
@@ -156,15 +209,15 @@ If you have a value object in an entity, you can customize how that value object
 ```java
 photon.registerAggregate(RecipeIngredient.class)
     // The quantity is a VARCHAR in the database but is converted to a Fraction value object when hydrated.
-    .withCustomToDatabaseValueConverter("quantity", fraction -> fraction.getNumerator() + "/" + fraction.getDenominator())
-    .withCustomToFieldValueConverter("quantity", fractionString -> Fraction.getFraction(fractionString))
+    .withDatabaseColumnSerializer("quantity", fraction -> fraction.getNumerator() + "/" + fraction.getDenominator())
+    .withFieldHydrater("quantity", fractionString -> Fraction.getFraction(fractionString))
     .register();
 ```
 
 If you have a common value object that is used in multiple entities in your application, and the value object maps to a single database column value using its `toString()` method, you can register a global custom converter for hydrating it.
 
 ```java
-Convert.registerConverter(Fraction.class, fraction -> Fraction.getFraction(fraction));
+Photon.registerConverter(Fraction.class, fraction -> Fraction.getFraction(fraction));
 ```
 
 If you have a value object that does not neatly map between an entity field and a database column, you can create a custom field value mapper.

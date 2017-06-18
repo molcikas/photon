@@ -23,13 +23,13 @@ public class PhotonPreparedStatement implements Closeable
     {
         public final Object value;
         public final ColumnDataType dataType;
-        public final Converter customToDatabaseValueConverter;
+        public final Converter customSerializer;
 
-        public ParameterValue(Object value, ColumnDataType dataType, Converter customToDatabaseValueConverter)
+        public ParameterValue(Object value, ColumnDataType dataType, Converter customSerializer)
         {
             this.value = value;
             this.dataType = dataType;
-            this.customToDatabaseValueConverter = customToDatabaseValueConverter;
+            this.customSerializer = customSerializer;
         }
     }
 
@@ -67,7 +67,7 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    public void setNextArrayParameter(Collection values, ColumnDataType dataType, Converter customToDatabaseValueConverter)
+    public void setNextArrayParameter(Collection values, ColumnDataType dataType, Converter customSerializer)
     {
         if(isBatched)
         {
@@ -88,7 +88,7 @@ public class PhotonPreparedStatement implements Closeable
 
             for (Object value : values)
             {
-                setNextParameter(value, dataType, customToDatabaseValueConverter);
+                setNextParameter(value, dataType, customSerializer);
             }
         }
 
@@ -105,9 +105,9 @@ public class PhotonPreparedStatement implements Closeable
         sqlText = newSqlText.toString();
     }
 
-    public void setNextParameter(Object value, ColumnDataType dataType, Converter customToDatabaseValueConverter)
+    public void setNextParameter(Object value, ColumnDataType dataType, Converter customSerializer)
     {
-        parameterValues.add(new ParameterValue(value, dataType, customToDatabaseValueConverter));
+        parameterValues.add(new ParameterValue(value, dataType, customSerializer));
     }
 
     public void addToBatch()
@@ -313,8 +313,8 @@ public class PhotonPreparedStatement implements Closeable
 
     private <T> T convertValue(ParameterValue parameterValue, Class<T> toClass)
     {
-        Converter<T> converter = parameterValue.customToDatabaseValueConverter != null ?
-            parameterValue.customToDatabaseValueConverter :
+        Converter<T> converter = parameterValue.customSerializer != null ?
+            parameterValue.customSerializer :
             Convert.getConverterIfExists(toClass);
 
         if(converter == null)

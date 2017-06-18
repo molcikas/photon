@@ -33,8 +33,8 @@ public class AggregateBlueprintBuilder
     private final Map<String, AggregateEntityBlueprint> childEntities;
     private final Map<String, String> customFieldToColumnMappings;
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
-    private final Map<String, Converter> customToFieldValueConverters;
-    private final Map<String, Converter> customToDatabaseValueConverters;
+    private final Map<String, Converter> customFieldHydraters;
+    private final Map<String, Converter> customDatabaseColumnSerializers;
 
     public AggregateBlueprintBuilder(Class entityClass, Photon photon, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -69,8 +69,8 @@ public class AggregateBlueprintBuilder
         this.childEntities = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
         this.foreignKeyListBlueprints = new HashMap<>();
-        this.customToFieldValueConverters = new HashMap<>();
-        this.customToDatabaseValueConverters = new HashMap<>();
+        this.customFieldHydraters = new HashMap<>();
+        this.customDatabaseColumnSerializers = new HashMap<>();
     }
 
     /**
@@ -350,28 +350,28 @@ public class AggregateBlueprintBuilder
     }
 
     /**
-     * Sets a custom value converter for converting a database value to an entity field value.
+     * Sets a custom converter for hydrating a database value into an entity field value.
      *
      * @param fieldName - the entity field name
-     * @param customToFieldValueConverter - the converter
+     * @param fieldHydrater - the converter for doing the field hydration
      * @return - builder for chaining
      */
-    public AggregateBlueprintBuilder withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
+    public AggregateBlueprintBuilder withFieldHydrater(String fieldName, Converter fieldHydrater)
     {
-        customToFieldValueConverters.put(fieldName, customToFieldValueConverter);
+        customFieldHydraters.put(fieldName, fieldHydrater);
         return this;
     }
 
     /**
-     * Sets a custom value converter for converting an entity field value into a database value.
+     * Sets a custom converter for serializing an entity field value into a database value.
      *
      * @param columnName - the database column name
-     * @param customToDatabaseValueConverter - the converter
+     * @param databaseColumnSerializer - the converter for serializing values into the database
      * @return - builder for chaining
      */
-    public AggregateBlueprintBuilder withCustomToDatabaseValueConverter(String columnName, Converter customToDatabaseValueConverter)
+    public AggregateBlueprintBuilder withDatabaseColumnSerializer(String columnName, Converter databaseColumnSerializer)
     {
-        customToDatabaseValueConverters.put(columnName, customToDatabaseValueConverter);
+        customDatabaseColumnSerializers.put(columnName, databaseColumnSerializer);
         return this;
     }
 
@@ -462,8 +462,8 @@ public class AggregateBlueprintBuilder
             customFieldToColumnMappings,
             childEntities,
             foreignKeyListBlueprints,
-            customToFieldValueConverters,
-            customToDatabaseValueConverters,
+            customFieldHydraters,
+            customDatabaseColumnSerializers,
             photon.getOptions(),
             entityBlueprintConstructorService
         );

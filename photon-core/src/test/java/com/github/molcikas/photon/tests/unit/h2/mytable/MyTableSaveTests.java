@@ -279,12 +279,12 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_save_insertWithCustomToFieldValueConverter_savesAndRetrievesEntity()
+    public void aggregate_save_insertWithCustomFieldHydrater_savesAndRetrievesEntity()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
             .withPrimaryKeyAutoIncrement()
-            .withCustomToFieldValueConverter("myvalue", new Converter()
+            .withFieldHydrater("myvalue", new Converter()
             {
                 @Override
                 public Object convert(Object val) throws ConverterException
@@ -320,12 +320,12 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_save_insertWithCustomToDatabaseValueConverter_savesAndRetrievesEntity()
+    public void aggregate_save_insertWithCustomColumnSerializer_savesAndRetrievesEntity()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
             .withPrimaryKeyAutoIncrement()
-            .withCustomToDatabaseValueConverter("myvalue", val -> ((String) val).toUpperCase())
+            .withDatabaseColumnSerializer("myvalue", val -> ((String) val).toUpperCase())
             .register();
 
         try(PhotonTransaction transaction = photon.beginTransaction())

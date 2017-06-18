@@ -245,7 +245,7 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
-            Converter customToDatabaseValueConverter = null;
+            Converter customColumnSerializer = null;
 
             if (fieldBlueprint != null)
             {
@@ -260,7 +260,7 @@ public class PopulatedEntity<T>
                 else
                 {
                     fieldValue = getInstanceValue(fieldBlueprint);
-                    customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
+                    customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
             else if (columnBlueprint.isForeignKeyToParentColumn())
@@ -273,7 +273,7 @@ public class PopulatedEntity<T>
                 break;
             }
 
-            updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customToDatabaseValueConverter);
+            updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
         }
 
         if(!canPerformUpdate)
@@ -300,7 +300,7 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
-            Converter customToDatabaseValueConverter = null;
+            Converter customColumnSerializer = null;
 
             if(fieldBlueprint != null)
             {
@@ -315,7 +315,7 @@ public class PopulatedEntity<T>
                 else
                 {
                     fieldValue = getInstanceValue(fieldBlueprint);
-                    customToDatabaseValueConverter = columnBlueprint.getCustomToDatabaseValueConverter();
+                    customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
             else if(columnBlueprint.isForeignKeyToParentColumn())
@@ -335,7 +335,7 @@ public class PopulatedEntity<T>
                 ));
             }
 
-            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customToDatabaseValueConverter);
+            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
         }
     }
 
@@ -404,7 +404,7 @@ public class PopulatedEntity<T>
 
     private Object convertValue(Object databaseValue, FieldBlueprint fieldBlueprint)
     {
-        Converter converter = fieldBlueprint.getCustomToFieldValueConverter();
+        Converter converter = fieldBlueprint.getCustomHydrater();
         if(converter == null && fieldBlueprint.getFieldClass() != null)
         {
             converter = Convert.getConverterIfExists(fieldBlueprint.getFieldClass());

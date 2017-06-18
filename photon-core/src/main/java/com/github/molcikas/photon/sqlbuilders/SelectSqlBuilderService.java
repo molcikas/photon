@@ -140,7 +140,10 @@ public class SelectSqlBuilderService
 
         for (AggregateEntityBlueprint entityBlueprint : entityBlueprints)
         {
-            orderBySqlBuilder.append(entityBlueprint.getOrderBySql()).append(", ");
+            if(StringUtils.isNotBlank(entityBlueprint.getOrderBySql()))
+            {
+                orderBySqlBuilder.append(entityBlueprint.getOrderBySql()).append(", ");
+            }
 
             // We need to add the primary key as a secondary sort, otherwise entity selects might fail because
             // it expects child entities to be sorted by parent.

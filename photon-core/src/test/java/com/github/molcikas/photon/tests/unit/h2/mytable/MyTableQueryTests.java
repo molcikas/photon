@@ -98,7 +98,7 @@ public class MyTableQueryTests
     }
 
     @Test
-    public void query_fetch_customToFieldConverter_returnsEntity()
+    public void query_fetch_customFieldHydrater_returnsEntity()
     {
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
@@ -110,7 +110,7 @@ public class MyTableQueryTests
             MyTable myTable = transaction
                 .query(sql)
                 .addParameter("id", "2", ColumnDataType.INTEGER)
-                .withCustomToFieldValueConverter("myvalue", new Converter()
+                .withFieldHydrater("myvalue", new Converter()
                 {
                     @Override
                     public Object convert(Object val) throws ConverterException

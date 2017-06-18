@@ -14,7 +14,7 @@ public class FieldBlueprint
     private final String fieldName;
     private final Class fieldClass;
     private final FieldType fieldType;
-    private final Converter customToFieldValueConverter;
+    private final Converter customHydrater;
     private final EntityFieldValueMapping entityFieldValueMapping;
     private final CompoundEntityFieldValueMapping compoundEntityFieldValueMapping;
 
@@ -62,9 +62,9 @@ public class FieldBlueprint
         return foreignKeyListBlueprint;
     }
 
-    public Converter getCustomToFieldValueConverter()
+    public Converter getCustomHydrater()
     {
-        return customToFieldValueConverter;
+        return customHydrater;
     }
 
     public EntityFieldValueMapping getEntityFieldValueMapping()
@@ -78,7 +78,7 @@ public class FieldBlueprint
     }
 
     FieldBlueprint(Field reflectedField, List<String> mappedColumnNames, AggregateEntityBlueprint childEntityBlueprint,
-                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customToFieldValueConverter, EntityFieldValueMapping entityFieldValueMapping, CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
+                   ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customHydrater, EntityFieldValueMapping entityFieldValueMapping, CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
     {
         if(reflectedField == null && entityFieldValueMapping == null && compoundEntityFieldValueMapping == null)
         {
@@ -99,7 +99,7 @@ public class FieldBlueprint
             this.fieldClass = null;
         }
 
-        this.customToFieldValueConverter = customToFieldValueConverter;
+        this.customHydrater = customHydrater;
 
         if(entityFieldValueMapping != null)
         {

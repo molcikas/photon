@@ -29,7 +29,7 @@ public class PhotonQuery
     private EntityClassDiscriminator entityClassDiscriminator;
     private List<Long> generatedKeys;
 
-    private final Map<String, Converter> customToFieldValueConverters;
+    private final Map<String, Converter> customFieldHydraters;
 
     public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, PhotonOptions photonOptions, EntityBlueprintConstructorService entityBlueprintConstructorService)
     {
@@ -48,7 +48,7 @@ public class PhotonQuery
             parameters.add(new PhotonSqlParameter(parameterName));
         }
 
-        this.customToFieldValueConverters = new HashMap<>();
+        this.customFieldHydraters = new HashMap<>();
     }
 
     /**
@@ -224,7 +224,7 @@ public class PhotonQuery
             null,
             null,
             null,
-            customToFieldValueConverters,
+            customFieldHydraters,
             null,
             photonOptions,
             entityBlueprintConstructorService
@@ -270,15 +270,15 @@ public class PhotonQuery
     }
 
     /**
-     * Use a custom value converter for mapping a database value to a field value.
+     * Sets a custom converter for hydrating a database value into an entity field value.
      *
-     * @param fieldName - The field name
-     * @param customToFieldValueConverter - The value converter
-     * @return - The photon query (for chaining)
+     * @param fieldName - the entity field name
+     * @param fieldHydrater - the converter for doing the field hydration
+     * @return - builder for chaining
      */
-    public PhotonQuery withCustomToFieldValueConverter(String fieldName, Converter customToFieldValueConverter)
+    public PhotonQuery withFieldHydrater(String fieldName, Converter fieldHydrater)
     {
-        customToFieldValueConverters.put(fieldName, customToFieldValueConverter);
+        customFieldHydraters.put(fieldName, fieldHydrater);
         return this;
     }
 

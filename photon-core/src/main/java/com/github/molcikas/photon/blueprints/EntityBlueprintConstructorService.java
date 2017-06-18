@@ -25,7 +25,7 @@ public class EntityBlueprintConstructorService
         Map<String, String> customFieldToColumnMappings,
         Map<String, AggregateEntityBlueprint> childEntities,
         Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints,
-        Map<String, Converter> customToFieldValueConverters)
+        Map<String, Converter> customFieldHydraters)
     {
         final List<MappedClassBlueprint> mappedClassesFinal = mappedClasses != null ? mappedClasses : Collections.emptyList();
         final List<String> ignoredFieldsFinal = ignoredFields != null ? ignoredFields : Collections.emptyList();
@@ -34,7 +34,7 @@ public class EntityBlueprintConstructorService
         final Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumnsFinal = customCompoundDatabaseColumns != null ? customCompoundDatabaseColumns : new HashMap<>();
         final Map<String, AggregateEntityBlueprint> childEntitiesFinal = childEntities != null ? childEntities : new HashMap<>();
         final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprintsFinal = foreignKeyListBlueprints != null ? foreignKeyListBlueprints : new HashMap<>();
-        final Map<String, Converter> customToFieldValueConvertersFinal = customToFieldValueConverters != null ? customToFieldValueConverters : new HashMap<>();
+        final Map<String, Converter> customFieldHydratersFinal = customFieldHydraters != null ? customFieldHydraters : new HashMap<>();
 
         MultiValuedMap<Class, Field> reflectedFieldsMap = new HashSetValuedHashMap<>();
         reflectedFieldsMap.putAll(entityClass, Arrays.asList(entityClass.getDeclaredFields()));
@@ -62,7 +62,7 @@ public class EntityBlueprintConstructorService
                     entry.getValue().getName()),
                 childEntitiesFinal.get(entry.getValue().getName()),
                 foreignKeyListBlueprintsFinal.get(entry.getValue().getName()),
-                customToFieldValueConvertersFinal.get(entry.getValue().getName()),
+                customFieldHydratersFinal.get(entry.getValue().getName()),
                 null,
                 null
             ))
@@ -107,16 +107,16 @@ public class EntityBlueprintConstructorService
         boolean isPrimaryKeyAutoIncrement,
         String foreignKeyToParentColumnName,
         Map<String, ColumnDataType> customColumnDataTypes,
-        Map<String, Converter> customToDatabaseValueConverters,
+        Map<String, Converter> customDatabaseColumnSerializers,
         PhotonOptions photonOptions)
     {
         if(customColumnDataTypes == null)
         {
             customColumnDataTypes = new HashMap<>();
         }
-        if(customToDatabaseValueConverters == null)
+        if(customDatabaseColumnSerializers == null)
         {
-            customToDatabaseValueConverters = new HashMap<>();
+            customDatabaseColumnSerializers = new HashMap<>();
         }
 
         List<FieldBlueprint> fieldsWithColumnMappings = fields
@@ -145,7 +145,7 @@ public class EntityBlueprintConstructorService
                         isPrimaryKey && isPrimaryKeyAutoIncrement,
                         foreignKeyToParentColumnName != null && StringUtils.equals(fieldName,
                             foreignKeyToParentColumnName),
-                        customToDatabaseValueConverters.get(columnName),
+                        customDatabaseColumnSerializers.get(columnName),
                         fieldBlueprint,
                         columns.size()
                     );

@@ -4,6 +4,8 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
 import com.github.molcikas.photon.blueprints.AggregateBlueprintBuilder;
 import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
+import com.github.molcikas.photon.converters.Convert;
+import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.*;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -30,6 +32,11 @@ public class Photon
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     private final PhotonOptions photonOptions;
+
+    public static void registerConverter(Class destinationClass, Converter converter)
+    {
+        Convert.registerConverter(destinationClass, converter);
+    }
 
     /**
      * Constructs a new photon. Use this constructor if not using a connection pooler. Uses the default photon
@@ -118,6 +125,25 @@ public class Photon
     public AggregateBlueprintBuilder registerAggregate(Class aggregateRootClass)
     {
         return new AggregateBlueprintBuilder(aggregateRootClass, this, entityBlueprintConstructorService);
+    }
+
+    /**
+     * Creates a builder for constructing a view model aggregate blueprint.
+     *
+     * View model aggregate blueprints can be used for querying but cannot be used for inserting, updating, or deleting.
+     * Unlike regular aggregate blueprints, you can register the same class multiple times as long as each view model
+     * has a unique name. Set alsoRegisterBlueprintForSaving to true to have this blueprint aldo be used for inserting,
+     * updating, and deleting the aggregate.
+     *
+     * @param aggregateRootClass - the aggregate root entity class
+     * @param aggregateBlueprintName - the name for the aggregate blueprint
+     * @return - the aggregate entity blueprint builder for the aggregate root
+     */
+    public AggregateBlueprintBuilder registerViewModelAggregate(
+        Class aggregateRootClass,
+        String aggregateBlueprintName)
+    {
+        return registerViewModelAggregate(aggregateRootClass, aggregateBlueprintName, false);
     }
 
     /**
