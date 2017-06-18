@@ -102,9 +102,9 @@ try(PhotonTransaction transaction = photon.beginTransaction())
     
 ### Constructing View Models using SQL
 
-User interfaces often need to display data from many different tables. Or, they need to show summaries and aggregations of data, such as averages, counts, or sums. One method for getting this data is to select all the entities that contain the necessary data and construct the data model in code. But there are several problems with this approach. First, you end up selecting more data than you need from the database, which creates unnecessary latency in your query and load on your database and application servers. Second, your entity object graphs become too large because they have to support these queries. A better approach is to have separate models that are specifically for display.
+User interfaces often need to display data from many different tables. Or, they need to show summaries and aggregations of data, such as averages, counts, or sums. One method for getting this data is to select all the entities that contain the necessary data and construct the view model in code. But there are several problems with this approach. First, you end up selecting more data than you need from the database, which creates unnecessary latency in your query and load on your database and application servers. Second, your entity object graphs become too large because they have to support these queries. A better approach is to have separate models that are specifically for displaying and reporting.
 
-Photon makes it easy to construct custom read models using plain SQL.
+Photon makes it easy to construct custom view models using plain SQL.
 
 ```java
 try(PhotonTransaction transaction = photon.beginTransaction())
@@ -278,7 +278,7 @@ photon.registerAggregate(Product.class)
     .register();
 ```
 
-If you have a value object that contains a list of items, you can add it as a child of the entity and optionally omit the id (since value objects are not supposed to have an id) and the foreign key to the parent. However, if you omit the id, Photon won't be able to link each item to its database row, so the entire list will be deleted and re-inserted whenever the aggregate is saved.
+If you have a value object that is a list of items, you can add the list as a child of the entity and optionally omit the id (since value objects are not supposed to have an id) and the foreign key to the parent. However, if you omit the id, Photon won't be able to link each object in the list to its database row, so the entire set of rows will be deleted and re-inserted whenever the aggregate is saved.
 
 ```java
 photon.registerAggregate(Recipe.class)
