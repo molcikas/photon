@@ -355,6 +355,39 @@ photon.registerAggregate(Shape.class)
     .register();
 ```
 
+## Many-to-Many Relationships
+
+Many-to-many relationships don't make sense inside a single aggregate. If an entity can be related to more than one entity, then each entity should be their own aggregates. For example, if you have an `Order` entity and an `OrderAddress` entity with a many-to-many relationship, meaning that an `Order` can have many `OrderAddresses` and an `OrderAddress` can be linked to many `Orders`, then the `Order` and `OrderAddress` entities should be in separate aggregates.
+
+In the database, a many-to-many relationship is usually implemented by having an intermediate table that contains foreign keys to both aggregates. Each row in this table represents a relationship between the two aggregates. In Photon, you could simply add this intermediate table as a child entity for one or both aggregates. But since this entity would usually only have one field in it, Photon provides a way to represent the relationship as a list of primitive keys (integers, longs, UUIDs, or any other primitive type).
+
+```java
+photon.registerAggregate(Order.class)
+    .withForeignKeyListToOtherAggregate("addresses", "OrderAddressAssignmentTable", "orderId", "orderAddressId", ColumnDataType.INTEGER, Integer.class)
+    .register();
+```
+
+This will map the `List<Integer> addresses` field on `Order` to have the `orderAddressId` values for the aggregate. In other words, it will contain the `OrderAddress` ids for the `Order`.
+
+If you're familiar with JPA, in JPA 2.0, the equivalent implementation would be to have a list field decorated with `@ElementCollection` and `@CollectionTable` with a `@JoinColumn` with both `joinColumns` and `referencedColumnName` set.
+
+## Using Photon Alongside another ORM (coming in 0.6)
+
+While Photon is powerful enough to be used as the sole ORM on a project, it does provide ways to use it alongside another ORM. The `ExistingConnectionDataSource` can be used to have Photon share a database connection with another ORM.
+
+```java
+// During application initialization...
+ExistingConnectionDataSource dataSource = new ExistingConnectionDataSource();
+Photon photon = new Photon(dataSource);
+
+// ... Later, when you need to run a query using photon ...
+((ExistingConnectionDataSource) photon.getDataSource()).setConnection(existingConnection);
+PhotonTransaction transaction = photon.beginTransaction();
+// ... Do Photon queries as normal ...
+```
+
+If you want to ensure that Photon that does modify the state of the connection, you can wrap the connection with `new ReadOnlyConnection(existingConnection)`. Note that this only prevents the `Conection` itself from being modified, such as closing it, committing it, or changing the auto-commit state. You can still execute `INSERT`, `UPDATE`, and other SQL statements that modify database data (including DDL statements).
+
 ## Sessionless
 
 Photon does not maintain any in-memory cache of entities (the "session") that can get stale or consume large amounts of memory. Entities do not need to be attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.

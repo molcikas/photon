@@ -1,4 +1,4 @@
-package com.github.molcikas.photon;
+package com.github.molcikas.photon.datasource;
 
 import javax.sql.DataSource;
 import java.io.PrintWriter;

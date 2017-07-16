@@ -2,7 +2,7 @@ package com.github.molcikas.photon.tests.unit.blueprints;
 
 import org.junit.Assert;
 import org.junit.Test;
-import com.github.molcikas.photon.GenericDataSource;
+import com.github.molcikas.photon.datasource.GenericDataSource;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;

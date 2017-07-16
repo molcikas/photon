@@ -1,6 +1,8 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
 import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.datasource.ExistingConnectionDataSource;
+import com.github.molcikas.photon.datasource.ReadOnlyConnection;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -12,6 +14,8 @@ import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -352,6 +356,86 @@ public class MyTableFetchTests
         catch(PhotonException ex)
         {
             assertTrue(ex.getMessage().contains("MyWrongCustomName"));
+        }
+    }
+
+    @Test
+    public void existingConnection_queryEntity_returnsEntity()
+    {
+        Connection connection;
+        try
+        {
+            connection = photon.getDataSource().getConnection();
+        }
+        catch (SQLException ex)
+        {
+            throw new RuntimeException(ex);
+        }
+        ExistingConnectionDataSource existingConnectionDataSource =
+            new ExistingConnectionDataSource(new ReadOnlyConnection(connection));
+
+        Photon photon2 = new Photon(existingConnectionDataSource);
+
+        photon2.registerAggregate(MyTable.class)
+            .withId("id")
+            .register();
+
+        try(PhotonTransaction transaction = photon2.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+        }
+    }
+
+    @Test
+    public void existingConnection_saveWithImmutableConnection_doesNotCloseOrCommit()
+    {
+        Connection connection;
+        try
+        {
+            connection = photon.getDataSource().getConnection();
+        }
+        catch (SQLException ex)
+        {
+            throw new RuntimeException(ex);
+        }
+        ExistingConnectionDataSource existingConnectionDataSource =
+            new ExistingConnectionDataSource(new ReadOnlyConnection(connection));
+
+        Photon photon2 = new Photon(existingConnectionDataSource);
+
+        photon2.registerAggregate(MyTable.class)
+            .withId("id")
+            .register();
+
+        try(PhotonTransaction transaction = photon2.beginTransaction())
+        {
+            MyTable myTable = new MyTable(7, "val", null);
+
+            transaction.save(myTable);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon2.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTable);
+            assertEquals(2, myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+
+            myTable = transaction
+                .query(MyTable.class)
+                .fetchById(8);
+
+            assertNull(myTable);
         }
     }
 

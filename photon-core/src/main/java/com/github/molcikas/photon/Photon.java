@@ -6,6 +6,7 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprintBuilder;
 import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
+import com.github.molcikas.photon.datasource.GenericDataSource;
 import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.*;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -32,6 +33,11 @@ public class Photon
     private final EntityBlueprintConstructorService entityBlueprintConstructorService;
 
     private final PhotonOptions photonOptions;
+
+    public DataSource getDataSource()
+    {
+        return dataSource;
+    }
 
     public static void registerConverter(Class destinationClass, Converter converter)
     {
