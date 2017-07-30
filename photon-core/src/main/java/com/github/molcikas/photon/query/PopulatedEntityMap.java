@@ -1,8 +1,7 @@
 package com.github.molcikas.photon.query;
 
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
-import com.github.molcikas.photon.blueprints.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.FieldBlueprint;
 
 import java.util.*;
@@ -18,7 +17,7 @@ public class PopulatedEntityMap
         this.childIndexes = new HashMap<>();
     }
 
-    public void createPopulatedEntity(AggregateEntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
+    public void createPopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         PopulatedEntity populatedEntity = new PopulatedEntity(entityBlueprint, queryResultRow);
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
@@ -86,7 +85,7 @@ public class PopulatedEntityMap
 
     public void setFieldValuesOnEntityInstances(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
     {
-        ColumnBlueprint primaryKeyColumn = entityBlueprint.getPrimaryKeyColumn();
+        ColumnBlueprint primaryKeyColumn = entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn();
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
         String foreignTableKeyColumnName = fieldBlueprint.getForeignKeyListBlueprint().getForeignTableKeyColumnName();
 

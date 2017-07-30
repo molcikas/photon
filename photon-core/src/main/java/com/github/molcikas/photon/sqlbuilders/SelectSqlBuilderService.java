@@ -1,155 +1,145 @@
 package com.github.molcikas.photon.sqlbuilders;
 
+import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
-import com.github.molcikas.photon.blueprints.ColumnBlueprint;
-import com.github.molcikas.photon.blueprints.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.ForeignKeyListBlueprint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class SelectSqlBuilderService
+public final class SelectSqlBuilderService
 {
     private static final Logger log = LoggerFactory.getLogger(SelectSqlBuilderService.class);
 
-    private final SqlJoinClauseBuilderService sqlJoinClauseBuilderService;
-
-    public SelectSqlBuilderService(SqlJoinClauseBuilderService sqlJoinClauseBuilderService)
+    public static void buildSelectSqlTemplates(EntityBlueprint entityBlueprint, PhotonOptions photonOptions)
     {
-        this.sqlJoinClauseBuilderService = sqlJoinClauseBuilderService;
+        buildSelectSqlRecursive(entityBlueprint, entityBlueprint, Collections.emptyList(), photonOptions);
     }
 
-    public void buildSelectSqlTemplates(AggregateEntityBlueprint aggregateRootEntityBlueprint, PhotonOptions photonOptions)
-    {
-        buildSelectSqlRecursive(aggregateRootEntityBlueprint, aggregateRootEntityBlueprint, Collections.emptyList(), photonOptions);
-    }
-
-    private void buildSelectSqlRecursive(
-        AggregateEntityBlueprint entityBlueprint,
-        AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        List<AggregateEntityBlueprint> parentEntityBlueprints,
+    private static void buildSelectSqlRecursive(
+        EntityBlueprint entityBlueprint,
+        EntityBlueprint rootEntityBlueprint,
+        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        buildSelectSql(entityBlueprint, aggregateRootEntityBlueprint, parentEntityBlueprints, photonOptions);
-        buildSelectWhereSql(entityBlueprint, aggregateRootEntityBlueprint, parentEntityBlueprints, photonOptions);
-        buildSelectOrphansSql(entityBlueprint, photonOptions);
-        entityBlueprint.getForeignKeyListFields().forEach(e -> this.buildSelectKeysFromForeignTableSql(e, photonOptions));
+        buildSelectSql(entityBlueprint.getRootTableBlueprint(), rootEntityBlueprint.getRootTableBlueprint(),
+            parentTableBlueprints, photonOptions);
+        buildSelectWhereSql(entityBlueprint.getRootTableBlueprint(), parentTableBlueprints, photonOptions);
+        buildSelectOrphansSql(entityBlueprint.getRootTableBlueprint(), photonOptions);
+        entityBlueprint.getForeignKeyListFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
 
-        final List<AggregateEntityBlueprint> childParentEntityBlueprints = new ArrayList<>(parentEntityBlueprints.size() + 1);
-        childParentEntityBlueprints.add(entityBlueprint);
-        childParentEntityBlueprints.addAll(parentEntityBlueprints);
+        final List<TableBlueprint> childParentTableBlueprints = new ArrayList<>(parentTableBlueprints.size() + 1);
+        childParentTableBlueprints.add(entityBlueprint.getRootTableBlueprint());
+        childParentTableBlueprints.addAll(parentTableBlueprints);
         entityBlueprint
             .getFieldsWithChildEntities()
             .forEach(entityField -> buildSelectSqlRecursive(
                 entityField.getChildEntityBlueprint(),
-                aggregateRootEntityBlueprint,
-                childParentEntityBlueprints,
+                rootEntityBlueprint,
+                childParentTableBlueprints,
                 photonOptions
             ));
     }
 
-    private void buildSelectSql(
-        AggregateEntityBlueprint entityBlueprint,
-        AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        List<AggregateEntityBlueprint> parentEntityBlueprints,
+    private static void buildSelectSql(
+        TableBlueprint tableBlueprint,
+        TableBlueprint rootTableBlueprint,
+        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
+        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildSelectClauseSql(sqlBuilder, entityBlueprint);
-        buildFromClauseSql(sqlBuilder, entityBlueprint);
-        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
-        buildWhereClauseSql(sqlBuilder, aggregateRootEntityBlueprint);
-        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+        buildSelectClauseSql(sqlBuilder, tableBlueprint);
+        buildFromClauseSql(sqlBuilder, tableBlueprint);
+        SqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, tableBlueprint, parentTableBlueprints);
+        buildWhereClauseSql(sqlBuilder, rootTableBlueprint);
+        buildOrderBySql(sqlBuilder, tableBlueprint, parentTableBlueprints);
 
         String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
         log.debug("Select Sql:\n" + sql);
-        entityBlueprint.setSelectSql(sql);
+        tableBlueprint.setSelectSql(sql);
     }
 
-    private void buildSelectWhereSql(
-        AggregateEntityBlueprint entityBlueprint,
-        AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        List<AggregateEntityBlueprint> parentEntityBlueprints,
+    private static void buildSelectWhereSql(
+        TableBlueprint tableBlueprint,
+        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getColumns().size() * 16 + 64;
+        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildSelectClauseSql(sqlBuilder, entityBlueprint);
-        buildFromClauseSql(sqlBuilder, entityBlueprint);
-        sqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+        buildSelectClauseSql(sqlBuilder, tableBlueprint);
+        buildFromClauseSql(sqlBuilder, tableBlueprint);
+        SqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, tableBlueprint, parentTableBlueprints);
         buildOpenWhereClauseSql(sqlBuilder);
-        buildOrderBySql(sqlBuilder, entityBlueprint, parentEntityBlueprints);
+        buildOrderBySql(sqlBuilder, tableBlueprint, parentTableBlueprints);
 
         String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
         log.debug("Select Where Sql:\n" + sql);
-        entityBlueprint.setSelectWhereSql(sql);
+        tableBlueprint.setSelectWhereSql(sql);
     }
 
-    private void buildSelectClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
+    private static void buildSelectClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
         sqlBuilder.append("SELECT " );
 
-        for(ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+        for(ColumnBlueprint columnBlueprint : tableBlueprint.getColumns())
         {
             sqlBuilder.append(String.format("[%s].[%s]%s",
-                entityBlueprint.getTableName(),
+                tableBlueprint.getTableName(),
                 columnBlueprint.getColumnName(),
-                columnBlueprint.getColumnIndex() < entityBlueprint.getColumns().size() - 1 ? ", " : ""
+                columnBlueprint.getColumnIndex() < tableBlueprint.getColumns().size() - 1 ? ", " : ""
             ));
         }
     }
 
-    private void buildFromClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint)
+    private static void buildFromClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
-        sqlBuilder.append(String.format("\nFROM [%s]", entityBlueprint.getTableName()));
+        sqlBuilder.append(String.format("\nFROM [%s]", tableBlueprint.getTableName()));
     }
 
-    private void buildWhereClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint aggregateRootEntityBlueprint)
+    private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] IN (%s)",
-            aggregateRootEntityBlueprint.getTableName(),
-            aggregateRootEntityBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getTableName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             "%s"
         ));
     }
 
-    private void buildOpenWhereClauseSql(StringBuilder sqlBuilder)
+    private static void buildOpenWhereClauseSql(StringBuilder sqlBuilder)
     {
         sqlBuilder.append("\nWHERE (%s)");
     }
 
-    private void buildOrderBySql(
+    private static void buildOrderBySql(
         StringBuilder sqlBuilder,
-        AggregateEntityBlueprint childBlueprint,
-        List<AggregateEntityBlueprint> parentBlueprints)
+        TableBlueprint tableBlueprint,
+        List<TableBlueprint> parentTableBlueprints)
     {
-        List<AggregateEntityBlueprint> entityBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        entityBlueprints.add(childBlueprint);
-        entityBlueprints.addAll(parentBlueprints);
-        Collections.reverse(entityBlueprints);
+        List<TableBlueprint> tableBlueprints = new ArrayList<>(parentTableBlueprints.size() + 1);
+        tableBlueprints.add(tableBlueprint);
+        tableBlueprints.addAll(parentTableBlueprints);
+        Collections.reverse(tableBlueprints);
 
         sqlBuilder.append("\nORDER BY ");
 
         StringBuilder orderBySqlBuilder = new StringBuilder();
 
-        for (AggregateEntityBlueprint entityBlueprint : entityBlueprints)
+        for (TableBlueprint table : tableBlueprints)
         {
-            if(StringUtils.isNotBlank(entityBlueprint.getOrderBySql()))
+            if(StringUtils.isNotBlank(table.getOrderBySql()))
             {
-                orderBySqlBuilder.append(entityBlueprint.getOrderBySql()).append(", ");
+                orderBySqlBuilder.append(table.getOrderBySql()).append(", ");
             }
 
             // We need to add the primary key as a secondary sort, otherwise entity selects might fail because
             // it expects child entities to be sorted by parent.
             orderBySqlBuilder.append(String.format("[%s].[%s], ",
-                entityBlueprint.getTableName(),
-                entityBlueprint.getPrimaryKeyColumnName()
+                table.getTableName(),
+                table.getPrimaryKeyColumnName()
             ));
         }
 
@@ -162,9 +152,9 @@ public class SelectSqlBuilderService
         sqlBuilder.append(orderBySql);
     }
 
-    private void buildSelectOrphansSql(AggregateEntityBlueprint entityBlueprint, PhotonOptions photonOptions)
+    private static void buildSelectOrphansSql(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
     {
-        if(!entityBlueprint.isPrimaryKeyMappedToField())
+        if(!tableBlueprint.isPrimaryKeyMappedToField())
         {
             // If the entity does not know its primary key value, we can't determine what the orphans are. On save,
             // we'll have to delete all children and re-insert them.
@@ -173,18 +163,18 @@ public class SelectSqlBuilderService
 
         String selectOrphansSql = String.format(
             "SELECT [%s] FROM [%s] WHERE [%s] = ? AND [%s] NOT IN (?)",
-            entityBlueprint.getPrimaryKeyColumnName(),
-            entityBlueprint.getTableName(),
-            entityBlueprint.getForeignKeyToParentColumnName(),
-            entityBlueprint.getPrimaryKeyColumnName()
+            tableBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getTableName(),
+            tableBlueprint.getForeignKeyToParentColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName()
         );
 
         selectOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectOrphansSql, photonOptions);
         log.debug("Select Orphans Sql:\n" + selectOrphansSql);
-        entityBlueprint.setSelectOrphansSql(selectOrphansSql);
+        tableBlueprint.setSelectOrphansSql(selectOrphansSql);
     }
 
-    private void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
+    private static void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
     {
         ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
 

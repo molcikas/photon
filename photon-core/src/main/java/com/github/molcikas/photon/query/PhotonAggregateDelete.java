@@ -55,7 +55,7 @@ public class PhotonAggregateDelete
             return;
         }
 
-        AggregateEntityBlueprint entityBlueprint = (AggregateEntityBlueprint) populatedEntities.get(0).getEntityBlueprint();
+        EntityBlueprint entityBlueprint = populatedEntities.get(0).getEntityBlueprint();
 
         for(PopulatedEntity populatedEntity : populatedEntities)
         {
@@ -70,7 +70,7 @@ public class PhotonAggregateDelete
             .stream()
             .map(PopulatedEntity::getPrimaryKeyValue)
             .collect(Collectors.toList());
-        ColumnDataType primaryKeyColumnDataType = entityBlueprint.getPrimaryKeyColumn().getColumnDataType();
+        ColumnDataType primaryKeyColumnDataType = entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn().getColumnDataType();
 
         for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
@@ -80,33 +80,33 @@ public class PhotonAggregateDelete
                 connection,
                 photonOptions))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyColumnSerializer());
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.executeUpdate();
             }
         }
 
-        if(entityBlueprint.isPrimaryKeyMappedToField())
+        if(entityBlueprint.getRootTableBlueprint().isPrimaryKeyMappedToField())
         {
             try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
-                entityBlueprint.getDeleteSql(),
+                entityBlueprint.getRootTableBlueprint().getDeleteSql(),
                 false,
                 connection,
                 photonOptions))
             {
-                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getPrimaryKeyColumnSerializer());
+                photonPreparedStatement.setNextArrayParameter(ids, primaryKeyColumnDataType, entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.executeUpdate();
             }
         }
         else
         {
             try (PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
-                entityBlueprint.getDeleteChildrenExceptSql(),
+                entityBlueprint.getRootTableBlueprint().getDeleteChildrenExceptSql(),
                 false,
                 connection,
                 photonOptions))
             {
                 EntityBlueprint parentPopulatedEntityBlueprint = parentPopulatedEntity.getEntityBlueprint();
-                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getPrimaryKeyColumnSerializer());
+                photonPreparedStatement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnSerializer());
                 photonPreparedStatement.setNextArrayParameter(Collections.emptyList(), null, null);
                 photonPreparedStatement.executeUpdate();
             }

@@ -19,7 +19,7 @@ public class FieldBlueprint
     private final CompoundEntityFieldValueMapping compoundEntityFieldValueMapping;
 
     private final List<String> mappedColumnNames;
-    private final AggregateEntityBlueprint childEntityBlueprint;
+    private final EntityBlueprint childEntityBlueprint;
     private final ForeignKeyListBlueprint foreignKeyListBlueprint;
 
     public Field getReflectedField()
@@ -52,7 +52,7 @@ public class FieldBlueprint
         return mappedColumnNames;
     }
 
-    public AggregateEntityBlueprint getChildEntityBlueprint()
+    public EntityBlueprint getChildEntityBlueprint()
     {
         return childEntityBlueprint;
     }
@@ -77,7 +77,7 @@ public class FieldBlueprint
         return compoundEntityFieldValueMapping;
     }
 
-    FieldBlueprint(Field reflectedField, List<String> mappedColumnNames, AggregateEntityBlueprint childEntityBlueprint,
+    FieldBlueprint(Field reflectedField, List<String> mappedColumnNames, EntityBlueprint childEntityBlueprint,
                    ForeignKeyListBlueprint foreignKeyListBlueprint, Converter customHydrater, EntityFieldValueMapping entityFieldValueMapping, CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
     {
         if(reflectedField == null && entityFieldValueMapping == null && compoundEntityFieldValueMapping == null)

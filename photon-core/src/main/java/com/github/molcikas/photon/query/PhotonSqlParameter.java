@@ -1,7 +1,7 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.blueprints.ColumnDataType;
-import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
+import com.github.molcikas.photon.blueprints.TableBlueprintBuilder;
 import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.util.Collection;
@@ -41,7 +41,7 @@ public class PhotonSqlParameter
     public void assignValue(Object value, PhotonOptions photonOptions)
     {
         this.value = value;
-        this.dataType = value != null ? EntityBlueprintConstructorService.defaultColumnDataTypeForField(value.getClass(), photonOptions).dataType : null;
+        this.dataType = value != null ? TableBlueprintBuilder.defaultColumnDataTypeForField(value.getClass(), photonOptions).dataType : null;
         this.isCollection = value != null && Collection.class.isAssignableFrom(value.getClass());
     }
 

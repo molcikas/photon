@@ -1,11 +1,11 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
+import com.github.molcikas.photon.blueprints.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.ForeignKeyListBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
-import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
@@ -16,17 +16,17 @@ public class PhotonAggregateQuery<T>
 {
     private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
-    private final PhotonOptions photonOptions;
+    private final Photon photon;
     private final List<String> excludedFieldPaths;
 
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
         Connection connection,
-        PhotonOptions photonOptions)
+        Photon photon)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
-        this.photonOptions = photonOptions;
+        this.photon = photon;
         this.excludedFieldPaths = new ArrayList<>();
     }
 
@@ -82,7 +82,7 @@ public class PhotonAggregateQuery<T>
      */
     public PhotonAggregateFilterQuery<T> whereIdIn(String selectSql)
     {
-        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, selectSql, false, connection, photonOptions, this);
+        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, selectSql, false, connection, photon, this);
     }
 
     /**
@@ -94,7 +94,7 @@ public class PhotonAggregateQuery<T>
      */
     public PhotonAggregateFilterQuery<T> where(String whereClause)
     {
-        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, whereClause, true, connection, photonOptions, this);
+        return new PhotonAggregateFilterQuery<>(aggregateBlueprint, whereClause, true, connection, photon, this);
     }
 
     T fetchByIdsQuery(PhotonQuery photonQuery)
@@ -123,9 +123,9 @@ public class PhotonAggregateQuery<T>
     {
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
-        for(AggregateEntityBlueprint aggregateEntityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths).values())
+        for(EntityBlueprint entityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths).values())
         {
-            ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, aggregateEntityBlueprint, ids, photonQuery, isQueryIdsOnly);
+            ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, entityBlueprint, ids, photonQuery, isQueryIdsOnly);
         }
 
         populatedEntityMap.mapAllEntityInstanceChildren();
@@ -139,7 +139,7 @@ public class PhotonAggregateQuery<T>
 
     private List<?> executeQueryAndCreateEntityOrphans(
         PopulatedEntityMap populatedEntityMap,
-        AggregateEntityBlueprint entityBlueprint,
+        EntityBlueprint entityBlueprint,
         List<?> ids,
         PhotonQuery photonQuery,
         boolean isQueryIdsOnly)
@@ -148,15 +148,15 @@ public class PhotonAggregateQuery<T>
 
         if(ids != null)
         {
-            String selectSql = String.format(entityBlueprint.getSelectSql(), "?");
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
+            String selectSql = String.format(entityBlueprint.getRootTableBlueprint().getSelectSql(), "?");
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(
                     ids,
-                    entityBlueprint.getPrimaryKeyColumn().getColumnDataType(),
-                    entityBlueprint.getPrimaryKeyColumnSerializer()
+                    entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
+                    entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnSerializer()
                 );
-                queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
             }
         }
         else if(photonQuery != null)
@@ -164,19 +164,19 @@ public class PhotonAggregateQuery<T>
             String selectSql;
             if(isQueryIdsOnly)
             {
-                selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+                selectSql = String.format(entityBlueprint.getRootTableBlueprint().getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
             }
             else
             {
                 selectSql = photonQuery.getSqlTextWithQuestionMarks();
             }
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photonOptions))
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 for(PhotonSqlParameter photonSqlParameter : photonQuery.getParameters())
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }
-                queryResultRows = statement.executeQuery(entityBlueprint.getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
             }
         }
         else
@@ -200,12 +200,12 @@ public class PhotonAggregateQuery<T>
         return ids;
     }
 
-    private void populateForeignKeyListFields(PopulatedEntityMap populatedEntityMap, AggregateEntityBlueprint entityBlueprint, List<?> ids)
+    private void populateForeignKeyListFields(PopulatedEntityMap populatedEntityMap, EntityBlueprint entityBlueprint, List<?> ids)
     {
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
             ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection, photonOptions))
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
                 List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());

@@ -1,14 +1,12 @@
 package com.github.molcikas.photon;
 
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
-import com.github.molcikas.photon.blueprints.AggregateBlueprintBuilder;
-import com.github.molcikas.photon.blueprints.EntityBlueprintConstructorService;
+import com.github.molcikas.photon.blueprints.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.EntityBlueprintBuilder;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.datasource.GenericDataSource;
 import com.github.molcikas.photon.options.PhotonOptions;
-import com.github.molcikas.photon.sqlbuilders.*;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.apache.commons.lang3.StringUtils;
 
@@ -26,17 +24,16 @@ public class Photon
     private final Map<Class, AggregateBlueprint> registeredAggregates;
     private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
 
-    private final SelectSqlBuilderService selectSqlBuilderService;
-    private final UpdateSqlBuilderService updateSqlBuilderService;
-    private final InsertSqlBuilderService insertSqlBuilderService;
-    private final DeleteSqlBuilderService deleteSqlBuilderService;
-    private final EntityBlueprintConstructorService entityBlueprintConstructorService;
-
     private final PhotonOptions photonOptions;
 
     public DataSource getDataSource()
     {
         return dataSource;
+    }
+
+    public PhotonOptions getOptions()
+    {
+        return photonOptions;
     }
 
     public static void registerConverter(Class destinationClass, Converter converter)
@@ -93,18 +90,6 @@ public class Photon
         this.registeredAggregates = new HashMap<>();
         this.registeredViewModelAggregates = new HashMap<>();
         this.photonOptions = photonOptions != null ? photonOptions : PhotonOptions.defaultOptions();
-
-        SqlJoinClauseBuilderService sqlJoinClauseBuilderService = new SqlJoinClauseBuilderService();
-        this.selectSqlBuilderService = new SelectSqlBuilderService(sqlJoinClauseBuilderService);
-        this.updateSqlBuilderService = new UpdateSqlBuilderService();
-        this.insertSqlBuilderService = new InsertSqlBuilderService();
-        this.deleteSqlBuilderService = new DeleteSqlBuilderService(sqlJoinClauseBuilderService);
-        this.entityBlueprintConstructorService = new EntityBlueprintConstructorService();
-    }
-
-    public PhotonOptions getOptions()
-    {
-        return photonOptions;
     }
 
     /**
@@ -117,8 +102,7 @@ public class Photon
             getConnection(),
             registeredAggregates,
             registeredViewModelAggregates,
-            photonOptions,
-            entityBlueprintConstructorService
+            this
         );
     }
 
@@ -128,9 +112,9 @@ public class Photon
      * @param aggregateRootClass - the aggregate root entity class
      * @return - the aggregate entity builder for the aggregate root
      */
-    public AggregateBlueprintBuilder registerAggregate(Class aggregateRootClass)
+    public EntityBlueprintBuilder registerAggregate(Class aggregateRootClass)
     {
-        return new AggregateBlueprintBuilder(aggregateRootClass, this, entityBlueprintConstructorService);
+        return new EntityBlueprintBuilder(aggregateRootClass, this);
     }
 
     /**
@@ -145,7 +129,7 @@ public class Photon
      * @param aggregateBlueprintName - the name for the aggregate blueprint
      * @return - the aggregate entity blueprint builder for the aggregate root
      */
-    public AggregateBlueprintBuilder registerViewModelAggregate(
+    public EntityBlueprintBuilder registerViewModelAggregate(
         Class aggregateRootClass,
         String aggregateBlueprintName)
     {
@@ -166,12 +150,12 @@ public class Photon
      *                                       and deleting the aggregate class.
      * @return - the aggregate entity blueprint builder for the aggregate root
      */
-    public AggregateBlueprintBuilder registerViewModelAggregate(
+    public EntityBlueprintBuilder registerViewModelAggregate(
         Class aggregateRootClass,
         String aggregateBlueprintName,
         boolean alsoRegisterBlueprintForSaving)
     {
-        return new AggregateBlueprintBuilder(aggregateRootClass, aggregateBlueprintName, alsoRegisterBlueprintForSaving, this, entityBlueprintConstructorService);
+        return new EntityBlueprintBuilder(aggregateRootClass, aggregateBlueprintName, alsoRegisterBlueprintForSaving, this);
     }
 
     /**
@@ -185,7 +169,7 @@ public class Photon
     public void registerBuiltAggregateBlueprint(
         String aggregateBlueprintName,
         boolean registerBlueprintForSaving,
-        AggregateEntityBlueprint aggregateRootEntityBlueprint)
+        EntityBlueprint aggregateRootEntityBlueprint)
     {
         if(aggregateRootEntityBlueprint == null)
         {
@@ -194,10 +178,6 @@ public class Photon
 
         AggregateBlueprint blueprint = new AggregateBlueprint(
             aggregateRootEntityBlueprint,
-            selectSqlBuilderService,
-            updateSqlBuilderService,
-            insertSqlBuilderService,
-            deleteSqlBuilderService,
             photonOptions
         );
 

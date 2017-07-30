@@ -1,12 +1,15 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -21,8 +24,7 @@ public class PhotonQuery
     private final String sqlText;
     private final boolean populateGeneratedKeys;
     private final Connection connection;
-    private final PhotonOptions photonOptions;
-    private final EntityBlueprintConstructorService entityBlueprintConstructorService;
+    private final Photon photon;
     private final List<MappedClassBlueprint> mappedClasses;
 
     private List<PhotonSqlParameter> parameters;
@@ -31,13 +33,12 @@ public class PhotonQuery
 
     private final Map<String, Converter> customFieldHydraters;
 
-    public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, PhotonOptions photonOptions, EntityBlueprintConstructorService entityBlueprintConstructorService)
+    public PhotonQuery(String sqlText, boolean populateGeneratedKeys, Connection connection, Photon photon)
     {
         this.sqlText = sqlText;
         this.populateGeneratedKeys = populateGeneratedKeys;
         this.connection = connection;
-        this.photonOptions = photonOptions;
-        this.entityBlueprintConstructorService = entityBlueprintConstructorService;
+        this.photon = photon;
         this.parameters = new ArrayList<>();
         this.mappedClasses = new ArrayList<>();
 
@@ -81,7 +82,7 @@ public class PhotonQuery
         {
             if(StringUtils.equals(photonSqlParameter.getName(), parameter))
             {
-                photonSqlParameter.assignValue(value, photonOptions);
+                photonSqlParameter.assignValue(value, photon.getOptions());
                 foundMatch = true;
             }
         }
@@ -211,26 +212,27 @@ public class PhotonQuery
     {
         PhotonPreparedStatement photonPreparedStatement = prepareStatement();
 
-        EntityBlueprint entityBlueprint = new EntityBlueprint(
-            classToFetch,
-            mappedClasses,
-            entityClassDiscriminator,
-            null,
-            null,
-            false,
-            null,
-            null,
-            null,
-            null,
-            null,
-            null,
-            customFieldHydraters,
-            null,
-            photonOptions,
-            entityBlueprintConstructorService
-        );
+        EntityBlueprintBuilder entityBlueprintBuilder = new EntityBlueprintBuilder(classToFetch, photon);
+        entityBlueprintBuilder.withClassDiscriminator(entityClassDiscriminator);
 
-        List<PhotonQueryResultRow> rows = photonPreparedStatement.executeQuery(entityBlueprint.getColumnNames());
+        for(MappedClassBlueprint blueprint : mappedClasses)
+        {
+            entityBlueprintBuilder.withMappedClass(
+                blueprint.getMappedClass(),
+                blueprint.getIncludedFields().stream().map(Field::getName).collect(Collectors.toList())
+            );
+        }
+
+        for(String field : customFieldHydraters.keySet())
+        {
+            entityBlueprintBuilder.withFieldHydrater(field, customFieldHydraters.get(field));
+        }
+
+
+        EntityBlueprint entityBlueprint = entityBlueprintBuilder.build();
+
+        List<PhotonQueryResultRow> rows = photonPreparedStatement
+            .executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
         List<PopulatedEntity<T>> populatedEntities = rows
             .stream()
             .map(r -> new PopulatedEntity<T>(entityBlueprint, r))
@@ -294,8 +296,12 @@ public class PhotonQuery
 
     private PhotonPreparedStatement prepareStatement()
     {
-        PhotonPreparedStatement photonPreparedStatement =
-            new PhotonPreparedStatement(getSqlTextWithQuestionMarks(), populateGeneratedKeys, connection, photonOptions);
+        PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
+            getSqlTextWithQuestionMarks(),
+            populateGeneratedKeys,
+            connection,
+            photon.getOptions()
+        );
 
         for(PhotonSqlParameter photonSqlParameter : parameters)
         {

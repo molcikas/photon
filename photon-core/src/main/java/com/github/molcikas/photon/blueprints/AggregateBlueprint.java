@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 
 public class AggregateBlueprint<T>
 {
-    private final AggregateEntityBlueprint aggregateRootEntityBlueprint;
-    private final Map<String, AggregateEntityBlueprint> entityBlueprints;
+    private final EntityBlueprint aggregateRootEntityBlueprint;
+    private final Map<String, EntityBlueprint> entityBlueprints;
 
-    public AggregateEntityBlueprint getAggregateRootEntityBlueprint()
+    public EntityBlueprint getAggregateRootEntityBlueprint()
     {
         return aggregateRootEntityBlueprint;
     }
@@ -27,11 +27,7 @@ public class AggregateBlueprint<T>
     }
 
     public AggregateBlueprint(
-        AggregateEntityBlueprint aggregateRootEntityBlueprint,
-        SelectSqlBuilderService selectSqlBuilderService,
-        UpdateSqlBuilderService updateSqlBuilderService,
-        InsertSqlBuilderService insertSqlBuilderService,
-        DeleteSqlBuilderService deleteSqlBuilderService,
+        EntityBlueprint aggregateRootEntityBlueprint,
         PhotonOptions photonOptions)
     {
         if(aggregateRootEntityBlueprint == null)
@@ -40,16 +36,16 @@ public class AggregateBlueprint<T>
         }
 
         this.entityBlueprints = new HashMap<>();
-        findAllAggregateEntityBlueprintsRecursive(aggregateRootEntityBlueprint, "");
+        findAllEntityBlueprintsRecursive(aggregateRootEntityBlueprint, "");
 
         this.aggregateRootEntityBlueprint = aggregateRootEntityBlueprint;
-        selectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
-        updateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
-        insertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
-        deleteSqlBuilderService.buildDeleteSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        SelectSqlBuilderService.buildSelectSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        UpdateSqlBuilderService.buildUpdateSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        InsertSqlBuilderService.buildInsertSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
+        DeleteSqlBuilderService.buildDeleteSqlTemplates(aggregateRootEntityBlueprint, photonOptions);
     }
 
-    public Map<String, AggregateEntityBlueprint> getEntityBlueprints(List<String> excludedFieldPaths)
+    public Map<String, EntityBlueprint> getEntityBlueprints(List<String> excludedFieldPaths)
     {
         Optional<String> missingPath = excludedFieldPaths
             .stream()
@@ -64,7 +60,7 @@ public class AggregateBlueprint<T>
             ));
         }
 
-        Map<String, AggregateEntityBlueprint> includedEntityBlueprints = entityBlueprints
+        Map<String, EntityBlueprint> includedEntityBlueprints = entityBlueprints
             .entrySet()
             .stream()
             .filter(e -> !excludedFieldPaths.contains(e.getKey()))
@@ -73,13 +69,13 @@ public class AggregateBlueprint<T>
         return includedEntityBlueprints;
     }
 
-    private void findAllAggregateEntityBlueprintsRecursive(AggregateEntityBlueprint aggregateEntityBlueprint, String fieldPath)
+    private void findAllEntityBlueprintsRecursive(EntityBlueprint entityBlueprint, String fieldPath)
     {
-        this.entityBlueprints.put(fieldPath,  aggregateEntityBlueprint);
-        for(FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getFieldsWithChildEntities())
+        this.entityBlueprints.put(fieldPath,  entityBlueprint);
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
         {
             String childFieldPath = fieldPath + (StringUtils.isEmpty(fieldPath) ? "" : ".") + fieldBlueprint.getFieldName();
-            findAllAggregateEntityBlueprintsRecursive(fieldBlueprint.getChildEntityBlueprint(), childFieldPath);
+            findAllEntityBlueprintsRecursive(fieldBlueprint.getChildEntityBlueprint(), childFieldPath);
         }
     }
 }

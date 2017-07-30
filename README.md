@@ -357,7 +357,7 @@ photon.registerAggregate(Shape.class)
 
 ## Many-to-Many Relationships
 
-Many-to-many relationships don't make sense inside a single aggregate. If an entity can be related to more than one entity, then each entity should be their own aggregates. For example, if you have an `Order` entity and an `OrderAddress` entity with a many-to-many relationship, meaning that an `Order` can have many `OrderAddresses` and an `OrderAddress` can be linked to many `Orders`, then the `Order` and `OrderAddress` entities should be in separate aggregates.
+Many-to-many relationships don't make sense inside an aggregate. If an entity can be related to more than one entity, then each entity should be their own aggregate. For example, if you have an `Order` entity and an `OrderAddress` entity with a many-to-many relationship, meaning that an `Order` can have many `OrderAddresses` and an `OrderAddress` can be linked to many `Orders`, then the `Order` and `OrderAddress` entities should be in separate aggregates.
 
 In the database, a many-to-many relationship is usually implemented by having an intermediate table that contains foreign keys to both aggregates. Each row in this table represents a relationship between the two aggregates. In Photon, you could simply add this intermediate table as a child entity for one or both aggregates. But since this entity would usually only have one field in it, Photon provides a way to represent the relationship as a list of primitive keys (integers, longs, UUIDs, or any other primitive type).
 

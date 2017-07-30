@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 public class PopulatedEntity<T>
 {
     private final EntityBlueprint entityBlueprint;
-    private final AggregateEntityBlueprint aggregateEntityBlueprint;
     private T entityInstance;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
@@ -42,35 +41,15 @@ public class PopulatedEntity<T>
     public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         this.entityBlueprint = entityBlueprint;
-        if(AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
-        {
-            this.aggregateEntityBlueprint = (AggregateEntityBlueprint) entityBlueprint;
-        }
-        else
-        {
-            this.aggregateEntityBlueprint = null;
-        }
         constructOrphanEntityInstance(queryResultRow);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
     {
         this.entityBlueprint = entityBlueprint;
-        if(AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
-        {
-            this.aggregateEntityBlueprint = (AggregateEntityBlueprint) entityBlueprint;
-        }
-        else
-        {
-            this.aggregateEntityBlueprint = null;
-        }
         this.entityInstance = entityInstance;
-        this.primaryKeyValue = getInstanceValue(entityBlueprint.getPrimaryKeyColumn());
-
-        if(aggregateEntityBlueprint != null)
-        {
-            this.foreignKeyToParentValue = getInstanceValue(aggregateEntityBlueprint.getForeignKeyToParentColumn());
-        }
+        this.primaryKeyValue = getInstanceValue(entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn());
+        this.foreignKeyToParentValue = getInstanceValue(entityBlueprint.getRootTableBlueprint().getForeignKeyToParentColumn());
     }
 
     public Object getInstanceValue(ColumnBlueprint columnBlueprint)
@@ -151,18 +130,12 @@ public class PopulatedEntity<T>
 
     public void setPrimaryKeyValue(Object primaryKeyValue)
     {
-        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getPrimaryKeyColumnName(), primaryKeyValue);
+        setInstanceFieldToDatabaseValue(entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnName(), primaryKeyValue);
     }
 
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
     {
-        if(!AggregateEntityBlueprint.class.isAssignableFrom(entityBlueprint.getClass()))
-        {
-            throw new PhotonException("Cannot set foreign key to parent value because the entity is not an aggregate entity.");
-        }
-        AggregateEntityBlueprint aggregateEntityBlueprint = (AggregateEntityBlueprint) this.entityBlueprint;
-
-        setInstanceFieldToDatabaseValue(aggregateEntityBlueprint.getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        setInstanceFieldToDatabaseValue(entityBlueprint.getRootTableBlueprint().getForeignKeyToParentColumnName(), foreignKeyToParentValue);
     }
 
     public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
@@ -181,14 +154,9 @@ public class PopulatedEntity<T>
 
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
     {
-        if(aggregateEntityBlueprint == null)
-        {
-            throw new PhotonException("Cannot map entity instance to children because the entity is not an aggregate entity.");
-        }
-
         Object primaryKey = getPrimaryKeyValue();
 
-        for(FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getFieldsWithChildEntities())
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
         {
             Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
@@ -233,7 +201,7 @@ public class PopulatedEntity<T>
             return false;
         }
 
-        if(entityBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
+        if(entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
             return false;
         }
@@ -241,7 +209,7 @@ public class PopulatedEntity<T>
         boolean canPerformUpdate = true;
         Map<String, Object> values = new HashMap<>();
 
-        for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumns())
+        for (ColumnBlueprint columnBlueprint : entityBlueprint.getRootTableBlueprint().getColumns())
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
@@ -296,7 +264,7 @@ public class PopulatedEntity<T>
     {
         Map<String, Object> values = new HashMap<>();
 
-        for (ColumnBlueprint columnBlueprint : entityBlueprint.getColumnsForInsertStatement())
+        for (ColumnBlueprint columnBlueprint : entityBlueprint.getRootTableBlueprint().getColumnsForInsertStatement())
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
@@ -369,13 +337,10 @@ public class PopulatedEntity<T>
             setInstanceFieldsToValues(valuesToSet);
         }
 
-        if(aggregateEntityBlueprint != null)
+        for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
         {
-            for (FieldBlueprint fieldBlueprint : aggregateEntityBlueprint.getForeignKeyListFields())
-            {
-                Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
-                setInstanceFieldToValue(fieldBlueprint, fieldCollection);
-            }
+            Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
+            setInstanceFieldToValue(fieldBlueprint, fieldCollection);
         }
     }
 
@@ -383,11 +348,11 @@ public class PopulatedEntity<T>
     {
         FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
 
-        if(StringUtils.equals(columnName, entityBlueprint.getPrimaryKeyColumnName()))
+        if(StringUtils.equals(columnName, entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnName()))
         {
             primaryKeyValue = databaseValue;
         }
-        if(aggregateEntityBlueprint != null && StringUtils.equals(columnName, aggregateEntityBlueprint.getForeignKeyToParentColumnName()))
+        if(StringUtils.equals(columnName, entityBlueprint.getRootTableBlueprint().getForeignKeyToParentColumnName()))
         {
             foreignKeyToParentValue = databaseValue;
         }

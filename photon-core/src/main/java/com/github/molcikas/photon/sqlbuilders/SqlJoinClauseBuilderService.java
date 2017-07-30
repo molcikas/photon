@@ -1,24 +1,27 @@
 package com.github.molcikas.photon.sqlbuilders;
 
-import com.github.molcikas.photon.blueprints.AggregateEntityBlueprint;
+import com.github.molcikas.photon.blueprints.TableBlueprint;
 
 import java.util.*;
 
-public class SqlJoinClauseBuilderService
+public final class SqlJoinClauseBuilderService
 {
-    public void buildJoinClauseSql(StringBuilder sqlBuilder, AggregateEntityBlueprint entityBlueprint, List<AggregateEntityBlueprint> parentEntityBlueprints)
+    public static void buildJoinClauseSql(
+        StringBuilder sqlBuilder,
+        TableBlueprint tableBlueprint,
+        List<TableBlueprint> parentTableBlueprints)
     {
-        AggregateEntityBlueprint childEntityBlueprint = entityBlueprint;
-        for(AggregateEntityBlueprint parentEntityBlueprint : parentEntityBlueprints)
+        TableBlueprint childTableBlueprint = tableBlueprint;
+        for(TableBlueprint parentTableBlueprint : parentTableBlueprints)
         {
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
-                parentEntityBlueprint.getTableName(),
-                parentEntityBlueprint.getTableName(),
-                parentEntityBlueprint.getPrimaryKeyColumnName(),
-                childEntityBlueprint.getTableName(),
-                childEntityBlueprint.getForeignKeyToParentColumnName()
+                parentTableBlueprint.getTableName(),
+                parentTableBlueprint.getTableName(),
+                parentTableBlueprint.getPrimaryKeyColumnName(),
+                childTableBlueprint.getTableName(),
+                childTableBlueprint.getForeignKeyToParentColumnName()
             ));
-            childEntityBlueprint = parentEntityBlueprint;
+            childTableBlueprint = parentTableBlueprint;
         }
     }
 }
