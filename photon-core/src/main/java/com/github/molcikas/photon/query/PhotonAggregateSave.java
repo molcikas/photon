@@ -143,14 +143,22 @@ public class PhotonAggregateSave
 
         if(entityBlueprint.getTableBlueprint().isPrimaryKeyMappedToField())
         {
+            String selectOrphansSql = entityBlueprint.getTableBlueprint().getSelectOrphansSql();
+            if(selectOrphansSql == null)
+            {
+                // If the primary key and foreign key to parent are equal, there won't be any select orhans sql because
+                // there can't be any orphans, so just return.
+                return;
+            }
+
             List<?> childIds = populatedEntities
                 .stream()
                 .map(PopulatedEntity::getPrimaryKeyValue)
-                .filter(value -> value != null) // Auto increment entities that have not been inserted yet will have null primary key values.
+                .filter(Objects::nonNull) // Auto increment entities that have not been inserted yet will have null primary key values.
                 .collect(Collectors.toList());
             List<?> orphanIds;
 
-            try(PhotonPreparedStatement statement = new PhotonPreparedStatement(entityBlueprint.getTableBlueprint().getSelectOrphansSql(), false, connection, photonOptions))
+            try(PhotonPreparedStatement statement = new PhotonPreparedStatement(selectOrphansSql, false, connection, photonOptions))
             {
                 statement.setNextParameter(parentPopulatedEntity.getPrimaryKeyValue(), parentPopulatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), parentPopulatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
                 statement.setNextArrayParameter(childIds, entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), entityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());

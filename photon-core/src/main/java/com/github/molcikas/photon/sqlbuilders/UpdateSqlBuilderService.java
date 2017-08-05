@@ -16,31 +16,36 @@ public final class UpdateSqlBuilderService
 
     public static void buildUpdateSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint, PhotonOptions photonOptions)
     {
-        buildUpdateSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), photonOptions);
+        buildUpdateSqlRecursive(aggregateRootEntityBlueprint, photonOptions);
     }
 
     private static void buildUpdateSqlRecursive(
         EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getTableBlueprint().getColumns().size() * 16 + 64;
-        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
+        buildUpdateSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions);
+        for(TableBlueprint joinedTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
+        {
+            buildUpdateSqlForTableBlueprint(joinedTableBlueprint, photonOptions);
+        }
 
-        buildUpdateClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
-        buildSetClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
-        buildWhereClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
-
-        String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Update Sql:\n" + sql);
-        entityBlueprint.getTableBlueprint().setUpdateSql(sql);
-
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        childParentBlueprints.addAll(parentBlueprints);
-        childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildUpdateSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, photonOptions));
+            .forEach(entityField -> buildUpdateSqlRecursive(entityField.getChildEntityBlueprint(), photonOptions));
+    }
+
+    private static void buildUpdateSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
+    {
+        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
+        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
+
+        buildUpdateClauseSql(sqlBuilder, tableBlueprint);
+        buildSetClauseSql(sqlBuilder, tableBlueprint);
+        buildWhereClauseSql(sqlBuilder, tableBlueprint);
+
+        String updateSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
+        log.debug("Update Sql for {}:\n{}", tableBlueprint.getTableName(), updateSql);
+        tableBlueprint.setUpdateSql(updateSql);
     }
 
     private static void buildUpdateClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)

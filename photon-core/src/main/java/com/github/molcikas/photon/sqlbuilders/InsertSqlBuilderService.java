@@ -14,32 +14,37 @@ public final class InsertSqlBuilderService
 
     public static void buildInsertSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint, PhotonOptions photonOptions)
     {
-        buildInsertSqlRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), photonOptions);
+        buildInsertSqlRecursive(aggregateRootEntityBlueprint, photonOptions);
     }
 
     private static void buildInsertSqlRecursive(
         EntityBlueprint entityBlueprint,
-        List<EntityBlueprint> parentBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getTableBlueprint().getColumns().size() * 16 + 64;
-        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
-
-        buildInsertClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
-        buildValuesClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
-
-        String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Insert Sql:\n" + sql);
-        entityBlueprint.getTableBlueprint().setInsertSql(sql);
+        buildInsertSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions);
+        for(TableBlueprint joinedTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
+        {
+            buildInsertSqlForTableBlueprint(joinedTableBlueprint, photonOptions);
+        }
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildInsertKeysFromForeignTableSql(f, photonOptions));
 
-        final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
-        childParentBlueprints.addAll(parentBlueprints);
-        childParentBlueprints.add(entityBlueprint);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), childParentBlueprints, photonOptions));
+            .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), photonOptions));
+    }
+
+    private static void buildInsertSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
+    {
+        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
+        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
+
+        buildInsertClauseSql(sqlBuilder, tableBlueprint);
+        buildValuesClauseSql(sqlBuilder, tableBlueprint);
+
+        String insertSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
+        log.debug("Insert Sql for {}:\n{}", tableBlueprint.getTableName(), insertSql);
+        tableBlueprint.setInsertSql(insertSql);
     }
 
     private static void buildInsertClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)

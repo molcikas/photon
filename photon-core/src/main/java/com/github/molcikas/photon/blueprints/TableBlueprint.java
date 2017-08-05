@@ -78,6 +78,11 @@ public class TableBlueprint
         return orderBySql;
     }
 
+    public TableBlueprint getParentTableBlueprint()
+    {
+        return parentTableBlueprint;
+    }
+
     public String getPrimaryKeyColumnName()
     {
         return primaryKeyColumn != null ? primaryKeyColumn.getColumnName() : null;
