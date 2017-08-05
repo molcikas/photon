@@ -5,8 +5,6 @@ import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
-import com.github.molcikas.photon.options.PhotonOptions;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Field;
@@ -88,7 +86,7 @@ public class PhotonQuery
         }
         if(!foundMatch)
         {
-            throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
+            throw new PhotonException("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText);
         }
         return this;
     }
@@ -133,7 +131,7 @@ public class PhotonQuery
         }
         if(!foundMatch)
         {
-            throw new PhotonException(String.format("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText));
+            throw new PhotonException("The parameter '%s' is not in the SQL query: \n%s", parameter, sqlText);
         }
         return this;
     }
@@ -232,7 +230,7 @@ public class PhotonQuery
         EntityBlueprint entityBlueprint = entityBlueprintBuilder.build();
 
         List<PhotonQueryResultRow> rows = photonPreparedStatement
-            .executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
+            .executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
         List<PopulatedEntity<T>> populatedEntities = rows
             .stream()
             .map(r -> new PopulatedEntity<T>(entityBlueprint, r))

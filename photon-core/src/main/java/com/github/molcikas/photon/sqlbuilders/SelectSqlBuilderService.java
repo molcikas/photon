@@ -23,14 +23,22 @@ public final class SelectSqlBuilderService
         List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        buildSelectSql(entityBlueprint.getRootTableBlueprint(), rootEntityBlueprint.getRootTableBlueprint(),
+        buildSelectSql(entityBlueprint.getTableBlueprint(), rootEntityBlueprint.getTableBlueprint(),
             parentTableBlueprints, photonOptions);
-        buildSelectWhereSql(entityBlueprint.getRootTableBlueprint(), parentTableBlueprints, photonOptions);
-        buildSelectOrphansSql(entityBlueprint.getRootTableBlueprint(), photonOptions);
+
+        // TODO: Implement
+//        for(TableBlueprint joinTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
+//        {
+//            buildSelectSql(joinTableBlueprint, rootEntityBlueprint.getTableBlueprint(),
+//                parentTableBlueprints, photonOptions);
+//        }
+
+        buildSelectWhereSql(entityBlueprint.getTableBlueprint(), parentTableBlueprints, photonOptions);
+        buildSelectOrphansSql(entityBlueprint.getTableBlueprint(), photonOptions);
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
 
         final List<TableBlueprint> childParentTableBlueprints = new ArrayList<>(parentTableBlueprints.size() + 1);
-        childParentTableBlueprints.add(entityBlueprint.getRootTableBlueprint());
+        childParentTableBlueprints.add(entityBlueprint.getTableBlueprint());
         childParentTableBlueprints.addAll(parentTableBlueprints);
         entityBlueprint
             .getFieldsWithChildEntities()

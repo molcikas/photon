@@ -24,16 +24,16 @@ public final class UpdateSqlBuilderService
         List<EntityBlueprint> parentBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getRootTableBlueprint().getColumns().size() * 16 + 64;
+        int initialCapacity = entityBlueprint.getTableBlueprint().getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildUpdateClauseSql(sqlBuilder, entityBlueprint.getRootTableBlueprint());
-        buildSetClauseSql(sqlBuilder, entityBlueprint.getRootTableBlueprint());
-        buildWhereClauseSql(sqlBuilder, entityBlueprint.getRootTableBlueprint());
+        buildUpdateClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
+        buildSetClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
+        buildWhereClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
 
         String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
         log.debug("Update Sql:\n" + sql);
-        entityBlueprint.getRootTableBlueprint().setUpdateSql(sql);
+        entityBlueprint.getTableBlueprint().setUpdateSql(sql);
 
         final List<EntityBlueprint> childParentBlueprints = new ArrayList<>(parentBlueprints.size() + 1);
         childParentBlueprints.addAll(parentBlueprints);

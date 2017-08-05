@@ -2,13 +2,13 @@ package com.github.molcikas.photon.exceptions;
 
 public class PhotonException extends RuntimeException
 {
-    public PhotonException(String message)
+    public PhotonException(String message, Object... args)
     {
-        super(message);
+        super(String.format(message, args));
     }
 
-    public PhotonException(String message, Exception cause)
+    public PhotonException(Throwable cause, String message, Object... args)
     {
-        super(message, cause);
+        super(String.format(message, args), cause);
     }
 }

@@ -71,7 +71,7 @@ public class PhotonPreparedStatement implements Closeable
     {
         if(isBatched)
         {
-            throw new PhotonException(String.format("Cannot call setNextArrayParameter() because this is a batched query. Sql: \n%s", originalSqlText));
+            throw new PhotonException("Cannot call setNextArrayParameter() because this is a batched query. Sql: \n%s", originalSqlText);
         }
 
         String newTextForQuestionMark;
@@ -137,7 +137,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error preparing statement for SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error preparing statement for SQL: \n%s",
+                originalSqlText
+            );
         }
     }
 
@@ -165,7 +169,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing batch for SQL:\n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error executing batch for SQL:\n%s",
+                originalSqlText
+            );
         }
     }
 
@@ -194,7 +202,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing query for statement with SQL:\n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error executing query for statement with SQL:\n%s",
+                originalSqlText
+            );
         }
 
         return resultRows;
@@ -226,7 +238,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing query for statement with SQL:\n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error executing query for statement with SQL:\n%s",
+                originalSqlText
+            );
         }
 
         return resultRows;
@@ -243,7 +259,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing update for statement with SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error executing update for statement with SQL: \n%s",
+                originalSqlText
+            );
         }
     }
 
@@ -260,7 +280,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error executing insert for statement with SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error executing insert for statement with SQL: \n%s",
+                originalSqlText
+            );
         }
     }
 
@@ -307,7 +331,11 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error getting generated keys from insert for SQL: \n%s", originalSqlText), ex);
+            throw new PhotonException(
+                ex,
+                "Error getting generated keys from insert for SQL: \n%s",
+                originalSqlText
+            );
         }
     }
 
@@ -319,7 +347,7 @@ public class PhotonPreparedStatement implements Closeable
 
         if(converter == null)
         {
-            throw new PhotonException(String.format("No converter found for class '%s'.", toClass.getName()));
+            throw new PhotonException("No converter found for class '%s'.", toClass.getName());
         }
 
         return converter.convert(parameterValue.value);
@@ -367,7 +395,7 @@ public class PhotonPreparedStatement implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException(String.format("Error preparing statement for SQL: \n%s", sqlText), ex);
+            throw new PhotonException(ex, "Error preparing statement for SQL: \n%s", sqlText);
         }
 
         int parameterIndex = 0;
@@ -443,7 +471,13 @@ public class PhotonPreparedStatement implements Closeable
             }
             catch(Exception ex)
             {
-                throw new PhotonException(String.format("Error setting parameter %s with type %s to '%s'.", parameterIndex, parameterValue.dataType, parameterValue.value), ex);
+                throw new PhotonException(
+                    ex,
+                    "Error setting parameter %s with type %s to '%s'.",
+                    parameterIndex,
+                    parameterValue.dataType,
+                    parameterValue.value
+                );
             }
         }
     }

@@ -155,7 +155,7 @@ public class FieldBlueprint
 
             if(!Collection.class.isAssignableFrom(fieldClass))
             {
-                throw new PhotonException(String.format("The field '%s' must be a Collection since it is a foreign key list field.", fieldName));
+                throw new PhotonException("The field '%s' must be a Collection since it is a foreign key list field.", fieldName);
             }
         }
         else if(childEntityBlueprint != null)

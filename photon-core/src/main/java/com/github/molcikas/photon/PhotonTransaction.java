@@ -47,7 +47,7 @@ public class PhotonTransaction implements Closeable
         }
         catch (Exception ex)
         {
-            throw new PhotonException("Error starting transaction.", ex);
+            throw new PhotonException(ex, "Error starting transaction.");
         }
     }
 
@@ -290,7 +290,7 @@ public class PhotonTransaction implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException("Error committing transaction.", ex);
+            throw new PhotonException(ex, "Error committing transaction.");
         }
     }
 
@@ -311,7 +311,7 @@ public class PhotonTransaction implements Closeable
         }
         catch(Exception ex)
         {
-            throw new PhotonException("Error closing connection.", ex);
+            throw new PhotonException(ex, "Error closing connection.");
         }
     }
 
@@ -349,17 +349,17 @@ public class PhotonTransaction implements Closeable
         AggregateBlueprint<T> aggregateBlueprint = registeredViewModelAggregates.get(viewModelAggregateBlueprintName);
         if(aggregateBlueprint == null)
         {
-            throw new PhotonException(String.format(
+            throw new PhotonException(
                 "The aggregate view model named '%s' is not registered with photon.",
-                viewModelAggregateBlueprintName)
+                viewModelAggregateBlueprintName
             );
         }
         if(aggregateBlueprint.getAggregateRootClass().isAssignableFrom(aggregateClass.getClass()))
         {
-            throw new PhotonException(String.format(
+            throw new PhotonException(
                 "The aggregate blueprint view model '%s' is not compatible with class '%s'.",
                 viewModelAggregateBlueprintName,
-                aggregateClass.getName())
+                aggregateClass.getName()
             );
         }
         return aggregateBlueprint;
@@ -381,7 +381,7 @@ public class PhotonTransaction implements Closeable
 
         if(aggregateBlueprint == null)
         {
-            throw new PhotonException(String.format("The aggregate root class '%s' is not registered with photon.", aggregateClass.getName()));
+            throw new PhotonException("The aggregate root class '%s' is not registered with photon.", aggregateClass.getName());
         }
         return aggregateBlueprint;
     }
@@ -390,13 +390,13 @@ public class PhotonTransaction implements Closeable
     {
         if(committed)
         {
-            throw new PhotonException(String.format("Cannot perform %s %s operation because the transaction has already been committed.", useA ? "a" : "an", operation));
+            throw new PhotonException("Cannot perform %s %s operation because the transaction has already been committed.", useA ? "a" : "an", operation);
         }
         try
         {
             if (connection.isClosed())
             {
-                throw new PhotonException(String.format("Cannot perform %s %s operation because the connection is closed.", useA ? "a" : "an", operation));
+                throw new PhotonException("Cannot perform %s %s operation because the connection is closed.", useA ? "a" : "an", operation);
             }
         }
         catch(SQLException ex)

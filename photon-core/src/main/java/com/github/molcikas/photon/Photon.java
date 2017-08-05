@@ -204,7 +204,7 @@ public class Photon
         }
         catch(Exception ex)
         {
-            throw new PhotonException("Error getting connection.", ex);
+            throw new PhotonException(ex, "Error getting connection.");
         }
     }
 }

@@ -22,15 +22,15 @@ public final class InsertSqlBuilderService
         List<EntityBlueprint> parentBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = entityBlueprint.getRootTableBlueprint().getColumns().size() * 16 + 64;
+        int initialCapacity = entityBlueprint.getTableBlueprint().getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildInsertClauseSql(sqlBuilder, entityBlueprint.getRootTableBlueprint());
-        buildValuesClauseSql(sqlBuilder, entityBlueprint.getRootTableBlueprint());
+        buildInsertClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
+        buildValuesClauseSql(sqlBuilder, entityBlueprint.getTableBlueprint());
 
         String sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
         log.debug("Insert Sql:\n" + sql);
-        entityBlueprint.getRootTableBlueprint().setInsertSql(sql);
+        entityBlueprint.getTableBlueprint().setInsertSql(sql);
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildInsertKeysFromForeignTableSql(f, photonOptions));
 

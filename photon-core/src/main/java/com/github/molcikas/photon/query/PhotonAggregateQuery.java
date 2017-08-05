@@ -148,15 +148,15 @@ public class PhotonAggregateQuery<T>
 
         if(ids != null)
         {
-            String selectSql = String.format(entityBlueprint.getRootTableBlueprint().getSelectSql(), "?");
+            String selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), "?");
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(
                     ids,
-                    entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
-                    entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumnSerializer()
+                    entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
+                    entityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer()
                 );
-                queryResultRows = statement.executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
             }
         }
         else if(photonQuery != null)
@@ -164,7 +164,7 @@ public class PhotonAggregateQuery<T>
             String selectSql;
             if(isQueryIdsOnly)
             {
-                selectSql = String.format(entityBlueprint.getRootTableBlueprint().getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+                selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
             }
             else
             {
@@ -176,7 +176,7 @@ public class PhotonAggregateQuery<T>
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }
-                queryResultRows = statement.executeQuery(entityBlueprint.getRootTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
             }
         }
         else

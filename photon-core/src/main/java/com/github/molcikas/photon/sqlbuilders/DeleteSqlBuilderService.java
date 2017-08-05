@@ -27,7 +27,7 @@ public final class DeleteSqlBuilderService
         List<EntityBlueprint> parentEntityBlueprints,
         PhotonOptions photonOptions)
     {
-        TableBlueprint tableBlueprint = entityBlueprint.getRootTableBlueprint();
+        TableBlueprint tableBlueprint = entityBlueprint.getTableBlueprint();
 
         String deleteSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?)",
             tableBlueprint.getTableName(),
@@ -50,7 +50,7 @@ public final class DeleteSqlBuilderService
 
         List<TableBlueprint> parentTableBlueprints = parentEntityBlueprints
             .stream()
-            .map(EntityBlueprint::getRootTableBlueprint)
+            .map(EntityBlueprint::getTableBlueprint)
             .collect(Collectors.toList());
 
         buildDeleteOrphansSqlRecursive(tableBlueprint, parentTableBlueprints, photonOptions);

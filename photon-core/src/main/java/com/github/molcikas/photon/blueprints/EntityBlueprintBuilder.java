@@ -28,6 +28,7 @@ public class EntityBlueprintBuilder
     private final Map<String, Converter> customFieldHydraters;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
+    private final List<TableBlueprintBuilder> joinedTableBuilders;
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
@@ -56,7 +57,8 @@ public class EntityBlueprintBuilder
         this.ignoredFields = new ArrayList<>();
         this.childEntities = new HashMap<>();
         this.customFieldHydraters = new HashMap<>();
-        this.tableBlueprintBuilder = new TableBlueprintBuilder(photon.getOptions());
+        this.tableBlueprintBuilder = new TableBlueprintBuilder(this, photon.getOptions());
+        this.joinedTableBuilders = new ArrayList<>();
     }
 
     /**
@@ -239,6 +241,12 @@ public class EntityBlueprintBuilder
         return this;
     }
 
+    public EntityBlueprintBuilder withDatabaseColumn(String columnName)
+    {
+        tableBlueprintBuilder.withDatabaseColumn(columnName, columnName);
+        return this;
+    }
+
     /**
      * Sets the column data type for a database column. This only needs to be called if the column is being mapped to
      * a non-default type.
@@ -378,6 +386,17 @@ public class EntityBlueprintBuilder
         return new EntityBlueprintBuilder(childClass, this, photon);
     }
 
+    public TableBlueprintBuilder withJoinedTable(String tableName)
+    {
+        return new TableBlueprintBuilder(tableName, this, photon.getOptions());
+    }
+
+    public EntityBlueprintBuilder addJoinedTable(TableBlueprintBuilder tableBlueprintBuilder)
+    {
+        joinedTableBuilders.add(tableBlueprintBuilder);
+        return this;
+    }
+
     /**
      * Completes the builder and registers it as a child of the parent entity.
      *
@@ -388,11 +407,11 @@ public class EntityBlueprintBuilder
     {
         if(parentBuilder == null)
         {
-            throw new PhotonException(String.format("Cannot add child to field '%s' because there is no parent entity.", fieldName));
+            throw new PhotonException("Cannot add child to field '%s' because there is no parent entity.", fieldName);
         }
         if(StringUtils.isBlank(tableBlueprintBuilder.getForeignKeyToParent()))
         {
-            throw new PhotonException(String.format("Cannot add child to parent field '%s' because the child does not have a foreign key to parent set.", fieldName));
+            throw new PhotonException("Cannot add child to parent field '%s' because the child does not have a foreign key to parent set.", fieldName);
         }
         parentBuilder.addChild(fieldName, build());
         return parentBuilder;
@@ -475,13 +494,46 @@ public class EntityBlueprintBuilder
                 .collect(Collectors.toList())
         );
 
-        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(entityClass, fields);
+        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(entityClass, fields, true, joinedTableBuilders);
+        List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders
+            .stream()
+            .map(t -> t.build(entityClass, fields, false, joinedTableBuilders))
+            .collect(Collectors.toList());
+
+        int i = 0;
+        for(TableBlueprint joinedTableBlueprint : joinedTableBlueprints)
+        {
+            TableBlueprintBuilder joinedTableBuilder = joinedTableBuilders.get(i);
+            if(StringUtils.isNotBlank(joinedTableBuilder.getParentTableName()))
+            {
+                TableBlueprint parentTableBlueprint = joinedTableBlueprints
+                    .stream()
+                    .filter(t -> t.getTableName().equals(joinedTableBuilder.getParentTableName()))
+                    .findFirst()
+                    .orElseThrow(() -> new PhotonException(
+                        "The parent table '%s' is not a table for the aggregate.",
+                        joinedTableBuilder.getParentTableName()));
+
+                if(parentTableBlueprint == joinedTableBlueprint)
+                {
+                    throw new PhotonException("The table '%s' cannot be its own parent.", joinedTableBlueprint.getTableName());
+                }
+
+                joinedTableBlueprint.setParentTableBlueprint(parentTableBlueprint);
+            }
+            else
+            {
+                joinedTableBlueprint.setParentTableBlueprint(tableBlueprint);
+            }
+            i++;
+        }
 
         return new EntityBlueprint(
             entityClass,
             entityClassDiscriminator,
             fields,
-            tableBlueprint
+            tableBlueprint,
+            joinedTableBlueprints
         );
     }
 
@@ -489,7 +541,7 @@ public class EntityBlueprintBuilder
     {
         if(childEntities.containsKey(fieldName))
         {
-            throw new PhotonException(String.format("EntityBlueprint already contains a child for field %s", fieldName));
+            throw new PhotonException("EntityBlueprint already contains a child for field %s", fieldName);
         }
         childEntities.put(fieldName, childEntityBlueprint);
     }

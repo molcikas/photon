@@ -16,6 +16,7 @@ public class TableBlueprint
 
     private String tableName;
     private String orderBySql;
+    private TableBlueprint parentTableBlueprint;
 
     private String selectSql;
     private String selectWhereSql;
@@ -213,5 +214,10 @@ public class TableBlueprint
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
     {
         deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
+    }
+
+    public void setParentTableBlueprint(TableBlueprint parentTableBlueprint)
+    {
+        this.parentTableBlueprint = parentTableBlueprint;
     }
 }

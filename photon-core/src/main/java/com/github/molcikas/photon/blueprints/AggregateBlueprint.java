@@ -53,11 +53,11 @@ public class AggregateBlueprint<T>
             .findFirst();
         if(missingPath.isPresent())
         {
-            throw new PhotonException(String.format(
+            throw new PhotonException(
                 "The field path '%s' does not exist for '%s'.",
                 missingPath.get(),
                 aggregateRootEntityBlueprint.getEntityClassName()
-            ));
+            );
         }
 
         Map<String, EntityBlueprint> includedEntityBlueprints = entityBlueprints

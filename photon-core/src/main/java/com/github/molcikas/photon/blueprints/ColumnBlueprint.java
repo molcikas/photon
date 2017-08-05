@@ -75,7 +75,7 @@ public class ColumnBlueprint
         }
         if(isAutoIncrementColumn && !isPrimaryKeyColumn)
         {
-            throw new PhotonException(String.format("The column '%s' cannot be auto-increment because it is not the primary key.", columnName));
+            throw new PhotonException("The column '%s' cannot be auto-increment because it is not the primary key.", columnName);
         }
         this.columnName = columnName;
         this.columnDataType = columnDataType;

@@ -85,7 +85,7 @@ public class PopulatedEntityMap
 
     public void setFieldValuesOnEntityInstances(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
     {
-        ColumnBlueprint primaryKeyColumn = entityBlueprint.getRootTableBlueprint().getPrimaryKeyColumn();
+        ColumnBlueprint primaryKeyColumn = entityBlueprint.getTableBlueprint().getPrimaryKeyColumn();
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
         String foreignTableKeyColumnName = fieldBlueprint.getForeignKeyListBlueprint().getForeignTableKeyColumnName();
 

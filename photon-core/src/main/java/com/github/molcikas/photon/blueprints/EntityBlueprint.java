@@ -10,21 +10,24 @@ import java.util.stream.Collectors;
 
 public class EntityBlueprint
 {
-    private Class entityClass;
-    private EntityClassDiscriminator entityClassDiscriminator;
-    private List<FieldBlueprint> fields;
-    private TableBlueprint rootTableBlueprint;
+    private final Class entityClass;
+    private final EntityClassDiscriminator entityClassDiscriminator;
+    private final List<FieldBlueprint> fields;
+    private final TableBlueprint tableBlueprint;
+    private final List<TableBlueprint> joinedTableBlueprints;
 
     EntityBlueprint(
         Class entityClass,
         EntityClassDiscriminator entityClassDiscriminator,
         List<FieldBlueprint> fields,
-        TableBlueprint rootTableBlueprint)
+        TableBlueprint tableBlueprint,
+        List<TableBlueprint> joinedTableBlueprints)
     {
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.fields = fields;
-        this.rootTableBlueprint = rootTableBlueprint;
+        this.tableBlueprint = tableBlueprint;
+        this.joinedTableBlueprints = joinedTableBlueprints;
     }
 
     public Class getEntityClass()
@@ -70,8 +73,9 @@ public class EntityBlueprint
         catch (Exception ex)
         {
             throw new PhotonException(
-                String.format("Error getting constructor for entity class '%s'. Make sure the class has a parameterless constructor (private is ok).", classToConstruct),
-                ex
+                ex,
+                "Error getting constructor for entity class '%s'. Make sure the class has a parameterless constructor (private is ok).",
+                classToConstruct
             );
         }
     }
@@ -108,8 +112,13 @@ public class EntityBlueprint
             .collect(Collectors.toList());
     }
 
-    public TableBlueprint getRootTableBlueprint()
+    public TableBlueprint getTableBlueprint()
     {
-        return rootTableBlueprint;
+        return tableBlueprint;
+    }
+
+    public List<TableBlueprint> getJoinedTableBlueprints()
+    {
+        return Collections.unmodifiableList(joinedTableBlueprints);
     }
 }

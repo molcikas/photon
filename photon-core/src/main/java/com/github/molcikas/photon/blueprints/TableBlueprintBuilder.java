@@ -17,10 +17,12 @@ import java.util.stream.Collectors;
  */
 public class TableBlueprintBuilder
 {
+    private final EntityBlueprintBuilder entityBlueprintBuilder;
     private final PhotonOptions photonOptions;
     private String tableName;
     private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
+    private String parentTableName;
     private String foreignKeyToParent;
     private String orderBySql;
     private final Map<String, ColumnDataType> customColumnDataTypes;
@@ -30,19 +32,9 @@ public class TableBlueprintBuilder
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
     private final Map<String, Converter> customDatabaseColumnSerializers;
 
-    public String getTableName()
+    public String getParentTableName()
     {
-        return tableName;
-    }
-
-    public String getIdFieldName()
-    {
-        return idFieldName;
-    }
-
-    public boolean isPrimaryKeyAutoIncrement()
-    {
-        return isPrimaryKeyAutoIncrement;
+        return parentTableName;
     }
 
     public String getForeignKeyToParent()
@@ -70,8 +62,18 @@ public class TableBlueprintBuilder
         return Collections.unmodifiableMap(foreignKeyListBlueprints);
     }
 
-    public TableBlueprintBuilder(PhotonOptions photonOptions)
+    public TableBlueprintBuilder(EntityBlueprintBuilder entityBlueprintBuilder, PhotonOptions photonOptions)
     {
+        this(null, entityBlueprintBuilder, photonOptions);
+    }
+
+    public TableBlueprintBuilder(
+        String tableName,
+        EntityBlueprintBuilder entityBlueprintBuilder,
+        PhotonOptions photonOptions)
+    {
+        this.tableName = tableName;
+        this.entityBlueprintBuilder = entityBlueprintBuilder;
         this.photonOptions = photonOptions;
         this.isPrimaryKeyAutoIncrement = false;
         this.customColumnDataTypes = new HashMap<>();
@@ -159,6 +161,12 @@ public class TableBlueprintBuilder
         return this;
     }
 
+    public TableBlueprintBuilder withParentTable(String parentTableName)
+    {
+        this.parentTableName = parentTableName;
+        return this;
+    }
+
     /**
      * Sets the column which is a foreign key to the parent entity.
      *
@@ -221,6 +229,12 @@ public class TableBlueprintBuilder
             foreignTableKeyColumnType,
             fieldListItemClass
         ));
+        return this;
+    }
+
+    public TableBlueprintBuilder withDatabaseColumn(String columnName)
+    {
+        customFieldToColumnMappings.put(columnName, columnName);
         return this;
     }
 
@@ -343,7 +357,12 @@ public class TableBlueprintBuilder
         return this;
     }
 
-    public TableBlueprint build(Class entityClass, List<FieldBlueprint> fields)
+    public EntityBlueprintBuilder addJoinedTable()
+    {
+        return entityBlueprintBuilder.addJoinedTable(this);
+    }
+
+    TableBlueprint build(Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<TableBlueprintBuilder> tableBuilders)
     {
         if(StringUtils.isBlank(tableName))
         {
@@ -355,7 +374,7 @@ public class TableBlueprintBuilder
             idFieldName = determineDefaultIdFieldName(entityClass, fields);
             if(idFieldName == null)
             {
-                throw new PhotonException(String.format("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName()));
+                throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName());
             }
         }
 
@@ -372,6 +391,10 @@ public class TableBlueprintBuilder
             List<String> columnNames = fieldBlueprint.getMappedColumnNames();
             for(String columnName : columnNames)
             {
+                if(!columnIsMappedToThisTable(columnName, isPrimaryTable, tableBuilders))
+                {
+                    continue;
+                }
                 DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
                     new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
                     defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
@@ -425,7 +448,7 @@ public class TableBlueprintBuilder
         {
             if(!customColumnDataTypes.containsKey(idFieldName))
             {
-                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName));
+                throw new PhotonException("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName);
             }
             primaryKeyColumn = new ColumnBlueprint(
                 idFieldName,
@@ -469,6 +492,39 @@ public class TableBlueprintBuilder
             tableName,
             orderBySql
         );
+    }
+
+    private boolean columnIsMappedToThisTable(String columnName, boolean isPrimaryTable, List<TableBlueprintBuilder> tableBuilders)
+    {
+        if(StringUtils.equals(columnName, idFieldName) || StringUtils.equals(columnName, foreignKeyToParent))
+        {
+            return true;
+        }
+
+        if(!isPrimaryTable)
+        {
+            return customFieldToColumnMappings.containsKey(columnName) ||
+                customCompoundDatabaseColumns.keySet().stream().anyMatch(c -> c.contains(columnName));
+        }
+
+        List<TableBlueprintBuilder> otherTableBuilders = tableBuilders
+            .stream()
+            .filter(j -> !this.equals(j))
+            .collect(Collectors.toList());
+
+        List<String> otherTableColumns = otherTableBuilders
+            .stream()
+            .flatMap(j -> j.getCustomFieldToColumnMappings().keySet().stream())
+            .collect(Collectors.toList());
+
+        otherTableColumns.addAll(otherTableBuilders
+            .stream()
+            .flatMap(j -> j.getCustomCompoundDatabaseColumns().keySet().stream())
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList())
+        );
+
+        return !otherTableColumns.contains(columnName);
     }
 
     public static DefaultColumnDataTypeResult defaultColumnDataTypeForField(Class fieldType, PhotonOptions photonOptions)
