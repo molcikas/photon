@@ -16,6 +16,9 @@ public class EntityBlueprint
     private final TableBlueprint tableBlueprint;
     private final List<TableBlueprint> joinedTableBlueprints;
 
+    private String selectSql;
+    private String selectWhereSql;
+
     EntityBlueprint(
         Class entityClass,
         EntityClassDiscriminator entityClassDiscriminator,
@@ -120,5 +123,51 @@ public class EntityBlueprint
     public List<TableBlueprint> getJoinedTableBlueprints()
     {
         return Collections.unmodifiableList(joinedTableBlueprints);
+    }
+
+    public String getSelectSql()
+    {
+        return selectSql;
+    }
+
+    public String getSelectWhereSql()
+    {
+        return selectWhereSql;
+    }
+
+    public List<String> getSelectColumnNamesQualified()
+    {
+        List<String> columnNamesQualified = tableBlueprint
+            .getColumns()
+            .stream()
+            .map(ColumnBlueprint::getColumnNameQualified)
+            .collect(Collectors.toList());
+
+        columnNamesQualified.addAll(joinedTableBlueprints
+            .stream()
+            .flatMap(j -> j.getColumns().stream())
+            .map(ColumnBlueprint::getColumnNameQualified)
+            .collect(Collectors.toList())
+        );
+
+        return columnNamesQualified;
+    }
+
+    public void setSelectSql(String selectSql)
+    {
+        if(StringUtils.isBlank(selectSql))
+        {
+            throw new PhotonException("Select SQL cannot be blank.");
+        }
+        this.selectSql = selectSql;
+    }
+
+    public void setSelectWhereSql(String selectWhereSql)
+    {
+        if(StringUtils.isBlank(selectWhereSql))
+        {
+            throw new PhotonException("Select Where SQL cannot be blank.");
+        }
+        this.selectWhereSql = selectWhereSql;
     }
 }

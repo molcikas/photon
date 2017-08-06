@@ -27,30 +27,17 @@ public final class DeleteSqlBuilderService
         List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        buildAllDeleteSqlForTableBlueprint(
-            entityBlueprint.getTableBlueprint(),
-            parentTableBlueprints,
-            photonOptions
-        );
+        buildDeleteSql(entityBlueprint.getTableBlueprint(), photonOptions);
+        buildDeleteChildrenExceptSql(entityBlueprint.getTableBlueprint(), photonOptions);
+        buildDeleteOrphansSqlRecursive(entityBlueprint.getTableBlueprint(), parentTableBlueprints, photonOptions);
 
         for(TableBlueprint joinTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
         {
-            List<TableBlueprint> joinedParents = new ArrayList<>();
-            TableBlueprint parent = joinTableBlueprint.getParentTableBlueprint();
-            while(parent != null)
-            {
-                joinedParents.add(parent);
-                parent = parent.getParentTableBlueprint();
-            }
-            List<TableBlueprint> allParents = new ArrayList<>(joinedParents.size() + parentTableBlueprints.size());
-            allParents.addAll(joinedParents);
-            allParents.addAll(parentTableBlueprints);
+            buildDeleteSql(joinTableBlueprint, photonOptions);
+            buildDeleteChildrenExceptSql(joinTableBlueprint, photonOptions);
 
-            buildAllDeleteSqlForTableBlueprint(
-                joinTableBlueprint,
-                allParents,
-                photonOptions
-            );
+            // Note: No need to add the main table here because they are inner joined in a one-to-one relationship
+            buildDeleteOrphansSqlRecursive(joinTableBlueprint, parentTableBlueprints, photonOptions);
         }
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildDeleteKeysFromForeignTableSql(f, photonOptions));
@@ -63,9 +50,8 @@ public final class DeleteSqlBuilderService
             .forEach(entityField -> buildDeleteSqlTemplatesRecursive(entityField.getChildEntityBlueprint(), childParentTableBlueprints, photonOptions));
     }
 
-    private static void buildAllDeleteSqlForTableBlueprint(
+    private static void buildDeleteSql(
         TableBlueprint tableBlueprint,
-        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
         String deleteSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?)",
@@ -76,10 +62,6 @@ public final class DeleteSqlBuilderService
         deleteSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteSql, photonOptions);
         log.debug("Delete Sql for {}:\n{}", tableBlueprint.getTableName(), deleteSql);
         tableBlueprint.setDeleteSql(deleteSql);
-
-        buildDeleteChildrenExceptSql(tableBlueprint, photonOptions);
-
-        buildDeleteOrphansSqlRecursive(tableBlueprint, parentTableBlueprints, photonOptions);
     }
 
     private static void buildDeleteChildrenExceptSql(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
@@ -140,7 +122,7 @@ public final class DeleteSqlBuilderService
             tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName()
         ));
-        SqlJoinClauseBuilderService.buildJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, parentTableBlueprints);
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, parentTableBlueprints);
         deleteOrphansSqlBuilder.append(String.format(
             "\nWHERE [%s].[%s] IN (?)" +
             "\n)",

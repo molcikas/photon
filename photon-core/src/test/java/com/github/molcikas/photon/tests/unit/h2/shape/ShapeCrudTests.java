@@ -242,16 +242,4 @@ public class ShapeCrudTests
             })
             .register();
     }
-
-// TODO FUTURE?:
-//        photon.registerAggregate(Shape.class)
-//            .isMappedToTable(false)
-//            .withUnion(Circle.class)
-//                .withId("id")
-//                .addUnion()
-//            .withUnion(Rectangle.class)
-//                .withId("id")
-//                .addUnion()
-//            .register();
-
 }

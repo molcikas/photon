@@ -6,22 +6,41 @@ import java.util.*;
 
 public final class SqlJoinClauseBuilderService
 {
-    public static void buildJoinClauseSql(
+    public static void buildChildToParentJoinClauseSql(
         StringBuilder sqlBuilder,
-        TableBlueprint tableBlueprint,
+        TableBlueprint childTableBlueprint,
         List<TableBlueprint> parentTableBlueprints)
     {
-        TableBlueprint childTableBlueprint = tableBlueprint;
+        TableBlueprint nextChildTableBlueprint = childTableBlueprint;
         for(TableBlueprint parentTableBlueprint : parentTableBlueprints)
         {
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
                 parentTableBlueprint.getTableName(),
                 parentTableBlueprint.getTableName(),
                 parentTableBlueprint.getPrimaryKeyColumnName(),
-                childTableBlueprint.getTableName(),
-                childTableBlueprint.getForeignKeyToParentColumnName()
+                nextChildTableBlueprint.getTableName(),
+                nextChildTableBlueprint.getForeignKeyToParentColumnName()
             ));
-            childTableBlueprint = parentTableBlueprint;
+            nextChildTableBlueprint = parentTableBlueprint;
+        }
+    }
+
+    public static void buildParentToChildJoinClauseSql(
+        StringBuilder sqlBuilder,
+        TableBlueprint parentTableBlueprint,
+        List<TableBlueprint> childTableBlueprints)
+    {
+        TableBlueprint nextParentTableBlueprint = parentTableBlueprint;
+        for(TableBlueprint childTableBlueprint : childTableBlueprints)
+        {
+            sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
+                childTableBlueprint.getTableName(),
+                childTableBlueprint.getTableName(),
+                childTableBlueprint.getForeignKeyToParentColumnName(),
+                nextParentTableBlueprint.getTableName(),
+                nextParentTableBlueprint.getPrimaryKeyColumnName()
+            ));
+            nextParentTableBlueprint = childTableBlueprint;
         }
     }
 }

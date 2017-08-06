@@ -1,7 +1,10 @@
 package com.github.molcikas.photon.tests.unit.entities.shape;
 
+import lombok.EqualsAndHashCode;
+
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 public class Rectangle extends Shape
 {
     private int width;

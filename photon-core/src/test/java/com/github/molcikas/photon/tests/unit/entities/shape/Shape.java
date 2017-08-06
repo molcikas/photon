@@ -1,5 +1,8 @@
 package com.github.molcikas.photon.tests.unit.entities.shape;
 
+import lombok.EqualsAndHashCode;
+
+@EqualsAndHashCode
 public abstract class Shape
 {
     private Integer id;

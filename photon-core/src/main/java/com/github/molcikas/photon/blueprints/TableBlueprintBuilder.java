@@ -12,18 +12,12 @@ import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * The builder for creating aggregate entity blueprints.
- */
 public class TableBlueprintBuilder
 {
     private final EntityBlueprintBuilder entityBlueprintBuilder;
     private final PhotonOptions photonOptions;
     private String tableName;
-    private String idFieldName;
     private boolean isPrimaryKeyAutoIncrement;
-    private String parentTableName;
-    private String foreignKeyToParent;
     private String orderBySql;
     private final Map<String, ColumnDataType> customColumnDataTypes;
     private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
@@ -31,6 +25,10 @@ public class TableBlueprintBuilder
     private final Map<String, String> customFieldToColumnMappings;
     private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
     private final Map<String, Converter> customDatabaseColumnSerializers;
+
+    protected String idFieldName;
+    protected String parentTableName;
+    protected String foreignKeyToParent;
 
     public String getParentTableName()
     {
@@ -362,7 +360,7 @@ public class TableBlueprintBuilder
         return entityBlueprintBuilder.addJoinedTable(this);
     }
 
-    TableBlueprint build(Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<TableBlueprintBuilder> tableBuilders)
+    TableBlueprint build(Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
         if(StringUtils.isBlank(tableName))
         {
@@ -391,7 +389,7 @@ public class TableBlueprintBuilder
             List<String> columnNames = fieldBlueprint.getMappedColumnNames();
             for(String columnName : columnNames)
             {
-                if(!columnIsMappedToThisTable(columnName, isPrimaryTable, tableBuilders))
+                if(!columnIsMappedToThisTable(columnName, isPrimaryTable, joinedTableBuilders))
                 {
                     continue;
                 }
@@ -402,6 +400,7 @@ public class TableBlueprintBuilder
                 {
                     boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
                     ColumnBlueprint columnBlueprint = new ColumnBlueprint(
+                        tableName,
                         columnName,
                         columnDataTypeResult.dataType,
                         isPrimaryKey,
@@ -451,6 +450,7 @@ public class TableBlueprintBuilder
                 throw new PhotonException("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName);
             }
             primaryKeyColumn = new ColumnBlueprint(
+                tableName,
                 idFieldName,
                 customColumnDataTypes.get(idFieldName),
                 true,
@@ -470,6 +470,7 @@ public class TableBlueprintBuilder
                 throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParent, entityClass.getName()));
             }
             foreignKeyToParentColumn = new ColumnBlueprint(
+                tableName,
                 foreignKeyToParent,
                 customColumnDataTypes.get(foreignKeyToParent),
                 false,
@@ -494,7 +495,7 @@ public class TableBlueprintBuilder
         );
     }
 
-    private boolean columnIsMappedToThisTable(String columnName, boolean isPrimaryTable, List<TableBlueprintBuilder> tableBuilders)
+    private boolean columnIsMappedToThisTable(String columnName, boolean isPrimaryTable, List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
         if(StringUtils.equals(columnName, idFieldName) || StringUtils.equals(columnName, foreignKeyToParent))
         {
@@ -507,7 +508,7 @@ public class TableBlueprintBuilder
                 customCompoundDatabaseColumns.keySet().stream().anyMatch(c -> c.contains(columnName));
         }
 
-        List<TableBlueprintBuilder> otherTableBuilders = tableBuilders
+        List<TableBlueprintBuilder> otherTableBuilders = joinedTableBuilders
             .stream()
             .filter(j -> !this.equals(j))
             .collect(Collectors.toList());
@@ -598,7 +599,7 @@ public class TableBlueprintBuilder
         }
     }
 
-    private String determineDefaultIdFieldName(Class entityClass, List<FieldBlueprint> fields)
+    protected String determineDefaultIdFieldName(Class entityClass, List<FieldBlueprint> fields)
     {
         Optional<FieldBlueprint> idField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase("id")).findFirst();
         if(idField.isPresent())

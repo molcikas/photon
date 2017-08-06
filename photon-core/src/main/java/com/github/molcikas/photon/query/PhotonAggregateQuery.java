@@ -148,7 +148,7 @@ public class PhotonAggregateQuery<T>
 
         if(ids != null)
         {
-            String selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), "?");
+            String selectSql = String.format(entityBlueprint.getSelectSql(), "?");
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(
@@ -156,7 +156,7 @@ public class PhotonAggregateQuery<T>
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer()
                 );
-                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getSelectColumnNamesQualified());
             }
         }
         else if(photonQuery != null)
@@ -164,7 +164,7 @@ public class PhotonAggregateQuery<T>
             String selectSql;
             if(isQueryIdsOnly)
             {
-                selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+                selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
             }
             else
             {
@@ -176,7 +176,7 @@ public class PhotonAggregateQuery<T>
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }
-                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getSelectColumnNamesQualified());
             }
         }
         else

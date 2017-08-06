@@ -33,7 +33,7 @@ public class PhotonAggregateFilterQuery<T>
 
         if(isWhereClauseOnly)
         {
-            selectSql = String.format(aggregateBlueprint.getAggregateRootEntityBlueprint().getTableBlueprint().getSelectWhereSql(), selectSql);
+            selectSql = String.format(aggregateBlueprint.getAggregateRootEntityBlueprint().getSelectWhereSql(), selectSql);
             selectSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectSql, photon.getOptions());
         }
 

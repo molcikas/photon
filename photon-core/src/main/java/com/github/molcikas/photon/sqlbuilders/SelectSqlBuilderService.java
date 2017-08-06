@@ -14,42 +14,18 @@ public final class SelectSqlBuilderService
 
     public static void buildSelectSqlTemplates(EntityBlueprint entityBlueprint, PhotonOptions photonOptions)
     {
-        buildSelectSqlRecursive(entityBlueprint, entityBlueprint.getTableBlueprint(), Collections.emptyList(), photonOptions);
+        buildSelectSqlRecursive(entityBlueprint, entityBlueprint, Collections.emptyList(), photonOptions);
     }
 
     private static void buildSelectSqlRecursive(
         EntityBlueprint entityBlueprint,
-        TableBlueprint rootMainTableBlueprint,
+        EntityBlueprint rootEntityBlueprint,
         List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        buildAllSelectSqlForTableBlueprint(
-            entityBlueprint.getTableBlueprint(),
-            rootMainTableBlueprint,
-            parentTableBlueprints,
-            photonOptions
-        );
-
-        for(TableBlueprint joinTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
-        {
-            List<TableBlueprint> joinedParents = new ArrayList<>();
-            TableBlueprint parent = joinTableBlueprint.getParentTableBlueprint();
-            while(parent != null)
-            {
-                joinedParents.add(parent);
-                parent = parent.getParentTableBlueprint();
-            }
-            List<TableBlueprint> allParents = new ArrayList<>(joinedParents.size() + parentTableBlueprints.size());
-            allParents.addAll(joinedParents);
-            allParents.addAll(parentTableBlueprints);
-
-            buildAllSelectSqlForTableBlueprint(
-                joinTableBlueprint,
-                rootMainTableBlueprint,
-                allParents,
-                photonOptions
-            );
-        }
+        buildSelectSql(entityBlueprint, rootEntityBlueprint.getTableBlueprint(), parentTableBlueprints, photonOptions);
+        buildSelectWhereSql(entityBlueprint, parentTableBlueprints, photonOptions);
+        buildSelectOrphansSql(entityBlueprint.getTableBlueprint(), photonOptions);
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
 
@@ -60,75 +36,80 @@ public final class SelectSqlBuilderService
             .getFieldsWithChildEntities()
             .forEach(entityField -> buildSelectSqlRecursive(
                 entityField.getChildEntityBlueprint(),
-                rootMainTableBlueprint,
+                rootEntityBlueprint,
                 childParentTableBlueprints,
                 photonOptions
             ));
     }
 
-    private static void buildAllSelectSqlForTableBlueprint(
-        TableBlueprint tableBlueprint,
-        TableBlueprint rootMainTableBlueprint,
-        List<TableBlueprint> parentTableBlueprints,
-        PhotonOptions photonOptions)
-    {
-        buildSelectSql(tableBlueprint, rootMainTableBlueprint,
-            parentTableBlueprints, photonOptions);
-        buildSelectWhereSql(tableBlueprint, parentTableBlueprints, photonOptions);
-        buildSelectOrphansSql(tableBlueprint, photonOptions);
-    }
-
     private static void buildSelectSql(
-        TableBlueprint tableBlueprint,
+        EntityBlueprint entityBlueprint,
         TableBlueprint rootMainTableBlueprint,
         List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
+        TableBlueprint mainTableBlueprint = entityBlueprint.getTableBlueprint();
+        int initialCapacity = mainTableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildSelectClauseSql(sqlBuilder, tableBlueprint);
-        buildFromClauseSql(sqlBuilder, tableBlueprint);
-        SqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, tableBlueprint, parentTableBlueprints);
+        buildSelectClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
+        buildFromClauseSql(sqlBuilder, mainTableBlueprint);
+        SqlJoinClauseBuilderService.buildParentToChildJoinClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(sqlBuilder, mainTableBlueprint, parentTableBlueprints);
         buildWhereClauseSql(sqlBuilder, rootMainTableBlueprint);
-        buildOrderBySql(sqlBuilder, tableBlueprint, parentTableBlueprints);
+        buildOrderBySql(sqlBuilder, mainTableBlueprint, parentTableBlueprints);
 
         String selectSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Select Sql for {}:\n{}", tableBlueprint.getTableName(), selectSql);
-        tableBlueprint.setSelectSql(selectSql);
+        log.debug("Select Sql for {}:\n{}", mainTableBlueprint.getTableName(), selectSql);
+        entityBlueprint.setSelectSql(selectSql);
     }
 
     private static void buildSelectWhereSql(
-        TableBlueprint tableBlueprint,
+        EntityBlueprint entityBlueprint,
         List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
+        TableBlueprint mainTableBlueprint = entityBlueprint.getTableBlueprint();
+        int initialCapacity = mainTableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
-        buildSelectClauseSql(sqlBuilder, tableBlueprint);
-        buildFromClauseSql(sqlBuilder, tableBlueprint);
-        SqlJoinClauseBuilderService.buildJoinClauseSql(sqlBuilder, tableBlueprint, parentTableBlueprints);
+        buildSelectClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
+        buildFromClauseSql(sqlBuilder, mainTableBlueprint);
+        SqlJoinClauseBuilderService.buildParentToChildJoinClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(sqlBuilder, mainTableBlueprint, parentTableBlueprints);
         buildOpenWhereClauseSql(sqlBuilder);
-        buildOrderBySql(sqlBuilder, tableBlueprint, parentTableBlueprints);
+        buildOrderBySql(sqlBuilder, mainTableBlueprint, parentTableBlueprints);
 
         String selectWhereSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Select Where Sql for {}:\n{}", tableBlueprint.getTableName(), selectWhereSql);
-        tableBlueprint.setSelectWhereSql(selectWhereSql);
+        log.debug("Select Where Sql for {}:\n{}", mainTableBlueprint.getTableName(), selectWhereSql);
+        entityBlueprint.setSelectWhereSql(selectWhereSql);
     }
 
-    private static void buildSelectClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
+    private static void buildSelectClauseSql(StringBuilder parentSqlBuilder, TableBlueprint mainTableBlueprint, List<TableBlueprint> joinedParents)
     {
+        StringBuilder sqlBuilder = new StringBuilder();
+
         sqlBuilder.append("SELECT " );
 
-        for(ColumnBlueprint columnBlueprint : tableBlueprint.getColumns())
+        List<TableBlueprint> tableBlueprints = new ArrayList<>(joinedParents.size() + 1);
+        tableBlueprints.add(mainTableBlueprint);
+        tableBlueprints.addAll(joinedParents);
+
+        for(TableBlueprint tableBlueprint : tableBlueprints)
         {
-            sqlBuilder.append(String.format("[%s].[%s]%s",
-                tableBlueprint.getTableName(),
-                columnBlueprint.getColumnName(),
-                columnBlueprint.getColumnIndex() < tableBlueprint.getColumns().size() - 1 ? ", " : ""
-            ));
+            for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumns())
+            {
+                sqlBuilder.append(String.format("[%s].[%s] AS %s, ",
+                    tableBlueprint.getTableName(),
+                    columnBlueprint.getColumnName(),
+                    columnBlueprint.getColumnNameQualified()
+
+                ));
+            }
         }
+
+        // Trim off the last comma.
+        parentSqlBuilder.append(sqlBuilder.substring(0, sqlBuilder.length() - 2));
     }
 
     private static void buildFromClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)

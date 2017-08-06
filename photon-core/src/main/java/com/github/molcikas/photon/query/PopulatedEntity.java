@@ -359,6 +359,7 @@ public class PopulatedEntity<T>
         }
     }
 
+    // TODO: Update to support fully qualified column names
     private void setInstanceFieldToDatabaseValue(String columnName, Object databaseValue)
     {
         FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);

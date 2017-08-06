@@ -18,8 +18,6 @@ public class TableBlueprint
     private String orderBySql;
     private TableBlueprint parentTableBlueprint;
 
-    private String selectSql;
-    private String selectWhereSql;
     private String updateSql;
     private String insertSql;
     private String deleteSql;
@@ -104,27 +102,17 @@ public class TableBlueprint
             .collect(Collectors.toList());
     }
 
-    public List<String> getColumnNames()
-    {
-        return columns
-            .stream()
-            .map(ColumnBlueprint::getColumnName)
-            .collect(Collectors.toList());
-    }
+//    public List<String> getSelectColumnNamesQualified()
+//    {
+//        return columns
+//            .stream()
+//            .map(ColumnBlueprint::getColumnNameQualified)
+//            .collect(Collectors.toList());
+//    }
 
     public Converter getPrimaryKeyColumnSerializer()
     {
         return primaryKeyColumn.getCustomSerializer();
-    }
-
-    public String getSelectSql()
-    {
-        return selectSql;
-    }
-
-    public String getSelectWhereSql()
-    {
-        return selectWhereSql;
     }
 
     public String getUpdateSql()
@@ -155,24 +143,6 @@ public class TableBlueprint
     public String getDeleteOrphansSql(int level)
     {
         return deleteOrphansSql.get(level);
-    }
-
-    public void setSelectSql(String selectSql)
-    {
-        if(StringUtils.isBlank(selectSql))
-        {
-            throw new PhotonException("Select SQL cannot be blank.");
-        }
-        this.selectSql = selectSql;
-    }
-
-    public void setSelectWhereSql(String selectWhereSql)
-    {
-        if(StringUtils.isBlank(selectWhereSql))
-        {
-            throw new PhotonException("Select Where SQL cannot be blank.");
-        }
-        this.selectWhereSql = selectWhereSql;
     }
 
     public void setUpdateSql(String updateSql)

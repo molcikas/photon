@@ -28,7 +28,7 @@ public class EntityBlueprintBuilder
     private final Map<String, Converter> customFieldHydraters;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
-    private final List<TableBlueprintBuilder> joinedTableBuilders;
+    private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
@@ -388,12 +388,16 @@ public class EntityBlueprintBuilder
 
     public TableBlueprintBuilder withJoinedTable(String tableName)
     {
-        return new TableBlueprintBuilder(tableName, this, photon.getOptions());
+        return new JoinedTableBlueprintBuilder(tableName, this, photon.getOptions());
     }
 
-    public EntityBlueprintBuilder addJoinedTable(TableBlueprintBuilder tableBlueprintBuilder)
+    public EntityBlueprintBuilder addJoinedTable(TableBlueprintBuilder joinedTableBuilder)
     {
-        joinedTableBuilders.add(tableBlueprintBuilder);
+        if(!(joinedTableBuilder instanceof JoinedTableBlueprintBuilder))
+        {
+            throw new PhotonException("addJoinedTable() parameter must be created using withJoinedTable()");
+        }
+        joinedTableBuilders.add((JoinedTableBlueprintBuilder) joinedTableBuilder);
         return this;
     }
 
@@ -497,36 +501,8 @@ public class EntityBlueprintBuilder
         TableBlueprint tableBlueprint = tableBlueprintBuilder.build(entityClass, fields, true, joinedTableBuilders);
         List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders
             .stream()
-            .map(t -> t.build(entityClass, fields, false, joinedTableBuilders))
+            .map(t -> t.build(tableBlueprint, entityClass, fields, false, joinedTableBuilders))
             .collect(Collectors.toList());
-
-        int i = 0;
-        for(TableBlueprint joinedTableBlueprint : joinedTableBlueprints)
-        {
-            TableBlueprintBuilder joinedTableBuilder = joinedTableBuilders.get(i);
-            if(StringUtils.isNotBlank(joinedTableBuilder.getParentTableName()))
-            {
-                TableBlueprint parentTableBlueprint = joinedTableBlueprints
-                    .stream()
-                    .filter(t -> t.getTableName().equals(joinedTableBuilder.getParentTableName()))
-                    .findFirst()
-                    .orElseThrow(() -> new PhotonException(
-                        "The parent table '%s' is not a table for the aggregate.",
-                        joinedTableBuilder.getParentTableName()));
-
-                if(parentTableBlueprint == joinedTableBlueprint)
-                {
-                    throw new PhotonException("The table '%s' cannot be its own parent.", joinedTableBlueprint.getTableName());
-                }
-
-                joinedTableBlueprint.setParentTableBlueprint(parentTableBlueprint);
-            }
-            else
-            {
-                joinedTableBlueprint.setParentTableBlueprint(tableBlueprint);
-            }
-            i++;
-        }
 
         return new EntityBlueprint(
             entityClass,
