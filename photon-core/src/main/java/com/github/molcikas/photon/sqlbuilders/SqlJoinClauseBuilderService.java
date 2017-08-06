@@ -17,9 +17,9 @@ public final class SqlJoinClauseBuilderService
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
                 parentTableBlueprint.getTableName(),
                 parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getPrimaryKeyColumnName(),
+                parentTableBlueprint.getPrimaryKeyColumn().getColumnName(),
                 nextChildTableBlueprint.getTableName(),
-                nextChildTableBlueprint.getForeignKeyToParentColumnName()
+                nextChildTableBlueprint.getForeignKeyToParentColumn().getColumnName()
             ));
             nextChildTableBlueprint = parentTableBlueprint;
         }
@@ -36,9 +36,9 @@ public final class SqlJoinClauseBuilderService
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
                 childTableBlueprint.getTableName(),
                 childTableBlueprint.getTableName(),
-                childTableBlueprint.getForeignKeyToParentColumnName(),
+                childTableBlueprint.getForeignKeyToParentColumn().getColumnName(),
                 nextParentTableBlueprint.getTableName(),
-                nextParentTableBlueprint.getPrimaryKeyColumnName()
+                nextParentTableBlueprint.getPrimaryKeyColumn().getColumnName()
             ));
             nextParentTableBlueprint = childTableBlueprint;
         }

@@ -81,7 +81,7 @@ public class ShapeChildEntityTests
             .withMappedClass(Rectangle.class)
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":

@@ -80,7 +80,7 @@ public final class UpdateSqlBuilderService
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] = ?",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumnName()
+            tableBlueprint.getPrimaryKeyColumn().getColumnName()
         ));
     }
 }

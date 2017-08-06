@@ -121,7 +121,7 @@ public final class SelectSqlBuilderService
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] IN (%s)",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
             "%s"
         ));
     }
@@ -156,7 +156,7 @@ public final class SelectSqlBuilderService
             // it expects child entities to be sorted by parent.
             orderBySqlBuilder.append(String.format("[%s].[%s], ",
                 table.getTableName(),
-                table.getPrimaryKeyColumnName()
+                table.getPrimaryKeyColumn().getColumnName()
             ));
         }
 
@@ -176,7 +176,7 @@ public final class SelectSqlBuilderService
             // This is the aggregate root's main table, which does not have an orphans check since it is the root.
             return;
         }
-        if(StringUtils.equals(tableBlueprint.getPrimaryKeyColumnName(), tableBlueprint.getForeignKeyToParentColumnName()))
+        if(StringUtils.equals(tableBlueprint.getPrimaryKeyColumnNameQualified(), tableBlueprint.getForeignKeyToParentColumnNameQualified()))
         {
             // This table and the parent table share the same id, so there can't be any orphans.
             return;
@@ -190,10 +190,10 @@ public final class SelectSqlBuilderService
 
         String selectOrphansSql = String.format(
             "SELECT [%s] FROM [%s] WHERE [%s] = ? AND [%s] NOT IN (?)",
-            tableBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
             tableBlueprint.getTableName(),
-            tableBlueprint.getForeignKeyToParentColumnName(),
-            tableBlueprint.getPrimaryKeyColumnName()
+            tableBlueprint.getForeignKeyToParentColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName()
         );
 
         selectOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectOrphansSql, photonOptions);

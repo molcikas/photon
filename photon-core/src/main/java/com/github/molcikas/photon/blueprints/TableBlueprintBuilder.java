@@ -30,19 +30,9 @@ public class TableBlueprintBuilder
     protected String parentTableName;
     protected String foreignKeyToParent;
 
-    public String getParentTableName()
-    {
-        return parentTableName;
-    }
-
     public String getForeignKeyToParent()
     {
         return foreignKeyToParent;
-    }
-
-    public Map<String, EntityFieldValueMapping> getCustomDatabaseColumns()
-    {
-        return Collections.unmodifiableMap(customDatabaseColumns);
     }
 
     public Map<String, String> getCustomFieldToColumnMappings()
@@ -385,31 +375,59 @@ public class TableBlueprintBuilder
 
         for(FieldBlueprint fieldBlueprint : fieldsWithColumnMappings)
         {
-            String fieldName = fieldBlueprint.getFieldName();
-            List<String> columnNames = fieldBlueprint.getMappedColumnNames();
-            for(String columnName : columnNames)
+            ColumnBlueprint columnBlueprint = createColumnForField(fieldBlueprint, null, isPrimaryTable, joinedTableBuilders, columns.size());
+            if(columnBlueprint != null)
             {
-                if(!columnIsMappedToThisTable(columnName, isPrimaryTable, joinedTableBuilders))
+                columns.add(columnBlueprint);
+            }
+        }
+
+        for(Map.Entry<String, EntityFieldValueMapping> customDatabaseColumnEntry : customDatabaseColumns.entrySet())
+        {
+            FieldBlueprint fieldBlueprint = new FieldBlueprint(
+                null,
+                null,
+                null,
+                null,
+                customDatabaseColumnEntry.getValue(),
+                null
+            );
+            fields.add(fieldBlueprint);
+            ColumnBlueprint columnBlueprint = createColumnForField(
+                fieldBlueprint,
+                customDatabaseColumnEntry.getKey(),
+                isPrimaryTable,
+                joinedTableBuilders,
+                columns.size()
+            );
+            if(columnBlueprint != null)
+            {
+                columns.add(columnBlueprint);
+            }
+        }
+
+        for(Map.Entry<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumnEntry : customCompoundDatabaseColumns.entrySet())
+        {
+            FieldBlueprint fieldBlueprint = new FieldBlueprint(
+                null,
+                null,
+                null,
+                null,
+                null,
+                customCompoundDatabaseColumnEntry.getValue()
+            );
+            fields.add(fieldBlueprint);
+            for(String columnName : customCompoundDatabaseColumnEntry.getKey())
+            {
+                ColumnBlueprint columnBlueprint = createColumnForField(
+                    fieldBlueprint,
+                    columnName,
+                    isPrimaryTable,
+                    joinedTableBuilders,
+                    columns.size()
+                );
+                if (columnBlueprint != null)
                 {
-                    continue;
-                }
-                DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
-                    new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
-                    defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
-                if (columnDataTypeResult.foundDataType)
-                {
-                    boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
-                    ColumnBlueprint columnBlueprint = new ColumnBlueprint(
-                        tableName,
-                        columnName,
-                        columnDataTypeResult.dataType,
-                        isPrimaryKey,
-                        isPrimaryKey && isPrimaryKeyAutoIncrement,
-                        foreignKeyToParent != null && StringUtils.equals(fieldName, foreignKeyToParent),
-                        customDatabaseColumnSerializers.get(columnName),
-                        fieldBlueprint,
-                        columns.size()
-                    );
                     columns.add(columnBlueprint);
                 }
             }
@@ -492,6 +510,44 @@ public class TableBlueprintBuilder
             primaryKeyColumn.getMappedFieldBlueprint() != null,
             tableName,
             orderBySql
+        );
+    }
+
+    private ColumnBlueprint createColumnForField(
+        FieldBlueprint fieldBlueprint,
+        String columnName,
+        boolean isPrimaryTable,
+        List<JoinedTableBlueprintBuilder> joinedTableBuilders,
+        int currentColumnCount)
+    {
+        String fieldName = fieldBlueprint.getFieldName();
+        if(StringUtils.isBlank(columnName))
+        {
+            columnName = customFieldToColumnMappings.containsKey(fieldName) ?
+                customFieldToColumnMappings.get(fieldName) : fieldName;
+        }
+        if(!columnIsMappedToThisTable(columnName, isPrimaryTable, joinedTableBuilders))
+        {
+            return null;
+        }
+        DefaultColumnDataTypeResult columnDataTypeResult = customColumnDataTypes.containsKey(columnName) ?
+            new DefaultColumnDataTypeResult(customColumnDataTypes.get(columnName)) :
+            defaultColumnDataTypeForField(fieldBlueprint.getFieldClass(), photonOptions);
+        if (!columnDataTypeResult.foundDataType)
+        {
+            return null;
+        }
+        boolean isPrimaryKey = idFieldName != null && StringUtils.equals(fieldName, idFieldName);
+        return new ColumnBlueprint(
+            tableName,
+            columnName,
+            columnDataTypeResult.dataType,
+            isPrimaryKey,
+            isPrimaryKey && isPrimaryKeyAutoIncrement,
+            foreignKeyToParent != null && StringUtils.equals(fieldName, foreignKeyToParent),
+            customDatabaseColumnSerializers.get(columnName),
+            fieldBlueprint,
+            currentColumnCount
         );
     }
 

@@ -52,8 +52,6 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
 
         this.parentTableName = parent.getTableName();
         this.foreignKeyToParent = idFieldName;
-        TableBlueprint tableBlueprint = super.build(entityClass, fields, isPrimaryTable, joinedTableBuilders);
-        tableBlueprint.setParentTableBlueprint(parent);
-        return tableBlueprint;
+        return super.build(entityClass, fields, isPrimaryTable, joinedTableBuilders);
     }
 }

@@ -24,7 +24,49 @@ public class ShapeMultiTableCrudTests
     }
 
     @Test
-    public void TODO()
+    public void withJoinedTable_selectExistingRow_createsAggregate()
+    {
+        registerAggregates();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Rectangle rectangle = transaction.query(Rectangle.class).fetchById(2);
+
+            Rectangle expected = new Rectangle(2, "blue", 7, 8, null);
+            assertEquals(expected, rectangle);
+        }
+    }
+
+    @Test
+    public void withMappedClass_insertAndSelectAggregate_createsAndFetchesAggregate()
+    {
+        registerAggregates();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = new Circle(3, "blue", 4);
+
+            transaction.save(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(3);
+
+            assertNotNull(circle);
+            assertEquals(Circle.class, circle.getClass());
+            assertEquals(Integer.valueOf(3), circle.getId());
+            assertEquals("blue", circle.getColor());
+            assertEquals(4, circle.getRadius());
+        }
+    }
+
+    // TODO: update, and delete
+
+    private void registerAggregates()
     {
         photon.registerAggregate(Rectangle.class)
             .withMappedClass(Shape.class)
@@ -34,13 +76,12 @@ public class ShapeMultiTableCrudTests
                 .addJoinedTable()
             .register();
 
-        try(PhotonTransaction transaction = photon.beginTransaction())
-        {
-            Rectangle rectangle = transaction.query(Rectangle.class).fetchById(2);
-
-            Rectangle expected = new Rectangle(2, "red", 7, 8, null);
-            assertEquals(expected, rectangle);
-        }
+        photon.registerAggregate(Circle.class)
+            .withMappedClass(Shape.class)
+            .withJoinedTable("Shape")
+                .withDatabaseColumn("type")
+                .withDatabaseColumn("color")
+            .addJoinedTable()
+            .register();
     }
-
 }

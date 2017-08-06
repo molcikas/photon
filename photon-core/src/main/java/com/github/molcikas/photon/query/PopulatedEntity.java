@@ -40,8 +40,13 @@ public class PopulatedEntity<T>
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
+        this(entityBlueprint, queryResultRow, true);
+    }
+
+    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
+    {
         this.entityBlueprint = entityBlueprint;
-        constructOrphanEntityInstance(queryResultRow);
+        constructOrphanEntityInstance(queryResultRow, columnsFullyQualified);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
@@ -135,12 +140,12 @@ public class PopulatedEntity<T>
 
     public void setPrimaryKeyValue(Object primaryKeyValue)
     {
-        setInstanceFieldToDatabaseValue(entityBlueprint.getTableBlueprint().getPrimaryKeyColumnName(), primaryKeyValue);
+        setInstanceFieldToDatabaseValue(entityBlueprint.getTableBlueprint().getPrimaryKeyColumnNameQualified(), primaryKeyValue, true);
     }
 
     public void setForeignKeyToParentValue(Object foreignKeyToParentValue)
     {
-        setInstanceFieldToDatabaseValue(entityBlueprint.getTableBlueprint().getForeignKeyToParentColumnName(), foreignKeyToParentValue);
+        setInstanceFieldToDatabaseValue(entityBlueprint.getTableBlueprint().getForeignKeyToParentColumnNameQualified(), foreignKeyToParentValue, true);
     }
 
     public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
@@ -269,17 +274,17 @@ public class PopulatedEntity<T>
         return true;
     }
 
-    public void addInsertToBatch(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
+    public void addInsertToBatch(PhotonPreparedStatement insertStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
     {
-        addParametersToInsertStatement(insertStatement, parentPopulatedEntity);
+        addParametersToInsertStatement(insertStatement, tableBlueprint, parentPopulatedEntity);
         insertStatement.addToBatch();
     }
 
-    public void addParametersToInsertStatement(PhotonPreparedStatement insertStatement, PopulatedEntity parentPopulatedEntity)
+    public void addParametersToInsertStatement(PhotonPreparedStatement insertStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
     {
         Map<String, Object> values = new HashMap<>();
 
-        for (ColumnBlueprint columnBlueprint : entityBlueprint.getTableBlueprint().getColumnsForInsertStatement())
+        for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement())
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
@@ -322,7 +327,7 @@ public class PopulatedEntity<T>
         }
     }
 
-    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow)
+    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
     {
         Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
 
@@ -337,7 +342,7 @@ public class PopulatedEntity<T>
 
         for(Map.Entry<String, Object> entry : queryResultRow.getValues())
         {
-            setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue());
+            setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue(), columnsFullyQualified);
         }
 
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getCompoundCustomValueMapperFields())
@@ -345,7 +350,7 @@ public class PopulatedEntity<T>
             Map<String, Object> databaseValues = queryResultRow
                 .getValues()
                 .stream()
-                .filter(v -> fieldBlueprint.getMappedColumnNames().contains(v.getKey()))
+                .filter(v -> entityBlueprint.getFieldsForColumnNameQualified(v.getKey()).contains(fieldBlueprint))
                 .collect(Collectors.toMap(v -> v.getKey(), v -> v.getValue()));
 
             Map<String, Object> valuesToSet = fieldBlueprint.getCompoundEntityFieldValueMapping().setFieldValues(entityInstance, databaseValues);
@@ -359,18 +364,35 @@ public class PopulatedEntity<T>
         }
     }
 
-    // TODO: Update to support fully qualified column names
-    private void setInstanceFieldToDatabaseValue(String columnName, Object databaseValue)
+    private void setInstanceFieldToDatabaseValue(String columnName, Object databaseValue, boolean isColumnNameQualified)
     {
-        FieldBlueprint fieldBlueprint = entityBlueprint.getFieldForColumnName(columnName);
+        FieldBlueprint fieldBlueprint;
 
-        if(StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumnName()))
+        if(isColumnNameQualified)
         {
-            primaryKeyValue = databaseValue;
+            fieldBlueprint = entityBlueprint.getFieldForColumnNameQualified(columnName);
+
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumnNameQualified()))
+            {
+                primaryKeyValue = databaseValue;
+            }
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getForeignKeyToParentColumnNameQualified()))
+            {
+                foreignKeyToParentValue = databaseValue;
+            }
         }
-        if(StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getForeignKeyToParentColumnName()))
+        else
         {
-            foreignKeyToParentValue = databaseValue;
+            fieldBlueprint = entityBlueprint.getFieldForColumnNameUnqualified(columnName);
+
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnName()))
+            {
+                primaryKeyValue = databaseValue;
+            }
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnName()))
+            {
+                foreignKeyToParentValue = databaseValue;
+            }
         }
 
         if(fieldBlueprint == null || fieldBlueprint.getFieldType() == FieldType.CompoundCustomValueMapper)

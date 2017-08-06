@@ -16,7 +16,6 @@ public class TableBlueprint
 
     private String tableName;
     private String orderBySql;
-    private TableBlueprint parentTableBlueprint;
 
     private String updateSql;
     private String insertSql;
@@ -56,9 +55,9 @@ public class TableBlueprint
         return foreignKeyToParentColumn;
     }
 
-    public String getForeignKeyToParentColumnName()
+    public String getForeignKeyToParentColumnNameQualified()
     {
-        return foreignKeyToParentColumn != null ? foreignKeyToParentColumn.getColumnName() : null;
+        return foreignKeyToParentColumn != null ? foreignKeyToParentColumn.getColumnNameQualified() : null;
     }
 
     public boolean isPrimaryKeyMappedToField()
@@ -76,14 +75,9 @@ public class TableBlueprint
         return orderBySql;
     }
 
-    public TableBlueprint getParentTableBlueprint()
+    public String getPrimaryKeyColumnNameQualified()
     {
-        return parentTableBlueprint;
-    }
-
-    public String getPrimaryKeyColumnName()
-    {
-        return primaryKeyColumn != null ? primaryKeyColumn.getColumnName() : null;
+        return primaryKeyColumn != null ? primaryKeyColumn.getColumnNameQualified() : null;
     }
 
     public Optional<ColumnBlueprint> getColumn(String columnName)
@@ -101,14 +95,6 @@ public class TableBlueprint
             .filter(c -> !c.isPrimaryKeyColumn() || (c.isPrimaryKeyColumn() && !c.isAutoIncrementColumn()))
             .collect(Collectors.toList());
     }
-
-//    public List<String> getSelectColumnNamesQualified()
-//    {
-//        return columns
-//            .stream()
-//            .map(ColumnBlueprint::getColumnNameQualified)
-//            .collect(Collectors.toList());
-//    }
 
     public Converter getPrimaryKeyColumnSerializer()
     {
@@ -189,10 +175,5 @@ public class TableBlueprint
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
     {
         deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
-    }
-
-    public void setParentTableBlueprint(TableBlueprint parentTableBlueprint)
-    {
-        this.parentTableBlueprint = parentTableBlueprint;
     }
 }

@@ -138,7 +138,7 @@ public class ShapeCrudTests
             .withMappedClass(Rectangle.class, Collections.singletonList("height"))
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":
@@ -229,7 +229,7 @@ public class ShapeCrudTests
             .withMappedClass(Rectangle.class)
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":

@@ -456,10 +456,6 @@ public class EntityBlueprintBuilder
             .filter(entry -> !ignoredFields.contains(entry.getValue().getName()))
             .map(entry -> new FieldBlueprint(
                 entry.getValue(),
-                Collections.singletonList(
-                    tableBlueprintBuilder.getCustomFieldToColumnMappings().containsKey(entry.getValue().getName()) ?
-                    tableBlueprintBuilder.getCustomFieldToColumnMappings().get(entry.getValue().getName()) :
-                    entry.getValue().getName()),
                 childEntities.get(entry.getValue().getName()),
                 tableBlueprintBuilder.getForeignKeyListBlueprints().get(entry.getValue().getName()),
                 customFieldHydraters.get(entry.getValue().getName()),
@@ -467,36 +463,6 @@ public class EntityBlueprintBuilder
                 null
             ))
             .collect(Collectors.toList());
-
-        fields.addAll(
-            tableBlueprintBuilder.getCustomDatabaseColumns().entrySet()
-                .stream()
-                .map(e -> new FieldBlueprint(
-                    null,
-                    Collections.singletonList(e.getKey()),
-                    null,
-                    null,
-                    null,
-                    e.getValue(),
-                    null
-                ))
-                .collect(Collectors.toList())
-        );
-
-        fields.addAll(
-            tableBlueprintBuilder.getCustomCompoundDatabaseColumns().entrySet()
-                .stream()
-                .map(e -> new FieldBlueprint(
-                    null,
-                    e.getKey(),
-                    null,
-                    null,
-                    null,
-                    null,
-                    e.getValue()
-                ))
-                .collect(Collectors.toList())
-        );
 
         TableBlueprint tableBlueprint = tableBlueprintBuilder.build(entityClass, fields, true, joinedTableBuilders);
         List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders

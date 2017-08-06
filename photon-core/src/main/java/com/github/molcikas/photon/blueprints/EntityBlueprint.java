@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints;
 
 import com.github.molcikas.photon.exceptions.PhotonException;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Constructor;
@@ -15,6 +16,9 @@ public class EntityBlueprint
     private final List<FieldBlueprint> fields;
     private final TableBlueprint tableBlueprint;
     private final List<TableBlueprint> joinedTableBlueprints;
+
+    private final List<ColumnBlueprint> allColumns;
+    private final List<TableBlueprint> tableBlueprintsForInsert;
 
     private String selectSql;
     private String selectWhereSql;
@@ -31,6 +35,15 @@ public class EntityBlueprint
         this.fields = fields;
         this.tableBlueprint = tableBlueprint;
         this.joinedTableBlueprints = joinedTableBlueprints;
+
+        this.allColumns = Collections.unmodifiableList(ListUtils.union(
+            tableBlueprint.getColumns(),
+            joinedTableBlueprints.stream().flatMap(j -> j.getColumns().stream()).collect(Collectors.toList())
+        ));
+
+        List<TableBlueprint> tableBlueprintsForInsert = ListUtils.union(Collections.singletonList(tableBlueprint), joinedTableBlueprints);
+        Collections.reverse(tableBlueprintsForInsert);
+        this.tableBlueprintsForInsert = Collections.unmodifiableList(tableBlueprintsForInsert);
     }
 
     public Class getEntityClass()
@@ -98,13 +111,29 @@ public class EntityBlueprint
         return entityClass.getName();
     }
 
-    public FieldBlueprint getFieldForColumnName(String columnName)
+    public FieldBlueprint getFieldForColumnNameUnqualified(String columnNameUnqualified)
     {
-        return fields
+        return allColumns
             .stream()
-            .filter(f -> StringUtils.equals(f.getMappedColumnName(), columnName))
+            .filter(c -> c.getColumnName().equals(columnNameUnqualified))
+            .map(ColumnBlueprint::getMappedFieldBlueprint)
             .findFirst()
             .orElse(null);
+    }
+
+    public FieldBlueprint getFieldForColumnNameQualified(String columnNameQualified)
+    {
+        List<FieldBlueprint> fields = getFieldsForColumnNameQualified(columnNameQualified);
+        return !fields.isEmpty() ? fields.get(0) : null;
+    }
+
+    public List<FieldBlueprint> getFieldsForColumnNameQualified(String columnNameQualified)
+    {
+        return allColumns
+            .stream()
+            .filter(c -> c.getColumnNameQualified().equals(columnNameQualified))
+            .map(ColumnBlueprint::getMappedFieldBlueprint)
+            .collect(Collectors.toList());
     }
 
     public List<FieldBlueprint> getCompoundCustomValueMapperFields()
@@ -125,6 +154,11 @@ public class EntityBlueprint
         return Collections.unmodifiableList(joinedTableBlueprints);
     }
 
+    public List<TableBlueprint> getTableBlueprintsForInsert()
+    {
+        return tableBlueprintsForInsert;
+    }
+
     public String getSelectSql()
     {
         return selectSql;
@@ -135,22 +169,20 @@ public class EntityBlueprint
         return selectWhereSql;
     }
 
-    public List<String> getSelectColumnNamesQualified()
+    public List<String> getAllColumnNames()
     {
-        List<String> columnNamesQualified = tableBlueprint
-            .getColumns()
+        return allColumns
+            .stream()
+            .map(ColumnBlueprint::getColumnName)
+            .collect(Collectors.toList());
+    }
+
+    public List<String> getAllColumnNamesQualified()
+    {
+        return allColumns
             .stream()
             .map(ColumnBlueprint::getColumnNameQualified)
             .collect(Collectors.toList());
-
-        columnNamesQualified.addAll(joinedTableBlueprints
-            .stream()
-            .flatMap(j -> j.getColumns().stream())
-            .map(ColumnBlueprint::getColumnNameQualified)
-            .collect(Collectors.toList())
-        );
-
-        return columnNamesQualified;
     }
 
     public void setSelectSql(String selectSql)
