@@ -214,14 +214,14 @@ public class PopulatedEntity<T>
         }
     }
 
-    public boolean addUpdateToBatch(PhotonPreparedStatement updateStatement, PopulatedEntity parentPopulatedEntity)
+    public boolean addUpdateToBatch(PhotonPreparedStatement updateStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
     {
         if(primaryKeyValue == null)
         {
             return false;
         }
 
-        if(entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
+        if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
             return false;
         }
@@ -229,7 +229,7 @@ public class PopulatedEntity<T>
         boolean canPerformUpdate = true;
         Map<String, Object> values = new HashMap<>();
 
-        for (ColumnBlueprint columnBlueprint : entityBlueprint.getTableBlueprint().getColumns())
+        for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumns())
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();

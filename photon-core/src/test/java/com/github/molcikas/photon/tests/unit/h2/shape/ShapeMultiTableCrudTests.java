@@ -38,7 +38,7 @@ public class ShapeMultiTableCrudTests
     }
 
     @Test
-    public void withMappedClass_insertAndSelectAggregate_createsAndFetchesAggregate()
+    public void withJoinedTable_insertAndSelectAggregate_createsAndFetchesAggregate()
     {
         registerAggregates();
 
@@ -64,7 +64,69 @@ public class ShapeMultiTableCrudTests
         }
     }
 
-    // TODO: update, and delete
+    @Test
+    public void withJoinedTable_updateExistingRow_updatesAggregate()
+    {
+        registerAggregates();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(1);
+
+            circle.setColor("orange");
+
+            transaction.save(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(1);
+
+            assertNotNull(circle);
+            assertEquals(Circle.class, circle.getClass());
+            assertEquals(Integer.valueOf(1), circle.getId());
+            assertEquals("orange", circle.getColor());
+            assertEquals(3, circle.getRadius());
+        }
+    }
+
+    @Test
+    public void withJoinedTable_deleteExistingRow_deletesAggregate()
+    {
+        registerAggregates();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(1);
+
+            transaction.delete(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(1);
+
+            assertNull(circle);
+
+            Shape shape = transaction
+                .query(Shape.class)
+                .fetchById(1);
+
+            assertNull(shape);
+        }
+    }
+
+    // TODO: Delete orphans, joined table children
 
     private void registerAggregates()
     {
@@ -82,6 +144,9 @@ public class ShapeMultiTableCrudTests
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
             .addJoinedTable()
+            .register();
+
+        photon.registerAggregate(Shape.class)
             .register();
     }
 }

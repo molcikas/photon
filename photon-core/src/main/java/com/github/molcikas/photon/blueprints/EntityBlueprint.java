@@ -18,7 +18,8 @@ public class EntityBlueprint
     private final List<TableBlueprint> joinedTableBlueprints;
 
     private final List<ColumnBlueprint> allColumns;
-    private final List<TableBlueprint> tableBlueprintsForInsert;
+    private final List<TableBlueprint> tableBlueprintsForInsertOrUpdate;
+    private final List<TableBlueprint> tableBlueprintsForDelete;
 
     private String selectSql;
     private String selectWhereSql;
@@ -41,9 +42,10 @@ public class EntityBlueprint
             joinedTableBlueprints.stream().flatMap(j -> j.getColumns().stream()).collect(Collectors.toList())
         ));
 
-        List<TableBlueprint> tableBlueprintsForInsert = ListUtils.union(Collections.singletonList(tableBlueprint), joinedTableBlueprints);
-        Collections.reverse(tableBlueprintsForInsert);
-        this.tableBlueprintsForInsert = Collections.unmodifiableList(tableBlueprintsForInsert);
+        List<TableBlueprint> allTableBlueprints = ListUtils.union(Collections.singletonList(tableBlueprint), joinedTableBlueprints);
+        this.tableBlueprintsForDelete = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
+        Collections.reverse(allTableBlueprints);
+        this.tableBlueprintsForInsertOrUpdate = Collections.unmodifiableList(allTableBlueprints);
     }
 
     public Class getEntityClass()
@@ -154,9 +156,14 @@ public class EntityBlueprint
         return Collections.unmodifiableList(joinedTableBlueprints);
     }
 
-    public List<TableBlueprint> getTableBlueprintsForInsert()
+    public List<TableBlueprint> getTableBlueprintsForInsertOrUpdate()
     {
-        return tableBlueprintsForInsert;
+        return tableBlueprintsForInsertOrUpdate;
+    }
+
+    public List<TableBlueprint> getTableBlueprintsForDelete()
+    {
+        return tableBlueprintsForDelete;
     }
 
     public String getSelectSql()

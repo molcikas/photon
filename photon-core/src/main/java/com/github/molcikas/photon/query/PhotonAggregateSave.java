@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -90,29 +91,45 @@ public class PhotonAggregateSave
             return;
         }
 
-        List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
-        List<PopulatedEntity> populatedEntitiesToInsert;
-
+        Map<TableBlueprint, List<PopulatedEntity>> updatedPopulatedEntities;
         if(isInsert)
         {
-            populatedEntitiesToInsert = populatedEntities;
+            updatedPopulatedEntities = entityBlueprint
+                .getTableBlueprintsForInsertOrUpdate()
+                .stream()
+                .collect(Collectors.toMap(k -> k, v -> Collections.emptyList()));
         }
         else
         {
-            List<PopulatedEntity> updatedPopulatedEntities = updatePopulatedEntities(populatedEntities,
-                parentPopulatedEntity);
-            populatedEntitiesToInsert = populatedEntities
-                .stream()
-                .filter(p -> !updatedPopulatedEntities.contains(p))
-                .collect(Collectors.toList());
+            updatedPopulatedEntities = updatePopulatedEntities(populatedEntities, parentPopulatedEntity, entityBlueprint);
         }
 
-        insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity);
-        List<PopulatedEntity> populatedEntitiesNeedingForeignKeyToParentSet = populatedEntitiesToInsert
+        Map<TableBlueprint, List<PopulatedEntity>> populatedEntitiesToInsert = new LinkedHashMap<>();
+
+        for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
+        {
+            List<PopulatedEntity> entitiesToInsert = populatedEntities
+                .stream()
+                .filter(p -> !updatedPopulatedEntities.get(tableBlueprint).contains(p))
+                .collect(Collectors.toList());
+            populatedEntitiesToInsert.put(tableBlueprint, entitiesToInsert);
+        }
+
+        List<PopulatedEntity> populatedEntitiesToInsertList = populatedEntitiesToInsert
+            .values()
             .stream()
+            .flatMap(Collection::stream)
+            .distinct()
+            .collect(Collectors.toList());
+
+        insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity, entityBlueprint);
+        List<PopulatedEntity> populatedEntitiesNeedingForeignKeyToParentSet = populatedEntitiesToInsertList
+            .stream()
+            // TODO: Is it ok just look at the main table blueprint and not the joined ones?
             .filter(p -> p.getEntityBlueprint().getTableBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() && p.getPrimaryKeyValue() != null)
             .collect(Collectors.toList());
 
+        List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
         setForeignKeyToParentForPopulatedEntities(populatedEntitiesNeedingForeignKeyToParentSet, fieldsWithChildEntities);
 
         insertAndDeleteForeignKeyListFields(populatedEntities, entityBlueprint.getForeignKeyListFields());
@@ -123,7 +140,15 @@ public class PhotonAggregateSave
             {
                 String childFieldPath = fieldPath + (StringUtils.isBlank(fieldPath) ? "" : ".") + fieldBlueprint.getFieldName();
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);
-                saveEntitiesRecursive(fieldBlueprint.getChildEntityBlueprint(), fieldPopulatedEntities, populatedEntity, fieldBlueprint, populatedEntitiesToInsert.contains(populatedEntity), fieldPathsToExclude, childFieldPath);
+                saveEntitiesRecursive(
+                    fieldBlueprint.getChildEntityBlueprint(),
+                    fieldPopulatedEntities,
+                    populatedEntity,
+                    fieldBlueprint,
+                    populatedEntitiesToInsertList.contains(populatedEntity),
+                    fieldPathsToExclude,
+                    childFieldPath
+                );
             }
         }
     }
@@ -209,56 +234,65 @@ public class PhotonAggregateSave
         }
     }
 
-    private List<PopulatedEntity> updatePopulatedEntities(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
+    private Map<TableBlueprint, List<PopulatedEntity>> updatePopulatedEntities(
+        List<PopulatedEntity> populatedEntities,
+        PopulatedEntity parentPopulatedEntity,
+        EntityBlueprint entityBlueprint)
     {
         if(populatedEntities == null || populatedEntities.isEmpty())
         {
-            return Collections.emptyList();
+            return Collections.emptyMap();
         }
 
-        String updateSql = populatedEntities.get(0).getEntityBlueprint().getTableBlueprint().getUpdateSql();
-        final List<PopulatedEntity> attemptedUpdatedPopulatedEntities = new ArrayList<>(populatedEntities.size());
-        List<PopulatedEntity> updatedPopulatedEntities;
+        Map<TableBlueprint, List<PopulatedEntity>> updatedPopulatedEntities = new LinkedHashMap<>();
 
-        try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, false, connection, photonOptions))
+        for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
         {
-            for (PopulatedEntity populatedEntity : populatedEntities)
+            String updateSql = tableBlueprint.getUpdateSql();
+            final List<PopulatedEntity> attemptedUpdatedPopulatedEntities = new ArrayList<>(populatedEntities.size());
+
+            try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, false, connection, photonOptions))
             {
-                boolean addedToBatch = populatedEntity.addUpdateToBatch(updateStatement, parentPopulatedEntity);
-                if(addedToBatch)
+                for (PopulatedEntity populatedEntity : populatedEntities)
                 {
-                    attemptedUpdatedPopulatedEntities.add(populatedEntity);
+                    boolean addedToBatch = populatedEntity.addUpdateToBatch(updateStatement, tableBlueprint, parentPopulatedEntity);
+                    if(addedToBatch)
+                    {
+                        attemptedUpdatedPopulatedEntities.add(populatedEntity);
+                    }
                 }
+
+                int[] rowUpdateCounts = updateStatement.executeBatch();
+
+                List<PopulatedEntity> updatedPopulatedEntitiesForTable = IntStream
+                    .range(0, attemptedUpdatedPopulatedEntities.size())
+                    .filter(i -> rowUpdateCounts[i] > 0)
+                    .mapToObj(i -> attemptedUpdatedPopulatedEntities.get(i))
+                    .collect(Collectors.toList());
+
+                updatedPopulatedEntities.put(tableBlueprint, updatedPopulatedEntitiesForTable);
             }
-
-            int[] rowUpdateCounts = updateStatement.executeBatch();
-
-            updatedPopulatedEntities = IntStream
-                .range(0, attemptedUpdatedPopulatedEntities.size())
-                .filter(i -> rowUpdateCounts[i] > 0)
-                .mapToObj(i -> attemptedUpdatedPopulatedEntities.get(i))
-                .collect(Collectors.toList());
-
-            return updatedPopulatedEntities;
         }
+
+        return updatedPopulatedEntities;
     }
 
-    private void insertPopulatedEntities(List<PopulatedEntity> populatedEntities, PopulatedEntity parentPopulatedEntity)
+    private void insertPopulatedEntities(
+        Map<TableBlueprint, List<PopulatedEntity>> populatedEntities,
+        PopulatedEntity parentPopulatedEntity,
+        EntityBlueprint entityBlueprint)
     {
         if(populatedEntities == null || populatedEntities.isEmpty())
         {
             return;
         }
-
-        EntityBlueprint entityBlueprint = populatedEntities.get(0).getEntityBlueprint();
-
-        for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsert())
+        for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
         {
             String insertSql = tableBlueprint.getInsertSql();
 
             if (tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && !photonOptions.isEnableBatchInsertsForAutoIncrementEntities())
             {
-                for (PopulatedEntity populatedEntity : populatedEntities)
+                for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
                 {
                     try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
                         insertSql,
@@ -281,7 +315,7 @@ public class PhotonAggregateSave
                     connection,
                     photonOptions))
                 {
-                    for (PopulatedEntity populatedEntity : populatedEntities)
+                    for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
                     {
                         populatedEntity.addInsertToBatch(insertStatement, tableBlueprint, parentPopulatedEntity);
                     }
@@ -292,7 +326,7 @@ public class PhotonAggregateSave
                     {
                         List<Long> generatedKeys = insertStatement.getGeneratedKeys();
                         int index = 0;
-                        for (PopulatedEntity populatedEntity : populatedEntities)
+                        for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
                         {
                             populatedEntity.setPrimaryKeyValue(generatedKeys.get(index));
                             index++;
