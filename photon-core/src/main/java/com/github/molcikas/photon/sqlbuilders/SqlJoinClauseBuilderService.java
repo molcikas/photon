@@ -8,39 +8,35 @@ public final class SqlJoinClauseBuilderService
 {
     public static void buildChildToParentJoinClauseSql(
         StringBuilder sqlBuilder,
-        TableBlueprint childTableBlueprint,
-        List<TableBlueprint> parentTableBlueprints)
+        TableBlueprint tableBlueprint)
     {
-        TableBlueprint nextChildTableBlueprint = childTableBlueprint;
-        for(TableBlueprint parentTableBlueprint : parentTableBlueprints)
+        while(tableBlueprint.getParentTableBlueprint() != null)
         {
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
-                parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getPrimaryKeyColumn().getColumnName(),
-                nextChildTableBlueprint.getTableName(),
-                nextChildTableBlueprint.getForeignKeyToParentColumn().getColumnName()
+                tableBlueprint.getParentTableBlueprint().getTableName(),
+                tableBlueprint.getParentTableBlueprint().getTableName(),
+                tableBlueprint.getParentTableBlueprint().getPrimaryKeyColumn().getColumnName(),
+                tableBlueprint.getTableName(),
+                tableBlueprint.getForeignKeyToParentColumn().getColumnName()
             ));
-            nextChildTableBlueprint = parentTableBlueprint;
+            tableBlueprint = tableBlueprint.getParentTableBlueprint();
         }
     }
 
-    public static void buildParentToChildJoinClauseSql(
+    public static void buildParentToEachChildJoinClauseSql(
         StringBuilder sqlBuilder,
         TableBlueprint parentTableBlueprint,
         List<TableBlueprint> childTableBlueprints)
     {
-        TableBlueprint nextParentTableBlueprint = parentTableBlueprint;
         for(TableBlueprint childTableBlueprint : childTableBlueprints)
         {
             sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
                 childTableBlueprint.getTableName(),
                 childTableBlueprint.getTableName(),
                 childTableBlueprint.getForeignKeyToParentColumn().getColumnName(),
-                nextParentTableBlueprint.getTableName(),
-                nextParentTableBlueprint.getPrimaryKeyColumn().getColumnName()
+                parentTableBlueprint.getTableName(),
+                parentTableBlueprint.getPrimaryKeyColumn().getColumnName()
             ));
-            nextParentTableBlueprint = childTableBlueprint;
         }
     }
 }

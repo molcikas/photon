@@ -16,6 +16,8 @@ public class TableBlueprint
 
     private String tableName;
     private String orderBySql;
+    private TableBlueprint parentTableBlueprint;
+    private String parentTableName;
 
     private String updateSql;
     private String insertSql;
@@ -24,13 +26,16 @@ public class TableBlueprint
     private String selectOrphansSql;
     private Map<Integer, String> deleteOrphansSql;
 
-    TableBlueprint(List<ColumnBlueprint> columns,
-                   ColumnBlueprint primaryKeyColumn,
-                   ColumnBlueprint foreignKeyToParentColumn,
-                   boolean isPrimaryKeyMappedToField,
-                   String tableName,
-                   String orderBySql)
+    TableBlueprint(
+        String parentTableName,
+        List<ColumnBlueprint> columns,
+        ColumnBlueprint primaryKeyColumn,
+        ColumnBlueprint foreignKeyToParentColumn,
+        boolean isPrimaryKeyMappedToField,
+        String tableName,
+        String orderBySql)
     {
+        this.parentTableName = parentTableName;
         this.columns = columns;
         this.primaryKeyColumn = primaryKeyColumn;
         this.foreignKeyToParentColumn = foreignKeyToParentColumn;
@@ -73,6 +78,16 @@ public class TableBlueprint
     public String getOrderBySql()
     {
         return orderBySql;
+    }
+
+    public TableBlueprint getParentTableBlueprint()
+    {
+        return parentTableBlueprint;
+    }
+
+    public String getParentTableName()
+    {
+        return parentTableName;
     }
 
     public String getPrimaryKeyColumnNameQualified()
@@ -175,5 +190,10 @@ public class TableBlueprint
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)
     {
         deleteOrphansSql.put(parentLevelsUpForOrphanIds, deleteOrphanSql);
+    }
+
+    public void setParentTableBlueprint(TableBlueprint parentTableBlueprint)
+    {
+        this.parentTableBlueprint = parentTableBlueprint;
     }
 }

@@ -18,4 +18,9 @@ public class Circle extends Shape
         super(id, "circle", color);
         this.radius = radius;
     }
+
+    public void setRadius(int radius)
+    {
+        this.radius = radius;
+    }
 }

@@ -8,7 +8,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -123,20 +122,14 @@ public class PhotonAggregateSave
             .collect(Collectors.toList());
 
         insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity, entityBlueprint);
-        List<PopulatedEntity> populatedEntitiesNeedingForeignKeyToParentSet = populatedEntitiesToInsertList
-            .stream()
-            // TODO: Is it ok just look at the main table blueprint and not the joined ones?
-            .filter(p -> p.getEntityBlueprint().getTableBlueprint().getPrimaryKeyColumn().isAutoIncrementColumn() && p.getPrimaryKeyValue() != null)
-            .collect(Collectors.toList());
 
-        List<FieldBlueprint> fieldsWithChildEntities = entityBlueprint.getFieldsWithChildEntities();
-        setForeignKeyToParentForPopulatedEntities(populatedEntitiesNeedingForeignKeyToParentSet, fieldsWithChildEntities);
+        setForeignKeyToParentForPopulatedEntities(populatedEntities, entityBlueprint.getFieldsWithChildEntities());
 
         insertAndDeleteForeignKeyListFields(populatedEntities, entityBlueprint.getForeignKeyListFields());
 
         for(PopulatedEntity populatedEntity : populatedEntities)
         {
-            for (FieldBlueprint fieldBlueprint : fieldsWithChildEntities)
+            for (FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
             {
                 String childFieldPath = fieldPath + (StringUtils.isBlank(fieldPath) ? "" : ".") + fieldBlueprint.getFieldName();
                 List<PopulatedEntity> fieldPopulatedEntities = populatedEntity.getChildPopulatedEntitiesForField(fieldBlueprint);

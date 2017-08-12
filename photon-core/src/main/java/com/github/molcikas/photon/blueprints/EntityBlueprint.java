@@ -209,4 +209,15 @@ public class EntityBlueprint
         }
         this.selectWhereSql = selectWhereSql;
     }
+
+    void setMainTableBlueprintParent(List<TableBlueprint> parentEntityTableBlueprints)
+    {
+        TableBlueprint parent = parentEntityTableBlueprints
+            .stream()
+            .filter(t -> StringUtils.equalsIgnoreCase(t.getTableName(), tableBlueprint.getParentTableName()))
+            .findFirst()
+            .orElseThrow(() -> new PhotonException("Parent table '%s' for '%s' was not found",
+                tableBlueprint.getParentTableName(), tableBlueprint.getTableName()));
+        tableBlueprint.setParentTableBlueprint(parent);
+    }
 }

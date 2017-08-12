@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS `shape`;
+DROP TABLE IF EXISTS `shapecolorhistory`;
 DROP TABLE IF EXISTS `circle`;
 DROP TABLE IF EXISTS `rectangle`;
 
@@ -7,6 +8,15 @@ CREATE TABLE `shape` (
 `type` varchar(255) NOT NULL,
 `color` varchar(255) NOT NULL,
 PRIMARY KEY (`id`)
+);
+
+CREATE TABLE `shapecolorhistory` (
+`id` int(11) NOT NULL AUTO_INCREMENT,
+`shapeId` int(11) NOT NULL,
+`dateChanged` datetime NOT NULL,
+`colorName` varchar(11) NOT NULL,
+PRIMARY KEY (`id`),
+CONSTRAINT `shapecolorhistory_shape` FOREIGN KEY (`shapeId`) REFERENCES `shape` (`id`)
 );
 
 CREATE TABLE `circle` (
@@ -29,3 +39,8 @@ insert into `circle` (`id`, `radius`) values (1, 3);
 
 insert into `shape` (`id`, `type`, `color`) values (2, 'rectangle', 'blue');
 insert into `rectangle` (`id`, `width`, `height`) values (2, 7, 8);
+
+insert into `shape` (`id`, `type`, `color`) values (3, 'circle', 'orange');
+insert into `circle` (`id`, `radius`) values (3, 4);
+insert into `shapecolorhistory` (`id`, `shapeId`, `dateChanged`, `colorName`) values (1, 3, PARSEDATETIME('2017-03-19 09-28-17', 'yyyy-MM-dd HH-mm-ss'), 'creamsicle');
+insert into `shapecolorhistory` (`id`, `shapeId`, `dateChanged`, `colorName`) values (2, 3, PARSEDATETIME('2017-04-20 10-29-18', 'yyyy-MM-dd HH-mm-ss'), 'yellow');

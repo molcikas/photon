@@ -30,6 +30,11 @@ public class TableBlueprintBuilder
     protected String parentTableName;
     protected String foreignKeyToParent;
 
+    public String getTableName()
+    {
+        return StringUtils.isNotBlank(tableName) ? tableName : determineDefaultTableName(entityBlueprintBuilder.getEntityClass());
+    }
+
     public String getForeignKeyToParent()
     {
         return foreignKeyToParent;
@@ -152,6 +157,13 @@ public class TableBlueprintBuilder
     public TableBlueprintBuilder withParentTable(String parentTableName)
     {
         this.parentTableName = parentTableName;
+        return this;
+    }
+
+    public TableBlueprintBuilder withParentTable(String parentTableName, String foreignKeyToParent)
+    {
+        this.parentTableName = parentTableName;
+        this.foreignKeyToParent = foreignKeyToParent;
         return this;
     }
 
@@ -350,7 +362,12 @@ public class TableBlueprintBuilder
         return entityBlueprintBuilder.addJoinedTable(this);
     }
 
-    TableBlueprint build(Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<JoinedTableBlueprintBuilder> joinedTableBuilders)
+    TableBlueprint build(
+        Class entityClass,
+        List<FieldBlueprint> fields,
+        List<String> parentEntityTables,
+        boolean isPrimaryTable,
+        List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
         if(StringUtils.isBlank(tableName))
         {
@@ -364,6 +381,11 @@ public class TableBlueprintBuilder
             {
                 throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName());
             }
+        }
+
+        if(StringUtils.isBlank(parentTableName) && parentEntityTables != null && !parentEntityTables.isEmpty())
+        {
+            parentTableName = parentEntityTables.get(0);
         }
 
         List<FieldBlueprint> fieldsWithColumnMappings = fields
@@ -504,6 +526,7 @@ public class TableBlueprintBuilder
         columns = normalizeColumnOrder(columns);
 
         return new TableBlueprint(
+            parentTableName,
             columns,
             primaryKeyColumn,
             foreignKeyToParentColumn,

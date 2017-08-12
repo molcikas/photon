@@ -5,13 +5,14 @@ import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.tests.unit.entities.shape.Circle;
 import com.github.molcikas.photon.tests.unit.entities.shape.Rectangle;
 import com.github.molcikas.photon.tests.unit.entities.shape.Shape;
+import com.github.molcikas.photon.tests.unit.entities.shape.ShapeColorHistory;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.List;
+import java.time.ZonedDateTime;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class ShapeMultiTableCrudTests
 {
@@ -126,24 +127,136 @@ public class ShapeMultiTableCrudTests
         }
     }
 
-    // TODO: Delete orphans, joined table children
+    @Test
+    public void withJoinedTable_deleteExistingRowWithChildren_deletesAggregateAndChildren()
+    {
+        registerAggregatesWithShapeColorHistory();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            int count = transaction
+                .query("SELECT COUNT(*) FROM shapecolorhistory WHERE shapeId = 3")
+                .fetchScalar(Integer.class);
+            assertEquals(2, count);
+
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(3);
+
+            transaction.delete(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(3);
+            assertNull(circle);
+
+            Shape shape = transaction
+                .query(Shape.class)
+                .fetchById(3);
+            assertNull(shape);
+
+            int count = transaction
+                .query("SELECT COUNT(*) FROM shapecolorhistory WHERE shapeId = 3")
+                .fetchScalar(Integer.class);
+            assertEquals(0, count);
+        }
+    }
+
+    @Test
+    public void withJoinedTable_removeChild_updatesAggregateAndRemovesChild()
+    {
+        registerAggregatesWithShapeColorHistory();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(3);
+
+            circle.setRadius(333);
+
+            circle.getColorHistory().remove(0);
+            circle.getColorHistory().get(0).setColorName("bluegreen");
+            circle.getColorHistory().add(new ShapeColorHistory(0, 0, ZonedDateTime.now(), "black"));
+
+            transaction.save(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(3);
+
+            assertNotNull(circle);
+            assertEquals(333, circle.getRadius());
+            assertEquals(2, circle.getColorHistory().size());
+            assertEquals(2, circle.getColorHistory().get(0).getId());
+            assertEquals("bluegreen", circle.getColorHistory().get(0).getColorName());
+            assertEquals(3, circle.getColorHistory().get(1).getId());
+            assertEquals("black", circle.getColorHistory().get(1).getColorName());
+        }
+    }
+
+    // TODO: Drawing that contains shapes of different types. Will need to add left joining.
+    // TODO: Allow joined tables to specify parent (for multi-level inheritance).
 
     private void registerAggregates()
     {
         photon.registerAggregate(Rectangle.class)
+            .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
             .withJoinedTable("Shape")
+                .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .addJoinedTable()
             .register();
 
         photon.registerAggregate(Circle.class)
+            .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
             .withJoinedTable("Shape")
+                .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
             .addJoinedTable()
+            .register();
+
+        photon.registerAggregate(Shape.class)
+            .withPrimaryKeyAutoIncrement()
+            .register();
+    }
+
+    private void registerAggregatesWithShapeColorHistory()
+    {
+        photon.registerAggregate(Rectangle.class)
+            .withPrimaryKeyAutoIncrement()
+            .withMappedClass(Shape.class)
+            .withJoinedTable("Shape")
+                .withPrimaryKeyAutoIncrement()
+                .withDatabaseColumn("type")
+                .withDatabaseColumn("color")
+                .addJoinedTable()
+            .register();
+
+        photon.registerAggregate(Circle.class)
+            .withPrimaryKeyAutoIncrement()
+            .withMappedClass(Shape.class)
+            .withJoinedTable("Shape")
+                .withPrimaryKeyAutoIncrement()
+                .withDatabaseColumn("type")
+                .withDatabaseColumn("color")
+                .addJoinedTable()
+            .withChild(ShapeColorHistory.class)
+                .withPrimaryKeyAutoIncrement()
+                .withParentTable("Shape", "shapeId")
+                .addAsChild("colorHistory")
             .register();
 
         photon.registerAggregate(Shape.class)

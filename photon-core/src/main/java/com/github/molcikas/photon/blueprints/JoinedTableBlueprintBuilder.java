@@ -34,24 +34,22 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
         throw new PhotonException("Cannot call withForeignKeyToParent() on a joined table builder.");
     }
 
-    TableBlueprint build(Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<JoinedTableBlueprintBuilder> joinedTableBuilders)
-    {
-        throw new PhotonException("Cannot call build() on a joined table builder without also passing the parent table builder.");
-    }
-
-    TableBlueprint build(TableBlueprint parent, Class entityClass, List<FieldBlueprint> fields, boolean isPrimaryTable, List<JoinedTableBlueprintBuilder> joinedTableBuilders)
+    @Override
+    TableBlueprint build(
+        Class entityClass,
+        List<FieldBlueprint> fields,
+        List<String> parentEntityTables,
+        boolean isPrimaryTable,
+        List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
         if(StringUtils.isBlank(idFieldName))
         {
             idFieldName = determineDefaultIdFieldName(entityClass, fields);
-            if(idFieldName == null)
-            {
-                throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName());
-            }
         }
 
-        this.parentTableName = parent.getTableName();
+        this.parentTableName = parentEntityTables.get(0);
         this.foreignKeyToParent = idFieldName;
-        return super.build(entityClass, fields, isPrimaryTable, joinedTableBuilders);
+
+        return super.build(entityClass, fields, parentEntityTables, isPrimaryTable, joinedTableBuilders);
     }
 }

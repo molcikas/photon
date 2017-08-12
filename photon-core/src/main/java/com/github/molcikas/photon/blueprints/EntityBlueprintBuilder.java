@@ -24,11 +24,16 @@ public class EntityBlueprintBuilder
     private final List<MappedClassBlueprint> mappedClasses;
     private EntityClassDiscriminator entityClassDiscriminator;
     private final List<String> ignoredFields;
-    private final Map<String, EntityBlueprint> childEntities;
+    private final Map<String, EntityBlueprintBuilder> childEntityBuilders;
     private final Map<String, Converter> customFieldHydraters;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
     private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
+
+    public Class getEntityClass()
+    {
+        return entityClass;
+    }
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
@@ -55,7 +60,7 @@ public class EntityBlueprintBuilder
         this.photon = photon;
         this.mappedClasses = new ArrayList<>();
         this.ignoredFields = new ArrayList<>();
-        this.childEntities = new HashMap<>();
+        this.childEntityBuilders = new HashMap<>();
         this.customFieldHydraters = new HashMap<>();
         this.tableBlueprintBuilder = new TableBlueprintBuilder(this, photon.getOptions());
         this.joinedTableBuilders = new ArrayList<>();
@@ -173,6 +178,18 @@ public class EntityBlueprintBuilder
     public EntityBlueprintBuilder withPrimaryKeyAutoIncrement()
     {
         tableBlueprintBuilder.withPrimaryKeyAutoIncrement();
+        return this;
+    }
+
+    public EntityBlueprintBuilder withParentTable(String parentTableName)
+    {
+        tableBlueprintBuilder.withParentTable(parentTableName);
+        return this;
+    }
+
+    public EntityBlueprintBuilder withParentTable(String parentTableName, String foreignKeyToParent)
+    {
+        tableBlueprintBuilder.withParentTable(parentTableName, foreignKeyToParent);
         return this;
     }
 
@@ -417,7 +434,7 @@ public class EntityBlueprintBuilder
         {
             throw new PhotonException("Cannot add child to parent field '%s' because the child does not have a foreign key to parent set.", fieldName);
         }
-        parentBuilder.addChild(fieldName, build());
+        parentBuilder.addChild(fieldName, this);
         return parentBuilder;
     }
 
@@ -435,6 +452,11 @@ public class EntityBlueprintBuilder
 
     public EntityBlueprint build()
     {
+        Map<String, EntityBlueprint> childEntities = childEntityBuilders
+            .entrySet()
+            .stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().build()));
+
         MultiValuedMap<Class, Field> reflectedFieldsMap = new HashSetValuedHashMap<>();
         reflectedFieldsMap.putAll(entityClass, Arrays.asList(entityClass.getDeclaredFields()));
 
@@ -464,27 +486,51 @@ public class EntityBlueprintBuilder
             ))
             .collect(Collectors.toList());
 
-        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(entityClass, fields, true, joinedTableBuilders);
+        List<String> parentTableBlueprints = Collections.emptyList();
+        if(parentBuilder != null)
+        {
+            parentTableBlueprints = parentBuilder
+                .getTableBlueprintBuilders()
+                .stream()
+                .map(TableBlueprintBuilder::getTableName)
+                .collect(Collectors.toList());
+        }
+
+        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(
+            entityClass, fields, parentTableBlueprints, true, joinedTableBuilders);
         List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders
             .stream()
-            .map(t -> t.build(tableBlueprint, entityClass, fields, false, joinedTableBuilders))
+            .map(t -> t.build(
+                entityClass, fields, Collections.singletonList(tableBlueprint.getTableName()), false, joinedTableBuilders))
             .collect(Collectors.toList());
 
-        return new EntityBlueprint(
+        EntityBlueprint entityBlueprint = new EntityBlueprint(
             entityClass,
             entityClassDiscriminator,
             fields,
             tableBlueprint,
             joinedTableBlueprints
         );
+
+        childEntities.values().forEach(e -> e.setMainTableBlueprintParent(entityBlueprint.getTableBlueprintsForInsertOrUpdate()));
+
+        return entityBlueprint;
     }
 
-    private void addChild(String fieldName, EntityBlueprint childEntityBlueprint)
+    private List<TableBlueprintBuilder> getTableBlueprintBuilders()
     {
-        if(childEntities.containsKey(fieldName))
+        List<TableBlueprintBuilder> tableBlueprintBuilders = new ArrayList<>(joinedTableBuilders.size() + 1);
+        tableBlueprintBuilders.add(tableBlueprintBuilder);
+        tableBlueprintBuilders.addAll(joinedTableBuilders);
+        return tableBlueprintBuilders;
+    }
+
+    private void addChild(String fieldName, EntityBlueprintBuilder childEntityBlueprint)
+    {
+        if(childEntityBuilders.containsKey(fieldName))
         {
-            throw new PhotonException("EntityBlueprint already contains a child for field %s", fieldName);
+            throw new PhotonException("EntityBlueprint already contains a child for field '%s'.", fieldName);
         }
-        childEntities.put(fieldName, childEntityBlueprint);
+        childEntityBuilders.put(fieldName, childEntityBlueprint);
     }
 }
