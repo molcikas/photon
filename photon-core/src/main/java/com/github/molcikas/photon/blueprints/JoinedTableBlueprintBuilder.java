@@ -8,12 +8,14 @@ import java.util.List;
 
 public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
 {
-    public JoinedTableBlueprintBuilder(
+    JoinedTableBlueprintBuilder(
+        Class entityClass,
         String tableName,
+        JoinType joinType,
         EntityBlueprintBuilder entityBlueprintBuilder,
         PhotonOptions photonOptions)
     {
-        super(tableName, entityBlueprintBuilder, photonOptions);
+        super(entityClass, tableName, joinType, entityBlueprintBuilder, photonOptions);
     }
 
     @Override
@@ -36,20 +38,19 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
 
     @Override
     TableBlueprint build(
-        Class entityClass,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,
-        boolean isPrimaryTable,
+        TableBlueprint mainTableBlueprint,
         List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
         if(StringUtils.isBlank(idFieldName))
         {
-            idFieldName = determineDefaultIdFieldName(entityClass, fields);
+            idFieldName = determineDefaultIdFieldName(fields);
         }
 
         this.parentTableName = parentEntityTables.get(0);
         this.foreignKeyToParent = idFieldName;
 
-        return super.build(entityClass, fields, parentEntityTables, isPrimaryTable, joinedTableBuilders);
+        return super.build(fields, parentEntityTables, mainTableBlueprint, joinedTableBuilders);
     }
 }

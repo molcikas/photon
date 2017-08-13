@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public final class DeleteSqlBuilderService
@@ -29,21 +30,26 @@ public final class DeleteSqlBuilderService
         buildDeleteChildrenExceptSql(entityBlueprint.getTableBlueprint(), photonOptions);
 
         List<TableBlueprint> parentTableBlueprints = new ArrayList<>();
-        TableBlueprint nextParent = entityBlueprint.getTableBlueprint().getParentTableBlueprint();
+        TableBlueprint nextParent = entityBlueprint.getTableBlueprint();
         while(nextParent != null)
         {
             parentTableBlueprints.add(nextParent);
             nextParent = nextParent.getParentTableBlueprint();
         }
 
-        buildDeleteOrphansSqlRecursive(entityBlueprint.getTableBlueprint(), parentTableBlueprints, photonOptions);
+        buildDeleteOrphansSqlRecursive(
+            entityBlueprint.getTableBlueprint(),
+            parentTableBlueprints.size() > 1 ?
+                parentTableBlueprints.subList(1, parentTableBlueprints.size() - 1) :
+                Collections.emptyList(),
+            photonOptions
+        );
 
         for(TableBlueprint joinTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
         {
             buildDeleteSql(joinTableBlueprint, photonOptions);
             buildDeleteChildrenExceptSql(joinTableBlueprint, photonOptions);
 
-            // Note: No need to add the main table here because they are inner joined in a one-to-one relationship
             buildDeleteOrphansSqlRecursive(joinTableBlueprint, parentTableBlueprints, photonOptions);
         }
 
@@ -105,7 +111,7 @@ public final class DeleteSqlBuilderService
                 tableBlueprint.getPrimaryKeyColumn().getColumnName()
             );
             deleteOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteOrphansSql, photonOptions);
-            log.debug("Delete Orphans Level {} Sql for {}:\n{}", parentTableBlueprints.size(), tableBlueprint.getTableName(), deleteOrphansSql);
+            log.debug("Delete Orphans Sql Level {} Sql for {}:\n{}", parentTableBlueprints.size(), tableBlueprint.getTableName(), deleteOrphansSql);
             tableBlueprint.setDeleteOrphansSql(deleteOrphansSql, 0);
             return;
         }
@@ -126,7 +132,7 @@ public final class DeleteSqlBuilderService
             tableBlueprint.getPrimaryKeyColumn().getColumnName(),
             tableBlueprint.getTableName()
         ));
-        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint);
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, true);
         deleteOrphansSqlBuilder.append(String.format(
             "\nWHERE [%s].[%s] IN (?)" +
             "\n)",

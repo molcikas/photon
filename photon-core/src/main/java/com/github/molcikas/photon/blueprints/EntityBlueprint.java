@@ -21,15 +21,13 @@ public class EntityBlueprint
     private final List<TableBlueprint> tableBlueprintsForInsertOrUpdate;
     private final List<TableBlueprint> tableBlueprintsForDelete;
 
-    private String selectSql;
-    private String selectWhereSql;
-
     EntityBlueprint(
         Class entityClass,
         EntityClassDiscriminator entityClassDiscriminator,
         List<FieldBlueprint> fields,
         TableBlueprint tableBlueprint,
-        List<TableBlueprint> joinedTableBlueprints)
+        List<TableBlueprint> joinedTableBlueprints,
+        boolean mainTableInsertedFirst)
     {
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
@@ -43,9 +41,18 @@ public class EntityBlueprint
         ));
 
         List<TableBlueprint> allTableBlueprints = ListUtils.union(Collections.singletonList(tableBlueprint), joinedTableBlueprints);
-        this.tableBlueprintsForDelete = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
-        Collections.reverse(allTableBlueprints);
-        this.tableBlueprintsForInsertOrUpdate = Collections.unmodifiableList(allTableBlueprints);
+        if(mainTableInsertedFirst)
+        {
+            this.tableBlueprintsForInsertOrUpdate = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
+            Collections.reverse(allTableBlueprints);
+            this.tableBlueprintsForDelete = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
+        }
+        else
+        {
+            this.tableBlueprintsForDelete = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
+            Collections.reverse(allTableBlueprints);
+            this.tableBlueprintsForInsertOrUpdate = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
+        }
     }
 
     public Class getEntityClass()
@@ -166,16 +173,6 @@ public class EntityBlueprint
         return tableBlueprintsForDelete;
     }
 
-    public String getSelectSql()
-    {
-        return selectSql;
-    }
-
-    public String getSelectWhereSql()
-    {
-        return selectWhereSql;
-    }
-
     public List<String> getAllColumnNames()
     {
         return allColumns
@@ -190,24 +187,6 @@ public class EntityBlueprint
             .stream()
             .map(ColumnBlueprint::getColumnNameQualified)
             .collect(Collectors.toList());
-    }
-
-    public void setSelectSql(String selectSql)
-    {
-        if(StringUtils.isBlank(selectSql))
-        {
-            throw new PhotonException("Select SQL cannot be blank.");
-        }
-        this.selectSql = selectSql;
-    }
-
-    public void setSelectWhereSql(String selectWhereSql)
-    {
-        if(StringUtils.isBlank(selectWhereSql))
-        {
-            throw new PhotonException("Select Where SQL cannot be blank.");
-        }
-        this.selectWhereSql = selectWhereSql;
     }
 
     void setMainTableBlueprintParent(List<TableBlueprint> parentEntityTableBlueprints)

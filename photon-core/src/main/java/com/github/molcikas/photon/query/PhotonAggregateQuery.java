@@ -148,7 +148,7 @@ public class PhotonAggregateQuery<T>
 
         if(ids != null)
         {
-            String selectSql = String.format(entityBlueprint.getSelectSql(), "?");
+            String selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), "?");
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(
@@ -164,7 +164,7 @@ public class PhotonAggregateQuery<T>
             String selectSql;
             if(isQueryIdsOnly)
             {
-                selectSql = String.format(entityBlueprint.getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
+                selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), photonQuery.getSqlTextWithQuestionMarks());
             }
             else
             {

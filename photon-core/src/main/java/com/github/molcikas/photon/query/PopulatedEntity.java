@@ -274,17 +274,25 @@ public class PopulatedEntity<T>
         return true;
     }
 
-    public void addInsertToBatch(PhotonPreparedStatement insertStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
+    public void addInsertToBatch(
+        PhotonPreparedStatement insertStatement,
+        TableBlueprint tableBlueprint,
+        PopulatedEntity parentPopulatedEntity,
+        boolean alwaysIncludePrimaryKey)
     {
-        addParametersToInsertStatement(insertStatement, tableBlueprint, parentPopulatedEntity);
+        addParametersToInsertStatement(insertStatement, tableBlueprint, parentPopulatedEntity, alwaysIncludePrimaryKey);
         insertStatement.addToBatch();
     }
 
-    public void addParametersToInsertStatement(PhotonPreparedStatement insertStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
+    public void addParametersToInsertStatement(
+        PhotonPreparedStatement insertStatement,
+        TableBlueprint tableBlueprint,
+        PopulatedEntity parentPopulatedEntity,
+        boolean alwaysIncludePrimaryKey)
     {
         Map<String, Object> values = new HashMap<>();
 
-        for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement())
+        for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement(alwaysIncludePrimaryKey))
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();

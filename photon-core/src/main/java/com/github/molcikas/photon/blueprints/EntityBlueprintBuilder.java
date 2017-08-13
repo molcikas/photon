@@ -29,6 +29,7 @@ public class EntityBlueprintBuilder
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
     private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
+    private boolean mainTableInsertedFirst;
 
     public Class getEntityClass()
     {
@@ -64,6 +65,7 @@ public class EntityBlueprintBuilder
         this.customFieldHydraters = new HashMap<>();
         this.tableBlueprintBuilder = new TableBlueprintBuilder(this, photon.getOptions());
         this.joinedTableBuilders = new ArrayList<>();
+        this.mainTableInsertedFirst = true;
     }
 
     /**
@@ -76,7 +78,10 @@ public class EntityBlueprintBuilder
      */
     public EntityBlueprintBuilder withMappedClass(Class mappedClass)
     {
-        mappedClasses.add(new MappedClassBlueprint(mappedClass, true, null));
+        if(mappedClasses.stream().noneMatch(m -> Objects.equals(mappedClass, m.getMappedClass())))
+        {
+            mappedClasses.add(new MappedClassBlueprint(mappedClass, true, null));
+        }
         return this;
     }
 
@@ -403,9 +408,20 @@ public class EntityBlueprintBuilder
         return new EntityBlueprintBuilder(childClass, this, photon);
     }
 
-    public TableBlueprintBuilder withJoinedTable(String tableName)
+    public TableBlueprintBuilder withJoinedTable(String tableName, JoinType joinType)
     {
-        return new JoinedTableBlueprintBuilder(tableName, this, photon.getOptions());
+        return new JoinedTableBlueprintBuilder(null, tableName, joinType, this, photon.getOptions());
+    }
+
+    public TableBlueprintBuilder withJoinedTable(Class entityClass, JoinType joinType)
+    {
+        return new JoinedTableBlueprintBuilder(entityClass, null, joinType, this, photon.getOptions());
+    }
+
+    public EntityBlueprintBuilder withMainTableInsertedLast()
+    {
+        this.mainTableInsertedFirst = false;
+        return this;
     }
 
     public EntityBlueprintBuilder addJoinedTable(TableBlueprintBuilder joinedTableBuilder)
@@ -496,12 +512,10 @@ public class EntityBlueprintBuilder
                 .collect(Collectors.toList());
         }
 
-        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(
-            entityClass, fields, parentTableBlueprints, true, joinedTableBuilders);
+        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(fields, parentTableBlueprints, null, joinedTableBuilders);
         List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders
             .stream()
-            .map(t -> t.build(
-                entityClass, fields, Collections.singletonList(tableBlueprint.getTableName()), false, joinedTableBuilders))
+            .map(t -> t.build(fields, Collections.singletonList(tableBlueprint.getTableName()), tableBlueprint, joinedTableBuilders))
             .collect(Collectors.toList());
 
         EntityBlueprint entityBlueprint = new EntityBlueprint(
@@ -509,7 +523,8 @@ public class EntityBlueprintBuilder
             entityClassDiscriminator,
             fields,
             tableBlueprint,
-            joinedTableBlueprints
+            joinedTableBlueprints,
+            mainTableInsertedFirst
         );
 
         childEntities.values().forEach(e -> e.setMainTableBlueprintParent(entityBlueprint.getTableBlueprintsForInsertOrUpdate()));

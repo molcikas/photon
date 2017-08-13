@@ -36,6 +36,15 @@ public final class UpdateSqlBuilderService
 
     private static void buildUpdateSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
     {
+        boolean hasUpdatableColumns = tableBlueprint
+            .getColumns()
+            .stream()
+            .anyMatch(c -> !c.isPrimaryKeyColumn());
+        if(!hasUpdatableColumns)
+        {
+            return;
+        }
+
         int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 

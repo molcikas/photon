@@ -2,6 +2,7 @@ package com.github.molcikas.photon.tests.unit.h2.shape;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.blueprints.JoinType;
 import com.github.molcikas.photon.tests.unit.entities.shape.Circle;
 import com.github.molcikas.photon.tests.unit.entities.shape.Rectangle;
 import com.github.molcikas.photon.tests.unit.entities.shape.Shape;
@@ -10,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
@@ -45,7 +47,7 @@ public class ShapeMultiTableCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(3, "blue", 4);
+            Circle circle = new Circle(null, "blue", 4);
 
             transaction.save(circle);
             transaction.commit();
@@ -55,11 +57,11 @@ public class ShapeMultiTableCrudTests
         {
             Circle circle = transaction
                 .query(Circle.class)
-                .fetchById(3);
+                .fetchById(4);
 
             assertNotNull(circle);
             assertEquals(Circle.class, circle.getClass());
-            assertEquals(Integer.valueOf(3), circle.getId());
+            assertEquals(Integer.valueOf(4), circle.getId());
             assertEquals("blue", circle.getColor());
             assertEquals(4, circle.getRadius());
         }
@@ -203,29 +205,111 @@ public class ShapeMultiTableCrudTests
         }
     }
 
+    @Test
+    public void withJoinedTableAndDiscriminator_selectRows_createAggregatesOfMultipleTypes()
+    {
+        registerShapeAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            List<Shape> shapes = transaction
+                .query(Shape.class)
+                .fetchByIds(1, 2);
+
+            assertEquals(shapes.size(), 2);
+
+            assertEquals(Circle.class, shapes.get(0).getClass());
+            assertEquals(Rectangle.class, shapes.get(1).getClass());
+
+            Circle circle = (Circle) shapes.get(0);
+            assertEquals(3, circle.getRadius());
+            assertEquals("red", circle.getColor());
+
+            Rectangle rectangle = (Rectangle) shapes.get(1);
+            assertEquals(7, rectangle.getWidth());
+            assertEquals(8, rectangle.getHeight());
+            assertEquals("blue", rectangle.getColor());
+        }
+    }
+
+    @Test
+    public void withJoinedTableAndDiscriminator_insertEntity_insertsIntoCorrectTables()
+    {
+        registerShapeAggregate();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = new Circle(null, "blue", 56);
+
+            transaction.save(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(4);
+
+            assertNotNull(circle);
+            assertEquals(Circle.class, circle.getClass());
+            assertEquals(Integer.valueOf(4), circle.getId());
+            assertEquals("blue", circle.getColor());
+            assertEquals(56, circle.getRadius());
+        }
+    }
+
+    @Test
+    public void withJoinedTableAndDiscriminator_saveOverExistingEntityOfDifferentType_DeletesOrphanRows()
+    {
+        registerShapeAggregate();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Rectangle rectangle = new Rectangle(1, "blue", 11, 12, null);
+
+            transaction.save(rectangle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Rectangle rectangle = transaction
+                .query(Rectangle.class)
+                .fetchById(1);
+
+            assertNotNull(rectangle);
+
+            // TODO: Finish asserting. Verify circle row with id 1 got deleted.
+        }
+    }
+
+    // TODO: Table with only an id (nothing to UPDATE). What happens on save?
+    // TODO: Save Circle over Rectangle with CornerCoordinates. Make sure CornerCoordinates get deleted as orphans.
     // TODO: Drawing that contains shapes of different types. Will need to add left joining.
-    // TODO: Allow joined tables to specify parent (for multi-level inheritance).
 
     private void registerAggregates()
     {
         photon.registerAggregate(Rectangle.class)
             .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
-            .withJoinedTable("Shape")
+            .withJoinedTable("Shape", JoinType.InnerJoin)
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .addJoinedTable()
+            .withMainTableInsertedLast()
             .register();
 
         photon.registerAggregate(Circle.class)
             .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
-            .withJoinedTable("Shape")
+            .withJoinedTable("Shape", JoinType.InnerJoin)
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
-            .addJoinedTable()
+                .addJoinedTable()
+            .withMainTableInsertedLast()
             .register();
 
         photon.registerAggregate(Shape.class)
@@ -238,17 +322,18 @@ public class ShapeMultiTableCrudTests
         photon.registerAggregate(Rectangle.class)
             .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
-            .withJoinedTable("Shape")
+            .withJoinedTable("Shape", JoinType.InnerJoin)
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .addJoinedTable()
+            .withMainTableInsertedLast()
             .register();
 
         photon.registerAggregate(Circle.class)
             .withPrimaryKeyAutoIncrement()
             .withMappedClass(Shape.class)
-            .withJoinedTable("Shape")
+            .withJoinedTable("Shape", JoinType.InnerJoin)
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
@@ -257,9 +342,42 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withParentTable("Shape", "shapeId")
                 .addAsChild("colorHistory")
+            .withMainTableInsertedLast()
             .register();
 
         photon.registerAggregate(Shape.class)
+            .register();
+    }
+
+    private void registerShapeAggregate()
+    {
+        photon.registerAggregate(Shape.class)
+            .withPrimaryKeyAutoIncrement()
+            .withJoinedTable(Circle.class, JoinType.LeftOuterJoin)
+                .withPrimaryKeyAutoIncrement()
+                .addJoinedTable()
+            .withJoinedTable(Rectangle.class, JoinType.LeftOuterJoin)
+                .withPrimaryKeyAutoIncrement()
+                .addJoinedTable()
+            .withChild(ShapeColorHistory.class)
+                .withPrimaryKeyAutoIncrement()
+                .withParentTable("Shape", "shapeId")
+                .addAsChild("colorHistory")
+            .withClassDiscriminator(valueMap ->
+            {
+                if(valueMap.get("Circle_id") != null)
+                {
+                    return Circle.class;
+                }
+                else if(valueMap.get("Rectangle_id") != null)
+                {
+                    return Rectangle.class;
+                }
+                else
+                {
+                    return Shape.class;
+                }
+            })
             .register();
     }
 }

@@ -16,7 +16,9 @@ public class TableBlueprintBuilder
 {
     private final EntityBlueprintBuilder entityBlueprintBuilder;
     private final PhotonOptions photonOptions;
+    private Class entityClass;
     private String tableName;
+    private JoinType joinType;
     private boolean isPrimaryKeyAutoIncrement;
     private String orderBySql;
     private final Map<String, ColumnDataType> customColumnDataTypes;
@@ -32,7 +34,7 @@ public class TableBlueprintBuilder
 
     public String getTableName()
     {
-        return StringUtils.isNotBlank(tableName) ? tableName : determineDefaultTableName(entityBlueprintBuilder.getEntityClass());
+        return StringUtils.isNotBlank(tableName) ? tableName : determineDefaultTableName();
     }
 
     public String getForeignKeyToParent()
@@ -57,15 +59,19 @@ public class TableBlueprintBuilder
 
     public TableBlueprintBuilder(EntityBlueprintBuilder entityBlueprintBuilder, PhotonOptions photonOptions)
     {
-        this(null, entityBlueprintBuilder, photonOptions);
+        this(null, null, null, entityBlueprintBuilder, photonOptions);
     }
 
     public TableBlueprintBuilder(
+        Class entityClass,
         String tableName,
+        JoinType joinType,
         EntityBlueprintBuilder entityBlueprintBuilder,
         PhotonOptions photonOptions)
     {
+        this.entityClass = entityClass;
         this.tableName = tableName;
+        this.joinType = joinType != null ? joinType : JoinType.InnerJoin;
         this.entityBlueprintBuilder = entityBlueprintBuilder;
         this.photonOptions = photonOptions;
         this.isPrimaryKeyAutoIncrement = false;
@@ -75,6 +81,15 @@ public class TableBlueprintBuilder
         this.customFieldToColumnMappings = new HashMap<>();
         this.foreignKeyListBlueprints = new HashMap<>();
         this.customDatabaseColumnSerializers = new HashMap<>();
+
+        if(entityClass != null)
+        {
+            entityBlueprintBuilder.withMappedClass(entityClass);
+
+            Arrays
+                .stream(entityClass.getDeclaredFields())
+                .forEach(f -> customFieldToColumnMappings.put(f.getName(), f.getName()));
+        }
     }
 
     /**
@@ -363,29 +378,38 @@ public class TableBlueprintBuilder
     }
 
     TableBlueprint build(
-        Class entityClass,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,
-        boolean isPrimaryTable,
+        TableBlueprint mainTableBlueprint,
         List<JoinedTableBlueprintBuilder> joinedTableBuilders)
     {
+        boolean isPrimaryTable = mainTableBlueprint == null;
+
         if(StringUtils.isBlank(tableName))
         {
-            tableName = determineDefaultTableName(entityClass);
+            tableName = determineDefaultTableName();
         }
 
         if(StringUtils.isBlank(idFieldName))
         {
-            idFieldName = determineDefaultIdFieldName(entityClass, fields);
+            idFieldName = determineDefaultIdFieldName(fields);
             if(idFieldName == null)
             {
-                throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", entityClass.getName());
+                throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", tableName);
             }
         }
 
-        if(StringUtils.isBlank(parentTableName) && parentEntityTables != null && !parentEntityTables.isEmpty())
+        if(StringUtils.isBlank(parentTableName))
         {
-            parentTableName = parentEntityTables.get(0);
+            if(mainTableBlueprint != null)
+            {
+                // If this is a joined table, use the main table as the parent.
+                parentTableName = mainTableBlueprint.getTableName();
+            }
+            else if(parentEntityTables != null && !parentEntityTables.isEmpty())
+            {
+                parentTableName = parentEntityTables.get(0);
+            }
         }
 
         List<FieldBlueprint> fieldsWithColumnMappings = fields
@@ -397,7 +421,13 @@ public class TableBlueprintBuilder
 
         for(FieldBlueprint fieldBlueprint : fieldsWithColumnMappings)
         {
-            ColumnBlueprint columnBlueprint = createColumnForField(fieldBlueprint, null, isPrimaryTable, joinedTableBuilders, columns.size());
+            ColumnBlueprint columnBlueprint = createColumnForField(
+                fieldBlueprint,
+                null,
+                isPrimaryTable,
+                joinedTableBuilders,
+                columns.size()
+            );
             if(columnBlueprint != null)
             {
                 columns.add(columnBlueprint);
@@ -507,7 +537,10 @@ public class TableBlueprintBuilder
         {
             if(!customColumnDataTypes.containsKey(foreignKeyToParent))
             {
-                throw new PhotonException(String.format("The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.", foreignKeyToParent, entityClass.getName()));
+                throw new PhotonException(String.format(
+                    "The column data type for '%s' must be specified since it is a foreign key and is not in the entity '%s'.",
+                    foreignKeyToParent,
+                    tableName));
             }
             foreignKeyToParentColumn = new ColumnBlueprint(
                 tableName,
@@ -526,7 +559,10 @@ public class TableBlueprintBuilder
         columns = normalizeColumnOrder(columns);
 
         return new TableBlueprint(
+            mainTableBlueprint,
             parentTableName,
+            joinType,
+            entityClass,
             columns,
             primaryKeyColumn,
             foreignKeyToParentColumn,
@@ -666,8 +702,15 @@ public class TableBlueprintBuilder
         return DefaultColumnDataTypeResult.notFound();
     }
 
-    private String determineDefaultTableName(Class entityClass)
+    private String determineDefaultTableName()
     {
+        Class entityClass = this.entityClass;
+
+        if(entityClass == null)
+        {
+            entityClass = entityBlueprintBuilder.getEntityClass();
+        }
+
         switch(photonOptions.getDefaultTableName())
         {
             default:
@@ -678,7 +721,7 @@ public class TableBlueprintBuilder
         }
     }
 
-    protected String determineDefaultIdFieldName(Class entityClass, List<FieldBlueprint> fields)
+    protected String determineDefaultIdFieldName(List<FieldBlueprint> fields)
     {
         Optional<FieldBlueprint> idField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase("id")).findFirst();
         if(idField.isPresent())
@@ -686,10 +729,26 @@ public class TableBlueprintBuilder
             return idField.get().getFieldName();
         }
 
-        String fullIdName = entityClass.getSimpleName().toLowerCase() + "Id";
-        Optional<FieldBlueprint> fullIdField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase(fullIdName)).findFirst();
+        if(entityClass != null)
+        {
+            String fullIdName = entityClass.getSimpleName().toLowerCase() + "Id";
+            Optional<FieldBlueprint> fullIdField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase(fullIdName)).findFirst();
+            if(fullIdField.isPresent())
+            {
+                return fullIdField.get().getFieldName();
+            }
+        }
+        else
+        {
+            String fullIdName = entityBlueprintBuilder.getEntityClass().getSimpleName().toLowerCase() + "Id";
+            Optional<FieldBlueprint> fullIdField = fields.stream().filter(f -> f.getFieldName().equalsIgnoreCase(fullIdName)).findFirst();
+            if(fullIdField.isPresent())
+            {
+                return fullIdField.get().getFieldName();
+            }
+        }
 
-        return fullIdField.isPresent() ? fullIdField.get().getFieldName() : null;
+        return null;
     }
 
     private List<ColumnBlueprint> normalizeColumnOrder(List<ColumnBlueprint> columns)

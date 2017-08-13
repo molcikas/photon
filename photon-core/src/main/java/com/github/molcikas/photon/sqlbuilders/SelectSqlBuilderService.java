@@ -21,9 +21,14 @@ public final class SelectSqlBuilderService
         EntityBlueprint entityBlueprint,
         PhotonOptions photonOptions)
     {
-        buildSelectSql(entityBlueprint, photonOptions);
-        buildSelectWhereSql(entityBlueprint, photonOptions);
+        buildSelectSql(entityBlueprint, photonOptions, false);
+        buildSelectSql(entityBlueprint, photonOptions, true);
         buildSelectOrphansSql(entityBlueprint.getTableBlueprint(), photonOptions);
+
+        for(TableBlueprint tableBlueprint : entityBlueprint.getJoinedTableBlueprints())
+        {
+            buildSelectByIdSql(tableBlueprint, photonOptions);
+        }
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
 
@@ -35,7 +40,10 @@ public final class SelectSqlBuilderService
             ));
     }
 
-    private static void buildSelectSql(EntityBlueprint entityBlueprint, PhotonOptions photonOptions)
+    private static void buildSelectSql(
+        EntityBlueprint entityBlueprint,
+        PhotonOptions photonOptions,
+        boolean openWhere)
     {
         TableBlueprint mainTableBlueprint = entityBlueprint.getTableBlueprint();
         TableBlueprint rootTableBlueprint = mainTableBlueprint;
@@ -49,31 +57,27 @@ public final class SelectSqlBuilderService
         buildSelectClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
         buildFromClauseSql(sqlBuilder, mainTableBlueprint);
         SqlJoinClauseBuilderService.buildParentToEachChildJoinClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
-        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(sqlBuilder, mainTableBlueprint);
-        buildWhereClauseSql(sqlBuilder, rootTableBlueprint);
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(sqlBuilder, mainTableBlueprint, false);
+        if(openWhere)
+        {
+            buildOpenWhereClauseSql(sqlBuilder);
+        }
+        else
+        {
+            buildWhereClauseSql(sqlBuilder, rootTableBlueprint);
+        }
         buildOrderBySql(sqlBuilder, mainTableBlueprint);
 
         String selectSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Select Sql for {}:\n{}", mainTableBlueprint.getTableName(), selectSql);
-        entityBlueprint.setSelectSql(selectSql);
-    }
-
-    private static void buildSelectWhereSql(EntityBlueprint entityBlueprint, PhotonOptions photonOptions)
-    {
-        TableBlueprint mainTableBlueprint = entityBlueprint.getTableBlueprint();
-        int initialCapacity = mainTableBlueprint.getColumns().size() * 16 + 64;
-        StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
-
-        buildSelectClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
-        buildFromClauseSql(sqlBuilder, mainTableBlueprint);
-        SqlJoinClauseBuilderService.buildParentToEachChildJoinClauseSql(sqlBuilder, mainTableBlueprint, entityBlueprint.getJoinedTableBlueprints());
-        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(sqlBuilder, mainTableBlueprint);
-        buildOpenWhereClauseSql(sqlBuilder);
-        buildOrderBySql(sqlBuilder, mainTableBlueprint);
-
-        String selectWhereSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Select Where Sql for {}:\n{}", mainTableBlueprint.getTableName(), selectWhereSql);
-        entityBlueprint.setSelectWhereSql(selectWhereSql);
+        log.debug("Select{} Sql for {}:\n{}", openWhere ? " Where" : "", mainTableBlueprint.getTableName(), selectSql);
+        if(openWhere)
+        {
+            mainTableBlueprint.setSelectWhereSql(selectSql);
+        }
+        else
+        {
+            mainTableBlueprint.setSelectSql(selectSql);
+        }
     }
 
     private static void buildSelectClauseSql(StringBuilder parentSqlBuilder, TableBlueprint mainTableBlueprint, List<TableBlueprint> joinedParents)
@@ -94,7 +98,6 @@ public final class SelectSqlBuilderService
                     tableBlueprint.getTableName(),
                     columnBlueprint.getColumnName(),
                     columnBlueprint.getColumnNameQualified()
-
                 ));
             }
         }
@@ -193,6 +196,20 @@ public final class SelectSqlBuilderService
         selectOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectOrphansSql, photonOptions);
         log.debug("Select Orphans Sql for {}:\n{}", tableBlueprint.getTableName(), selectOrphansSql);
         tableBlueprint.setSelectOrphansSql(selectOrphansSql);
+    }
+
+    private static void buildSelectByIdSql(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
+    {
+        String selectByIdSql = String.format(
+            "SELECT [%s] FROM [%s] WHERE [%s] = ?",
+            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getTableName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+        );
+
+        selectByIdSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectByIdSql, photonOptions);
+
+        tableBlueprint.setSelectByIdSql(selectByIdSql);
     }
 
     private static void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
