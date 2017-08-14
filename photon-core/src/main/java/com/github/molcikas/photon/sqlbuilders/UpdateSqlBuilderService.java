@@ -36,15 +36,6 @@ public final class UpdateSqlBuilderService
 
     private static void buildUpdateSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
     {
-        boolean hasUpdatableColumns = tableBlueprint
-            .getColumns()
-            .stream()
-            .anyMatch(c -> !c.isPrimaryKeyColumn());
-        if(!hasUpdatableColumns)
-        {
-            return;
-        }
-
         int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
@@ -72,6 +63,20 @@ public final class UpdateSqlBuilderService
             .filter(c -> !c.isPrimaryKeyColumn())
             .sorted(Comparator.comparingInt(ColumnBlueprint::getColumnIndex))
             .collect(Collectors.toList());
+
+        if(columnBlueprints.isEmpty())
+        {
+            // UPDATE statements cannot have an empty SET list, but we need to run an update to see if the row
+            // exists in the table, so set the id equal to itself as a "dummy" set.
+            sqlBuilder.append(String.format("[%s].[%s] = [%s].[%s]",
+                tableBlueprint.getTableName(),
+                tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+                tableBlueprint.getTableName(),
+                tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            ));
+            return;
+        }
+
         int collectionIndex = 0;
 
         for(ColumnBlueprint columnBlueprint : columnBlueprints)

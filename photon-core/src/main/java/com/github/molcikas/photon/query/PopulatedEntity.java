@@ -175,6 +175,15 @@ public class PopulatedEntity<T>
                 Collection collection = createCompatibleCollection(fieldBlueprint.getFieldClass());
                 populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
 
+                if(collection.isEmpty())
+                {
+                    if(Arrays.stream(entityInstance.getClass().getDeclaredFields()).noneMatch(f -> f.getName().equals(fieldBlueprint.getFieldName())))
+                    {
+                        // If the instance does not have the field and the collection is empty, just skip it.
+                        continue;
+                    }
+                }
+
                 try
                 {
                     Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());

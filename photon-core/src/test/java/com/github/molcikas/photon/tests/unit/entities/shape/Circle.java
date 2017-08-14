@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.tests.unit.entities.shape;
 
+import java.util.List;
+
 public class Circle extends Shape
 {
     private int radius;
@@ -16,6 +18,16 @@ public class Circle extends Shape
     public Circle(Integer id, String color, int radius)
     {
         super(id, "circle", color);
+        this.radius = radius;
+    }
+
+    public Circle(
+        Integer id,
+        String color,
+        int radius,
+        List<ShapeColorHistory> colorHistory)
+    {
+        super(id, "circle", color, colorHistory);
         this.radius = radius;
     }
 

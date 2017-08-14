@@ -2,15 +2,14 @@ package com.github.molcikas.photon.tests.unit.h2.shape;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.blueprints.ColumnDataType;
 import com.github.molcikas.photon.blueprints.JoinType;
-import com.github.molcikas.photon.tests.unit.entities.shape.Circle;
-import com.github.molcikas.photon.tests.unit.entities.shape.Rectangle;
-import com.github.molcikas.photon.tests.unit.entities.shape.Shape;
-import com.github.molcikas.photon.tests.unit.entities.shape.ShapeColorHistory;
+import com.github.molcikas.photon.tests.unit.entities.shape.*;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.*;
@@ -57,11 +56,11 @@ public class ShapeMultiTableCrudTests
         {
             Circle circle = transaction
                 .query(Circle.class)
-                .fetchById(4);
+                .fetchById(5);
 
             assertNotNull(circle);
             assertEquals(Circle.class, circle.getClass());
-            assertEquals(Integer.valueOf(4), circle.getId());
+            assertEquals(Integer.valueOf(5), circle.getId());
             assertEquals("blue", circle.getColor());
             assertEquals(4, circle.getRadius());
         }
@@ -200,7 +199,7 @@ public class ShapeMultiTableCrudTests
             assertEquals(2, circle.getColorHistory().size());
             assertEquals(2, circle.getColorHistory().get(0).getId());
             assertEquals("bluegreen", circle.getColorHistory().get(0).getColorName());
-            assertEquals(3, circle.getColorHistory().get(1).getId());
+            assertEquals(5, circle.getColorHistory().get(1).getId());
             assertEquals("black", circle.getColorHistory().get(1).getColorName());
         }
     }
@@ -249,18 +248,18 @@ public class ShapeMultiTableCrudTests
         {
             Circle circle = transaction
                 .query(Circle.class)
-                .fetchById(4);
+                .fetchById(5);
 
             assertNotNull(circle);
             assertEquals(Circle.class, circle.getClass());
-            assertEquals(Integer.valueOf(4), circle.getId());
+            assertEquals(Integer.valueOf(5), circle.getId());
             assertEquals("blue", circle.getColor());
             assertEquals(56, circle.getRadius());
         }
     }
 
     @Test
-    public void withJoinedTableAndDiscriminator_saveOverExistingEntityOfDifferentType_DeletesOrphanRows()
+    public void withJoinedTableAndDiscriminator_saveOverExistingEntityOfDifferentType_deletesOrphanRows()
     {
         registerShapeAggregate();
 
@@ -279,13 +278,85 @@ public class ShapeMultiTableCrudTests
                 .fetchById(1);
 
             assertNotNull(rectangle);
-
-            // TODO: Finish asserting. Verify circle row with id 1 got deleted.
+            assertEquals(11, rectangle.getWidth());
+            assertEquals(12, rectangle.getHeight());
+            assertEquals("blue", rectangle.getColor());
         }
     }
 
-    // TODO: Table with only an id (nothing to UPDATE). What happens on save?
-    // TODO: Save Circle over Rectangle with CornerCoordinates. Make sure CornerCoordinates get deleted as orphans.
+    @Test
+    public void withJoinedTableAndDiscriminator_fetchAggregateWithChildrenAtMultipleLayer_fetchesAndDeletesAggregate()
+    {
+        registerShapeAggregate();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Rectangle rectangle = transaction
+                .query(Rectangle.class)
+                .fetchById(4);
+
+            assertNotNull(rectangle);
+            assertEquals("white", rectangle.getColor());
+            assertEquals(4, rectangle.getCorners().size());
+            assertEquals(Integer.valueOf(0), rectangle.getCorners().get(0).getX());
+            assertEquals(Integer.valueOf(7), rectangle.getCorners().get(1).getX());
+            assertEquals(Integer.valueOf(8), rectangle.getCorners().get(3).getY());
+
+            Shape shape = transaction
+                .query(Shape.class)
+                .fetchById(4);
+
+            assertNotNull(shape);
+            assertEquals(Rectangle.class, shape.getClass());
+            assertEquals("white", shape.getColor());
+            assertEquals(2, shape.getColorHistory().size());
+            assertEquals(3, shape.getColorHistory().get(0).getId());
+            assertEquals(4, shape.getColorHistory().get(1).getId());
+
+            transaction.delete(shape);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Rectangle rectangle = transaction
+                .query(Rectangle.class)
+                .fetchById(4);
+            assertNull(rectangle);
+        }
+    }
+
+    @Test
+    public void withJoinedTableAndDiscriminator_createAndFetchSimpleAggregate_createsAndFetchesAggregate()
+    {
+        registerShapeAggregate();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = new Circle(
+                null,
+                "magenta",
+                8,
+                Collections.singletonList(new ShapeColorHistory(0, 0, ZonedDateTime.now(), "OldColor")));
+
+            transaction.save(circle);
+            transaction.commit();
+        }
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Circle circle = transaction
+                .query(Circle.class)
+                .fetchById(5);
+
+            assertNotNull(circle);
+            assertEquals(8, circle.getRadius());
+            assertEquals("magenta", circle.getColor());
+            assertEquals(1, circle.getColorHistory().size());
+            assertEquals("OldColor", circle.getColorHistory().get(0).getColorName());
+        }
+    }
+
     // TODO: Drawing that contains shapes of different types. Will need to add left joining.
 
     private void registerAggregates()
@@ -363,6 +434,10 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withParentTable("Shape", "shapeId")
                 .addAsChild("colorHistory")
+            .withChild(CornerCoordinates.class)
+                .withParentTable("Rectangle")
+                .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
+                .addAsChild("corners")
             .withClassDiscriminator(valueMap ->
             {
                 if(valueMap.get("Circle_id") != null)
