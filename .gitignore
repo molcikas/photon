@@ -17,3 +17,9 @@ hs_err_pid*
 !gradle-wrapper.jar
 /classes
 test/libs/*
+
+*.iml
+!/photon.iml
+
+/photon-core/build
+/photon-perf-test/build
