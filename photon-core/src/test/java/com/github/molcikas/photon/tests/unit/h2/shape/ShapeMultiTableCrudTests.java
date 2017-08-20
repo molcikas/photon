@@ -34,7 +34,7 @@ public class ShapeMultiTableCrudTests
         {
             Rectangle rectangle = transaction.query(Rectangle.class).fetchById(2);
 
-            Rectangle expected = new Rectangle(2, "blue", 7, 8, null);
+            Rectangle expected = new Rectangle(2, "blue", 1, 7, 8, null);
             assertEquals(expected, rectangle);
         }
     }
@@ -46,7 +46,7 @@ public class ShapeMultiTableCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(null, "blue", 4);
+            Circle circle = new Circle(null, "blue", 1, 4);
 
             transaction.save(circle);
             transaction.commit();
@@ -238,7 +238,7 @@ public class ShapeMultiTableCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(null, "blue", 56);
+            Circle circle = new Circle(null, "blue", 1, 56);
 
             transaction.save(circle);
             transaction.commit();
@@ -265,7 +265,7 @@ public class ShapeMultiTableCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Rectangle rectangle = new Rectangle(1, "blue", 11, 12, null);
+            Rectangle rectangle = new Rectangle(1, "blue", 1, 11, 12, null);
 
             transaction.save(rectangle);
             transaction.commit();
@@ -336,6 +336,7 @@ public class ShapeMultiTableCrudTests
             Circle circle = new Circle(
                 null,
                 "magenta",
+                1,
                 8,
                 Collections.singletonList(new ShapeColorHistory(0, 0, ZonedDateTime.now(), "OldColor")));
 
@@ -357,8 +358,6 @@ public class ShapeMultiTableCrudTests
         }
     }
 
-    // TODO: Drawing that contains shapes of different types. Will need to add left joining.
-
     private void registerAggregates()
     {
         photon.registerAggregate(Rectangle.class)
@@ -368,6 +367,7 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
+                .withDatabaseColumn("drawingId")
                 .addJoinedTable()
             .withMainTableInsertedLast()
             .register();
@@ -379,6 +379,7 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
+                .withDatabaseColumn("drawingId")
                 .addJoinedTable()
             .withMainTableInsertedLast()
             .register();
@@ -397,6 +398,7 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
+                .withDatabaseColumn("drawingId")
                 .addJoinedTable()
             .withMainTableInsertedLast()
             .register();
@@ -408,6 +410,7 @@ public class ShapeMultiTableCrudTests
                 .withPrimaryKeyAutoIncrement()
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
+                .withDatabaseColumn("drawingId")
                 .addJoinedTable()
             .withChild(ShapeColorHistory.class)
                 .withPrimaryKeyAutoIncrement()

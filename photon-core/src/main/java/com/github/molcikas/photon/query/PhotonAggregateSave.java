@@ -110,6 +110,7 @@ public class PhotonAggregateSave
         {
             List<PopulatedEntity> entitiesToInsert = populatedEntities
                 .stream()
+                .filter(p -> tableBlueprint.isApplicableForEntityClass(p.getEntityInstance().getClass()))
                 .filter(p -> !updatedPopulatedEntities.get(tableBlueprint).contains(p))
                 .collect(Collectors.toList());
             populatedEntitiesToInsert.put(tableBlueprint, entitiesToInsert);

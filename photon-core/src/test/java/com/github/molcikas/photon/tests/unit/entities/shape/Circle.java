@@ -15,19 +15,20 @@ public class Circle extends Shape
     {
     }
 
-    public Circle(Integer id, String color, int radius)
+    public Circle(Integer id, String color, Integer drawingId, int radius)
     {
-        super(id, "circle", color);
+        super(id, "circle", color, drawingId);
         this.radius = radius;
     }
 
     public Circle(
         Integer id,
         String color,
+        Integer drawingId,
         int radius,
         List<ShapeColorHistory> colorHistory)
     {
-        super(id, "circle", color, colorHistory);
+        super(id, "circle", color, drawingId, colorHistory);
         this.radius = radius;
     }
 

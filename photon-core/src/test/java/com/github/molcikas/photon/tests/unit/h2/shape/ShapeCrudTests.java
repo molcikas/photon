@@ -75,7 +75,7 @@ public class ShapeCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(2, "blue", 4);
+            Circle circle = new Circle(2, "blue", 1, 4);
 
             transaction.save(circle);
             transaction.commit();
@@ -102,8 +102,8 @@ public class ShapeCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(null, "green", 4);
-            Rectangle rectangle = new Rectangle(null, "orange", 5, 6, null);
+            Circle circle = new Circle(null, "green", 1, 4);
+            Rectangle rectangle = new Rectangle(null, "orange", 1, 5, 6, null);
 
             transaction.saveAll(circle, rectangle);
             transaction.commit();

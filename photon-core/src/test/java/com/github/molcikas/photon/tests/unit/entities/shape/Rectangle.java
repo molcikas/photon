@@ -32,9 +32,9 @@ public class Rectangle extends Shape
     {
     }
 
-    public Rectangle(Integer id, String color, int width, int height, List<CornerCoordinates> corners)
+    public Rectangle(Integer id, String color, Integer drawingId, int width, int height, List<CornerCoordinates> corners)
     {
-        super(id, "rectangle", color);
+        super(id, "rectangle", color, drawingId);
         this.width = width;
         this.height = height;
         this.corners = corners;

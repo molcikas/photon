@@ -9,6 +9,8 @@ public class Shape
 {
     private Integer id;
 
+    private Integer drawingId;
+
     private String type;
 
     private String color;
@@ -39,22 +41,25 @@ public class Shape
     {
     }
 
-    public Shape(Integer id, String type, String color)
+    public Shape(Integer id, String type, String color, Integer drawingId)
     {
         this.id = id;
         this.type = type;
         this.color = color;
+        this.drawingId = drawingId;
     }
 
 
     public Shape(Integer id,
                  String type,
                  String color,
+                 Integer drawingId,
                  List<ShapeColorHistory> colorHistory)
     {
         this.id = id;
         this.type = type;
         this.color = color;
+        this.drawingId = drawingId;
         this.colorHistory = colorHistory;
     }
 
