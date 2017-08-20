@@ -5,6 +5,7 @@ archivesBaseName = "photon-core"
 dependencies {
     compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.4'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
+    compile group: 'org.projectlombok', name: 'lombok', version: '1.16.16'
 
     // Database
     testCompile group: 'com.h2database', name: 'h2', version: '1.4.193'
@@ -16,6 +17,7 @@ dependencies {
     // Unit testing
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+    testCompile group: 'commons-io', name: 'commons-io', version: '2.5'
 }
 
 idea {

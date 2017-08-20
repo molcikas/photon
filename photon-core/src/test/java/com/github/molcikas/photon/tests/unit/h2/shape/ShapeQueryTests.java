@@ -90,7 +90,7 @@ public class ShapeQueryTests
             .withMappedClass(Rectangle.class)
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":
@@ -103,16 +103,4 @@ public class ShapeQueryTests
             })
             .register();
     }
-
-// TODO FUTURE?:
-//        photon.registerAggregate(Shape.class)
-//            .isMappedToTable(false)
-//            .withUnion(Circle.class)
-//                .withId("id")
-//                .addUnion()
-//            .withUnion(Rectangle.class)
-//                .withId("id")
-//                .addUnion()
-//            .register();
-
 }

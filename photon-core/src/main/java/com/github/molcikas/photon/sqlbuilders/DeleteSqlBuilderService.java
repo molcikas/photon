@@ -19,67 +19,59 @@ public final class DeleteSqlBuilderService
 
     public static void buildDeleteSqlTemplates(EntityBlueprint aggregateRootEntityBlueprint, PhotonOptions photonOptions)
     {
-        buildDeleteSqlTemplatesRecursive(aggregateRootEntityBlueprint, Collections.emptyList(), photonOptions);
+        buildDeleteSqlTemplatesRecursive(aggregateRootEntityBlueprint, photonOptions);
     }
 
     private static void buildDeleteSqlTemplatesRecursive(
         EntityBlueprint entityBlueprint,
-        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
-        buildAllDeleteSqlForTableBlueprint(
+        buildDeleteSql(entityBlueprint.getTableBlueprint(), photonOptions);
+        buildDeleteChildrenExceptSql(entityBlueprint.getTableBlueprint(), photonOptions);
+
+        List<TableBlueprint> parentTableBlueprints = new ArrayList<>();
+        TableBlueprint nextParent = entityBlueprint.getTableBlueprint();
+        while(nextParent != null)
+        {
+            parentTableBlueprints.add(nextParent);
+            nextParent = nextParent.getParentTableBlueprint();
+        }
+
+        buildDeleteOrphansSqlRecursive(
             entityBlueprint.getTableBlueprint(),
-            parentTableBlueprints,
+            parentTableBlueprints.size() > 1 ?
+                parentTableBlueprints.subList(1, parentTableBlueprints.size() - 1) :
+                Collections.emptyList(),
             photonOptions
         );
 
         for(TableBlueprint joinTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
         {
-            List<TableBlueprint> joinedParents = new ArrayList<>();
-            TableBlueprint parent = joinTableBlueprint.getParentTableBlueprint();
-            while(parent != null)
-            {
-                joinedParents.add(parent);
-                parent = parent.getParentTableBlueprint();
-            }
-            List<TableBlueprint> allParents = new ArrayList<>(joinedParents.size() + parentTableBlueprints.size());
-            allParents.addAll(joinedParents);
-            allParents.addAll(parentTableBlueprints);
+            buildDeleteSql(joinTableBlueprint, photonOptions);
+            buildDeleteChildrenExceptSql(joinTableBlueprint, photonOptions);
 
-            buildAllDeleteSqlForTableBlueprint(
-                joinTableBlueprint,
-                allParents,
-                photonOptions
-            );
+            buildDeleteOrphansSqlRecursive(joinTableBlueprint, parentTableBlueprints, photonOptions);
         }
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildDeleteKeysFromForeignTableSql(f, photonOptions));
 
-        final List<TableBlueprint> childParentTableBlueprints = new ArrayList<>(parentTableBlueprints.size() + 1);
-        childParentTableBlueprints.add(entityBlueprint.getTableBlueprint());
-        childParentTableBlueprints.addAll(parentTableBlueprints);
         entityBlueprint
             .getFieldsWithChildEntities()
-            .forEach(entityField -> buildDeleteSqlTemplatesRecursive(entityField.getChildEntityBlueprint(), childParentTableBlueprints, photonOptions));
+            .forEach(entityField -> buildDeleteSqlTemplatesRecursive(entityField.getChildEntityBlueprint(), photonOptions));
     }
 
-    private static void buildAllDeleteSqlForTableBlueprint(
+    private static void buildDeleteSql(
         TableBlueprint tableBlueprint,
-        List<TableBlueprint> parentTableBlueprints,
         PhotonOptions photonOptions)
     {
         String deleteSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?)",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumnName()
+            tableBlueprint.getPrimaryKeyColumn().getColumnName()
         );
 
         deleteSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteSql, photonOptions);
         log.debug("Delete Sql for {}:\n{}", tableBlueprint.getTableName(), deleteSql);
         tableBlueprint.setDeleteSql(deleteSql);
-
-        buildDeleteChildrenExceptSql(tableBlueprint, photonOptions);
-
-        buildDeleteOrphansSqlRecursive(tableBlueprint, parentTableBlueprints, photonOptions);
     }
 
     private static void buildDeleteChildrenExceptSql(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
@@ -89,7 +81,7 @@ public final class DeleteSqlBuilderService
             // This is the aggregate root's main table, which does not have an orphans check since it is the root.
             return;
         }
-        if(StringUtils.equals(tableBlueprint.getPrimaryKeyColumnName(), tableBlueprint.getForeignKeyToParentColumnName()))
+        if(StringUtils.equals(tableBlueprint.getPrimaryKeyColumnNameQualified(), tableBlueprint.getForeignKeyToParentColumnNameQualified()))
         {
             // This table and the parent table share the same id, so there can't be any orphans.
             return;
@@ -97,8 +89,8 @@ public final class DeleteSqlBuilderService
 
         String deleteChildrenExceptSql = String.format("DELETE FROM [%s] WHERE [%s] = ? AND [%s] NOT IN (?)",
             tableBlueprint.getTableName(),
-            tableBlueprint.getForeignKeyToParentColumnName(),
-            tableBlueprint.getPrimaryKeyColumnName()
+            tableBlueprint.getForeignKeyToParentColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName()
         );
 
         deleteChildrenExceptSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteChildrenExceptSql, photonOptions);
@@ -116,10 +108,10 @@ public final class DeleteSqlBuilderService
             String deleteOrphansSql = String.format(
                 "DELETE FROM [%s] WHERE [%s] IN (?)",
                 tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumnName()
+                tableBlueprint.getPrimaryKeyColumn().getColumnName()
             );
             deleteOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteOrphansSql, photonOptions);
-            log.debug("Delete Orphans Level {} Sql for {}:\n{}", parentTableBlueprints.size(), tableBlueprint.getTableName(), deleteOrphansSql);
+            log.debug("Delete Orphans Sql Level {} Sql for {}:\n{}", parentTableBlueprints.size(), tableBlueprint.getTableName(), deleteOrphansSql);
             tableBlueprint.setDeleteOrphansSql(deleteOrphansSql, 0);
             return;
         }
@@ -135,17 +127,17 @@ public final class DeleteSqlBuilderService
             "\nSELECT [%s].[%s]" +
             "\nFROM [%s]",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumnName(),
+            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
             tableBlueprint.getTableName()
         ));
-        SqlJoinClauseBuilderService.buildJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, parentTableBlueprints);
+        SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, true);
         deleteOrphansSqlBuilder.append(String.format(
             "\nWHERE [%s].[%s] IN (?)" +
             "\n)",
             rootTableBlueprint.getTableName(),
-            rootTableBlueprint.getPrimaryKeyColumnName()
+            rootTableBlueprint.getPrimaryKeyColumn().getColumnName()
         ));
 
         String deleteOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteOrphansSqlBuilder.toString(), photonOptions);

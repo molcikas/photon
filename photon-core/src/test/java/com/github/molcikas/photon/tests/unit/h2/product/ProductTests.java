@@ -121,7 +121,7 @@ public class ProductTests
                         Map<String, Object> values = new HashMap<>();
                         values.put(
                             "quantity",
-                            Fraction.getFraction((int) databaseValues.get("numerator"), (int) databaseValues.get("denominator"))
+                            Fraction.getFraction((int) databaseValues.get("Product_numerator"), (int) databaseValues.get("Product_denominator"))
                         );
                         return values;
                     }

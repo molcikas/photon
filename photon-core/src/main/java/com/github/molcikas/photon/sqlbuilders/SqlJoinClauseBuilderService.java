@@ -6,22 +6,40 @@ import java.util.*;
 
 public final class SqlJoinClauseBuilderService
 {
-    public static void buildJoinClauseSql(
+    public static void buildChildToParentJoinClauseSql(
         StringBuilder sqlBuilder,
         TableBlueprint tableBlueprint,
-        List<TableBlueprint> parentTableBlueprints)
+        boolean alwaysUseInnerJoins)
     {
-        TableBlueprint childTableBlueprint = tableBlueprint;
-        for(TableBlueprint parentTableBlueprint : parentTableBlueprints)
+        while(tableBlueprint.getParentTableBlueprint() != null)
         {
-            sqlBuilder.append(String.format("\nJOIN [%s] ON [%s].[%s] = [%s].[%s]",
-                parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getPrimaryKeyColumnName(),
-                childTableBlueprint.getTableName(),
-                childTableBlueprint.getForeignKeyToParentColumnName()
+            sqlBuilder.append(String.format("\n%s [%s] ON [%s].[%s] = [%s].[%s]",
+                alwaysUseInnerJoins ? "JOIN" : tableBlueprint.getJoinType().getJoinSql(),
+                tableBlueprint.getParentTableBlueprint().getTableName(),
+                tableBlueprint.getParentTableBlueprint().getTableName(),
+                tableBlueprint.getParentTableBlueprint().getPrimaryKeyColumn().getColumnName(),
+                tableBlueprint.getTableName(),
+                tableBlueprint.getForeignKeyToParentColumn().getColumnName()
             ));
-            childTableBlueprint = parentTableBlueprint;
+            tableBlueprint = tableBlueprint.getParentTableBlueprint();
+        }
+    }
+
+    public static void buildParentToEachChildJoinClauseSql(
+        StringBuilder sqlBuilder,
+        TableBlueprint parentTableBlueprint,
+        List<TableBlueprint> childTableBlueprints)
+    {
+        for(TableBlueprint childTableBlueprint : childTableBlueprints)
+        {
+            sqlBuilder.append(String.format("\n%s [%s] ON [%s].[%s] = [%s].[%s]",
+                childTableBlueprint.getJoinType().getJoinSql(),
+                childTableBlueprint.getTableName(),
+                childTableBlueprint.getTableName(),
+                childTableBlueprint.getForeignKeyToParentColumn().getColumnName(),
+                parentTableBlueprint.getTableName(),
+                parentTableBlueprint.getPrimaryKeyColumn().getColumnName()
+            ));
         }
     }
 }

@@ -21,10 +21,12 @@ public final class InsertSqlBuilderService
         EntityBlueprint entityBlueprint,
         PhotonOptions photonOptions)
     {
-        buildInsertSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions);
+        buildInsertSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions, false);
+        buildInsertSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions, true);
         for(TableBlueprint joinedTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
         {
-            buildInsertSqlForTableBlueprint(joinedTableBlueprint, photonOptions);
+            buildInsertSqlForTableBlueprint(joinedTableBlueprint, photonOptions, false);
+            buildInsertSqlForTableBlueprint(joinedTableBlueprint, photonOptions, true);
         }
 
         entityBlueprint.getForeignKeyListFields().forEach(f -> buildInsertKeysFromForeignTableSql(f, photonOptions));
@@ -34,17 +36,24 @@ public final class InsertSqlBuilderService
             .forEach(entityField -> buildInsertSqlRecursive(entityField.getChildEntityBlueprint(), photonOptions));
     }
 
-    private static void buildInsertSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
+    private static void buildInsertSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions, boolean alwaysIncludePrimaryKey)
     {
         int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
         buildInsertClauseSql(sqlBuilder, tableBlueprint);
-        buildValuesClauseSql(sqlBuilder, tableBlueprint);
+        buildValuesClauseSql(sqlBuilder, tableBlueprint, alwaysIncludePrimaryKey);
 
         String insertSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("Insert Sql for {}:\n{}", tableBlueprint.getTableName(), insertSql);
-        tableBlueprint.setInsertSql(insertSql);
+        log.debug("%sInsert Sql for {}:\n{}", alwaysIncludePrimaryKey ? "Always Include Primary Key " : "", tableBlueprint.getTableName(), insertSql);
+        if(alwaysIncludePrimaryKey)
+        {
+            tableBlueprint.setInsertWithPrimaryKeySql(insertSql);
+        }
+        else
+        {
+            tableBlueprint.setInsertSql(insertSql);
+        }
     }
 
     private static void buildInsertClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
@@ -52,9 +61,9 @@ public final class InsertSqlBuilderService
         sqlBuilder.append(String.format("INSERT INTO [%s]", tableBlueprint.getTableName()));
     }
 
-    private static void buildValuesClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
+    private static void buildValuesClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint, boolean alwaysIncludePrimaryKey)
     {
-        List<ColumnBlueprint> columnBlueprints = tableBlueprint.getColumnsForInsertStatement();
+        List<ColumnBlueprint> columnBlueprints = tableBlueprint.getColumnsForInsertStatement(alwaysIncludePrimaryKey);
         List<String> columnNames = new ArrayList<>(columnBlueprints.size());
         List<String> questionMarks = new ArrayList<>(columnBlueprints.size());
 

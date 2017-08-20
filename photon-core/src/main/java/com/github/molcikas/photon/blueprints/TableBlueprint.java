@@ -1,8 +1,7 @@
 package com.github.molcikas.photon.blueprints;
 
 import com.github.molcikas.photon.converters.Converter;
-import com.github.molcikas.photon.exceptions.PhotonException;
-import org.apache.commons.lang3.StringUtils;
+import com.github.molcikas.photon.query.PopulatedEntity;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -15,25 +14,39 @@ public class TableBlueprint
     private boolean isPrimaryKeyMappedToField;
 
     private String tableName;
+    private JoinType joinType;
     private String orderBySql;
     private TableBlueprint parentTableBlueprint;
+    private String parentTableName;
+    private Class entityClass;
 
     private String selectSql;
     private String selectWhereSql;
+    private String selectByIdSql;
     private String updateSql;
     private String insertSql;
+    private String insertWithPrimaryKeySql;
     private String deleteSql;
     private String deleteChildrenExceptSql;
     private String selectOrphansSql;
     private Map<Integer, String> deleteOrphansSql;
 
-    TableBlueprint(List<ColumnBlueprint> columns,
-                   ColumnBlueprint primaryKeyColumn,
-                   ColumnBlueprint foreignKeyToParentColumn,
-                   boolean isPrimaryKeyMappedToField,
-                   String tableName,
-                   String orderBySql)
+    TableBlueprint(
+        TableBlueprint parentTableBlueprint,
+        String parentTableName,
+        JoinType joinType,
+        Class entityClass,
+        List<ColumnBlueprint> columns,
+        ColumnBlueprint primaryKeyColumn,
+        ColumnBlueprint foreignKeyToParentColumn,
+        boolean isPrimaryKeyMappedToField,
+        String tableName,
+        String orderBySql)
     {
+        this.parentTableBlueprint = parentTableBlueprint;
+        this.parentTableName = parentTableName;
+        this.joinType = joinType;
+        this.entityClass = entityClass;
         this.columns = columns;
         this.primaryKeyColumn = primaryKeyColumn;
         this.foreignKeyToParentColumn = foreignKeyToParentColumn;
@@ -41,6 +54,16 @@ public class TableBlueprint
         this.tableName = tableName;
         this.orderBySql = orderBySql;
         this.deleteOrphansSql = new HashMap<>();
+    }
+
+    public JoinType getJoinType()
+    {
+        return joinType;
+    }
+
+    public Class getEntityClass()
+    {
+        return entityClass;
     }
 
     public List<ColumnBlueprint> getColumns()
@@ -58,9 +81,9 @@ public class TableBlueprint
         return foreignKeyToParentColumn;
     }
 
-    public String getForeignKeyToParentColumnName()
+    public String getForeignKeyToParentColumnNameQualified()
     {
-        return foreignKeyToParentColumn != null ? foreignKeyToParentColumn.getColumnName() : null;
+        return foreignKeyToParentColumn != null ? foreignKeyToParentColumn.getColumnNameQualified() : null;
     }
 
     public boolean isPrimaryKeyMappedToField()
@@ -83,9 +106,14 @@ public class TableBlueprint
         return parentTableBlueprint;
     }
 
-    public String getPrimaryKeyColumnName()
+    public String getParentTableName()
     {
-        return primaryKeyColumn != null ? primaryKeyColumn.getColumnName() : null;
+        return parentTableName;
+    }
+
+    public String getPrimaryKeyColumnNameQualified()
+    {
+        return primaryKeyColumn != null ? primaryKeyColumn.getColumnNameQualified() : null;
     }
 
     public Optional<ColumnBlueprint> getColumn(String columnName)
@@ -96,20 +124,35 @@ public class TableBlueprint
             .findFirst();
     }
 
-    public List<ColumnBlueprint> getColumnsForInsertStatement()
+    public List<ColumnBlueprint> getColumnsForInsertStatement(boolean alwaysIncludePrimaryKey)
     {
+        if(alwaysIncludePrimaryKey)
+        {
+            return Collections.unmodifiableList(columns);
+        }
         return columns
             .stream()
             .filter(c -> !c.isPrimaryKeyColumn() || (c.isPrimaryKeyColumn() && !c.isAutoIncrementColumn()))
             .collect(Collectors.toList());
     }
 
-    public List<String> getColumnNames()
+    public boolean shouldInsertUsingPrimaryKeySql(PopulatedEntity populatedEntity)
     {
-        return columns
-            .stream()
-            .map(ColumnBlueprint::getColumnName)
-            .collect(Collectors.toList());
+        if (!getPrimaryKeyColumn().isAutoIncrementColumn())
+        {
+            return false;
+        }
+        Object primaryKey = populatedEntity.getPrimaryKeyValue();
+        if (primaryKey == null || !Number.class.isAssignableFrom(primaryKey.getClass()))
+        {
+            return false;
+        }
+        return ((Number) primaryKey).longValue() != 0L;
+    }
+
+    public boolean isApplicableForEntityClass(Class entityClass)
+    {
+        return this.entityClass == null || entityClass.isAssignableFrom(this.entityClass);
     }
 
     public Converter getPrimaryKeyColumnSerializer()
@@ -127,6 +170,11 @@ public class TableBlueprint
         return selectWhereSql;
     }
 
+    public String getSelectByIdSql()
+    {
+        return selectByIdSql;
+    }
+
     public String getUpdateSql()
     {
         return updateSql;
@@ -135,6 +183,11 @@ public class TableBlueprint
     public String getInsertSql()
     {
         return insertSql;
+    }
+
+    public String getInsertWithPrimaryKeySql()
+    {
+        return insertWithPrimaryKeySql;
     }
 
     public String getDeleteSql()
@@ -159,55 +212,41 @@ public class TableBlueprint
 
     public void setSelectSql(String selectSql)
     {
-        if(StringUtils.isBlank(selectSql))
-        {
-            throw new PhotonException("Select SQL cannot be blank.");
-        }
         this.selectSql = selectSql;
     }
 
     public void setSelectWhereSql(String selectWhereSql)
     {
-        if(StringUtils.isBlank(selectWhereSql))
-        {
-            throw new PhotonException("Select Where SQL cannot be blank.");
-        }
         this.selectWhereSql = selectWhereSql;
+    }
+
+    public void setSelectByIdSql(String selectByIdSql)
+    {
+        this.selectByIdSql = selectByIdSql;
     }
 
     public void setUpdateSql(String updateSql)
     {
-        if(StringUtils.isBlank(updateSql))
-        {
-            throw new PhotonException("Update SQL cannot be blank.");
-        }
         this.updateSql = updateSql;
     }
 
     public void setInsertSql(String insertSql)
     {
-        if(StringUtils.isBlank(insertSql))
-        {
-            throw new PhotonException("Insert SQL cannot be blank.");
-        }
         this.insertSql = insertSql;
+    }
+
+    public void setInsertWithPrimaryKeySql(String insertWithPrimaryKeySql)
+    {
+        this.insertWithPrimaryKeySql = insertWithPrimaryKeySql;
     }
 
     public void setDeleteSql(String deleteSql)
     {
-        if(StringUtils.isBlank(deleteSql))
-        {
-            throw new PhotonException("Delete SQL cannot be blank.");
-        }
         this.deleteSql = deleteSql;
     }
 
     public void setDeleteChildrenExceptSql(String deleteChildrenExceptSql)
     {
-        if(StringUtils.isBlank(deleteChildrenExceptSql))
-        {
-            throw new PhotonException("Delete children SQL cannot be blank.");
-        }
         this.deleteChildrenExceptSql = deleteChildrenExceptSql;
     }
 

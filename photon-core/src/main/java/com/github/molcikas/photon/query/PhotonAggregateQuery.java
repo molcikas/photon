@@ -156,7 +156,7 @@ public class PhotonAggregateQuery<T>
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer()
                 );
-                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified());
             }
         }
         else if(photonQuery != null)
@@ -176,7 +176,7 @@ public class PhotonAggregateQuery<T>
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }
-                queryResultRows = statement.executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
+                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified());
             }
         }
         else

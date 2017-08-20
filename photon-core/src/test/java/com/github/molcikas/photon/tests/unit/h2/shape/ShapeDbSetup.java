@@ -16,6 +16,15 @@ public class ShapeDbSetup
     {
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
+            transaction.query("DROP TABLE IF EXISTS `drawing`").executeUpdate();
+            transaction.query("CREATE TABLE `drawing` (\n" +
+                "`id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "`name` varchar(255) NULL,\n" +
+                "PRIMARY KEY (`id`)\n" +
+                ")").executeUpdate();
+
+            transaction.query("insert into `drawing` (`id`) values (1)").executeUpdate();
+
             transaction.query("DROP TABLE IF EXISTS `shape`").executeUpdate();
             transaction.query("CREATE TABLE `shape` (\n" +
                 "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
@@ -24,6 +33,8 @@ public class ShapeDbSetup
                 "  `radius` int(11) NULL,\n" +
                 "  `width` int(11) NULL,\n" +
                 "  `height` int(11) NULL,\n" +
+                "  `drawingId` int(11) DEFAULT NULL,\n" +
+                "  CONSTRAINT `shape_drawing` FOREIGN KEY (`drawingId`) REFERENCES `drawing` (`id`),\n" +
                 "  PRIMARY KEY (`id`)\n" +
                 ")").executeUpdate();
 

@@ -6,6 +6,7 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 
 public class ColumnBlueprint
 {
+    private final String columnNameQualified;
     private final String columnName;
     private final ColumnDataType columnDataType;
     private final boolean isPrimaryKeyColumn;
@@ -18,6 +19,11 @@ public class ColumnBlueprint
     private final FieldBlueprint mappedFieldBlueprint;
 
     private int columnIndex;
+
+    public String getColumnNameQualified()
+    {
+        return columnNameQualified;
+    }
 
     public String getColumnName()
     {
@@ -60,6 +66,7 @@ public class ColumnBlueprint
     }
 
     public ColumnBlueprint(
+        String tableName,
         String columnName,
         ColumnDataType columnDataType,
         boolean isPrimaryKeyColumn,
@@ -69,6 +76,10 @@ public class ColumnBlueprint
         FieldBlueprint mappedFieldBlueprint,
         int columnIndex)
     {
+        if(StringUtils.isBlank(tableName))
+        {
+            throw new PhotonException("Table name cannot be blank.");
+        }
         if(StringUtils.isBlank(columnName))
         {
             throw new PhotonException("Column name cannot be blank.");
@@ -77,6 +88,7 @@ public class ColumnBlueprint
         {
             throw new PhotonException("The column '%s' cannot be auto-increment because it is not the primary key.", columnName);
         }
+        this.columnNameQualified = tableName + "_" + columnName;
         this.columnName = columnName;
         this.columnDataType = columnDataType;
         this.isPrimaryKeyColumn = isPrimaryKeyColumn;

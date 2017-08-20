@@ -75,7 +75,7 @@ public class ShapeCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(2, "blue", 4);
+            Circle circle = new Circle(2, "blue", 1, 4);
 
             transaction.save(circle);
             transaction.commit();
@@ -102,8 +102,8 @@ public class ShapeCrudTests
 
         try (PhotonTransaction transaction = photon.beginTransaction())
         {
-            Circle circle = new Circle(null, "green", 4);
-            Rectangle rectangle = new Rectangle(null, "orange", 5, 6, null);
+            Circle circle = new Circle(null, "green", 1, 4);
+            Rectangle rectangle = new Rectangle(null, "orange", 1, 5, 6, null);
 
             transaction.saveAll(circle, rectangle);
             transaction.commit();
@@ -138,7 +138,7 @@ public class ShapeCrudTests
             .withMappedClass(Rectangle.class, Collections.singletonList("height"))
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":
@@ -229,7 +229,7 @@ public class ShapeCrudTests
             .withMappedClass(Rectangle.class)
             .withClassDiscriminator(valuesMap ->
             {
-                String type = (String) valuesMap.get("type");
+                String type = (String) valuesMap.get("Shape_type");
                 switch (type)
                 {
                     case "circle":
@@ -242,16 +242,4 @@ public class ShapeCrudTests
             })
             .register();
     }
-
-// TODO FUTURE?:
-//        photon.registerAggregate(Shape.class)
-//            .isMappedToTable(false)
-//            .withUnion(Circle.class)
-//                .withId("id")
-//                .addUnion()
-//            .withUnion(Rectangle.class)
-//                .withId("id")
-//                .addUnion()
-//            .register();
-
 }

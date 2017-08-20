@@ -226,14 +226,13 @@ public class PhotonQuery
             entityBlueprintBuilder.withFieldHydrater(field, customFieldHydraters.get(field));
         }
 
-
         EntityBlueprint entityBlueprint = entityBlueprintBuilder.build();
 
         List<PhotonQueryResultRow> rows = photonPreparedStatement
-            .executeQuery(entityBlueprint.getTableBlueprint().getColumnNames());
+            .executeQuery(entityBlueprint.getAllColumnNames());
         List<PopulatedEntity<T>> populatedEntities = rows
             .stream()
-            .map(r -> new PopulatedEntity<T>(entityBlueprint, r))
+            .map(r -> new PopulatedEntity<T>(entityBlueprint, r, false))
             .collect(Collectors.toList());
 
         return populatedEntities
