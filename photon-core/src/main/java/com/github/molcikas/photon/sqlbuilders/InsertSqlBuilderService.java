@@ -45,7 +45,7 @@ public final class InsertSqlBuilderService
         buildValuesClauseSql(sqlBuilder, tableBlueprint, alwaysIncludePrimaryKey);
 
         String insertSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
-        log.debug("%sInsert Sql for {}:\n{}", alwaysIncludePrimaryKey ? "Always Include Primary Key " : "", tableBlueprint.getTableName(), insertSql);
+        log.debug("{}Insert Sql for {}:\n{}", alwaysIncludePrimaryKey ? "Always Include Primary Key " : "", tableBlueprint.getTableName(), insertSql);
         if(alwaysIncludePrimaryKey)
         {
             tableBlueprint.setInsertWithPrimaryKeySql(insertSql);

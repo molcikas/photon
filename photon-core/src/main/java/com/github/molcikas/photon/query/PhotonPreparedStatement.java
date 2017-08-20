@@ -80,7 +80,7 @@ public class PhotonPreparedStatement implements Closeable
         if(values == null || values.size() == 0)
         {
             // Clever hack to get around SQL not liking empty IN() queries
-            newTextForQuestionMark = "SELECT 1 WHERE 1=0";
+            newTextForQuestionMark = "SELECT 1 FROM (SELECT 1) t WHERE 1=0";
         }
         else
         {
@@ -182,6 +182,8 @@ public class PhotonPreparedStatement implements Closeable
         List<PhotonQueryResultRow> resultRows = new ArrayList<>(100);
 
         prepareStatement();
+
+        logQuery(null);
 
         try(ResultSet resultSet = preparedStatement.executeQuery())
         {
