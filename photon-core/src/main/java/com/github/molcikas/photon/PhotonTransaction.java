@@ -27,7 +27,6 @@ public class PhotonTransaction implements Closeable
     private final Map<Class, AggregateBlueprint> registeredAggregates;
     private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
     private final Photon photon;
-    private boolean committed = false;
     private boolean hasUncommittedChanges = false;
 
     public PhotonTransaction(
@@ -284,9 +283,7 @@ public class PhotonTransaction implements Closeable
         try
         {
             connection.commit();
-            committed = true;
             hasUncommittedChanges = false;
-            connection.close();
         }
         catch(Exception ex)
         {
@@ -300,7 +297,7 @@ public class PhotonTransaction implements Closeable
      */
     public void close()
     {
-        if(!committed && hasUncommittedChanges)
+        if(hasUncommittedChanges)
         {
             log.warn("Closing a transaction with uncommitted changes.");
         }
@@ -318,13 +315,8 @@ public class PhotonTransaction implements Closeable
     /**
      * Roll back the current transaction.
      */
-    public void rollbackTransaction()
+    public void rollback()
     {
-        if(committed)
-        {
-            throw new PhotonException("Cannot roll back the transaction because it has already been committed.");
-        }
-
         try
         {
             connection.rollback();
@@ -336,12 +328,12 @@ public class PhotonTransaction implements Closeable
     }
 
     /**
-     * Returns whether the transaction has been committed yet.
-     * @return - True if committed, otherwise false.
+     * Returns whether the transaction has pending changes that haven't been committed yet.
+     * @return - True if there are pending changes, otherwise false.
      */
-    public boolean isCommitted()
+    public boolean hasUncommittedChanges()
     {
-        return committed;
+        return hasUncommittedChanges;
     }
 
     private <T> AggregateBlueprint<T> getViewModelAggregateBlueprint(Class<T> aggregateClass, String viewModelAggregateBlueprintName)
@@ -388,10 +380,6 @@ public class PhotonTransaction implements Closeable
 
     private void verifyConnectionIsAvailable(String operation, boolean useA)
     {
-        if(committed)
-        {
-            throw new PhotonException("Cannot perform %s %s operation because the transaction has already been committed.", useA ? "a" : "an", operation);
-        }
         try
         {
             if (connection.isClosed())

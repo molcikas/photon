@@ -1,5 +1,5 @@
 group 'com.github.molcikas'
-version '0.5.0'
+version '0.6.1'
 
 subprojects {
 
@@ -67,6 +67,7 @@ subprojects {
     }
 
 // Comment this in when building for a sonatype release.
+// See http://central.sonatype.org/pages/gradle.html and https://oss.sonatype.org/
 //    signing {
 //        sign configurations.archives
 //    }

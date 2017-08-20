@@ -31,4 +31,9 @@ public class MyTable
         this.myvalue = myvalue;
         this.myOtherTable = myOtherTable;
     }
+
+    public void setMyvalue(String myvalue)
+    {
+        this.myvalue = myvalue;
+    }
 }

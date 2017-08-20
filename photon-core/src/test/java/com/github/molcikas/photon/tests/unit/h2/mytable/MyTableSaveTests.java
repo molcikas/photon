@@ -57,6 +57,37 @@ public class MyTableSaveTests
     }
 
     @Test
+    public void aggregate_saveMultipleTimes_savesEntity()
+    {
+        registerMyTableOnlyAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(2, "MySavedValue", null);
+            transaction.save(myTable);
+            transaction.commit();
+
+            myTable.setMyvalue("MyNewSavedValue");
+            transaction.save(myTable);
+            transaction.commit();
+
+            myTable.setMyvalue("OopsBadValue");
+            transaction.save(myTable);
+            transaction.rollback();
+            transaction.commit();
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(2, myTableRetrieved.getId());
+            assertEquals("MyNewSavedValue", myTableRetrieved.getMyvalue());
+            transaction.commit();
+        }
+    }
+
+    @Test
     public void aggregate_saveAndNoCommitWithReadTransaction_simpleEntity_savesEntity()
     {
         registerMyTableOnlyAggregate();
