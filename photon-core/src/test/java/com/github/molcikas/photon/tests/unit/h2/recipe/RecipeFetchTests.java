@@ -69,6 +69,24 @@ public class RecipeFetchTests
     }
 
     @Test
+    public void aggregate_fetchWhere_validSingleAggregateAndQuery_returnsCorrectAggregate()
+    {
+        RecipeDbSetup.registerRecipeAggregate(photon);
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Recipe recipe = transaction
+                .query(Recipe.class)
+                .where("recipeId = :recipeId")
+                .addParameter("recipeId", UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"))
+                .fetch();
+
+            assertNotNull(recipe);
+            assertEquals(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"), recipe.getRecipeId());
+        }
+    }
+
+    @Test
     public void aggregate_fetchById_singleAggregateWithEmptyChildLists_returnsAggregateWithEmptyChildLists()
     {
         RecipeDbSetup.registerRecipeAggregate(photon);

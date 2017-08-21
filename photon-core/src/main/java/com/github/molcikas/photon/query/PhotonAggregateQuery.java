@@ -123,7 +123,7 @@ public class PhotonAggregateQuery<T>
     {
         PopulatedEntityMap populatedEntityMap = new PopulatedEntityMap();
 
-        for(EntityBlueprint entityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths).values())
+        for(EntityBlueprint entityBlueprint : aggregateBlueprint.getEntityBlueprints(excludedFieldPaths))
         {
             ids = executeQueryAndCreateEntityOrphans(populatedEntityMap, entityBlueprint, ids, photonQuery, isQueryIdsOnly);
         }
