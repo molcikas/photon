@@ -378,6 +378,7 @@ public class TableBlueprintBuilder
     }
 
     TableBlueprint build(
+        boolean isSimpleEntity,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,
         TableBlueprint mainTableBlueprint,
@@ -390,10 +391,23 @@ public class TableBlueprintBuilder
             tableName = determineDefaultTableName();
         }
 
+        if(isSimpleEntity)
+        {
+            if(!isPrimaryTable)
+            {
+                throw new PhotonException("Table '%s' is for a simple entity but is not the primary table.", tableName);
+            }
+
+            if(!joinedTableBuilders.isEmpty())
+            {
+                throw new PhotonException("Table '%s' is for a simple entity but has joined tables.", tableName);
+            }
+        }
+
         if(StringUtils.isBlank(idFieldName))
         {
             idFieldName = determineDefaultIdFieldName(fields);
-            if(idFieldName == null)
+            if(!isSimpleEntity && idFieldName == null)
             {
                 throw new PhotonException("Id not specified for '%s' and unable to determine a default id field.", tableName);
             }
@@ -513,12 +527,8 @@ public class TableBlueprintBuilder
             }
         }
 
-        if(primaryKeyColumn == null)
+        if(primaryKeyColumn == null && customColumnDataTypes.containsKey(idFieldName))
         {
-            if(!customColumnDataTypes.containsKey(idFieldName))
-            {
-                throw new PhotonException("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName);
-            }
             primaryKeyColumn = new ColumnBlueprint(
                 tableName,
                 idFieldName,
@@ -531,6 +541,11 @@ public class TableBlueprintBuilder
                 columns.size()
             );
             columns.add(primaryKeyColumn);
+        }
+
+        if(!isSimpleEntity && primaryKeyColumn == null)
+        {
+            throw new PhotonException("The column data type for '%s' must be specified since it is the id and is not in the entity.", idFieldName);
         }
 
         if(StringUtils.isNotBlank(foreignKeyToParent) && foreignKeyToParentColumn == null)
@@ -566,7 +581,7 @@ public class TableBlueprintBuilder
             columns,
             primaryKeyColumn,
             foreignKeyToParentColumn,
-            primaryKeyColumn.getMappedFieldBlueprint() != null,
+            primaryKeyColumn != null && primaryKeyColumn.getMappedFieldBlueprint() != null,
             tableName,
             orderBySql
         );

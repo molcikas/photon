@@ -115,7 +115,7 @@ public final class SelectSqlBuilderService
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] IN (%s)",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             "%s"
         ));
     }
@@ -153,7 +153,7 @@ public final class SelectSqlBuilderService
             // it expects child entities to be sorted by parent.
             orderBySqlBuilder.append(String.format("[%s].[%s], ",
                 table.getTableName(),
-                table.getPrimaryKeyColumn().getColumnName()
+                table.getPrimaryKeyColumnName()
             ));
         }
 
@@ -187,10 +187,10 @@ public final class SelectSqlBuilderService
 
         String selectOrphansSql = String.format(
             "SELECT [%s] FROM [%s] WHERE [%s] = ? AND [%s] NOT IN (?)",
-            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName(),
             tableBlueprint.getForeignKeyToParentColumn().getColumnName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            tableBlueprint.getPrimaryKeyColumnName()
         );
 
         selectOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectOrphansSql, photonOptions);
@@ -202,9 +202,9 @@ public final class SelectSqlBuilderService
     {
         String selectByIdSql = String.format(
             "SELECT [%s] FROM [%s] WHERE [%s] = ?",
-            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            tableBlueprint.getPrimaryKeyColumnName()
         );
 
         selectByIdSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(selectByIdSql, photonOptions);

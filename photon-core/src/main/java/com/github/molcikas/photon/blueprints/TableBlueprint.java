@@ -76,6 +76,11 @@ public class TableBlueprint
         return primaryKeyColumn;
     }
 
+    public String getPrimaryKeyColumnName()
+    {
+        return primaryKeyColumn != null ? primaryKeyColumn.getColumnName() : null;
+    }
+
     public ColumnBlueprint getForeignKeyToParentColumn()
     {
         return foreignKeyToParentColumn;

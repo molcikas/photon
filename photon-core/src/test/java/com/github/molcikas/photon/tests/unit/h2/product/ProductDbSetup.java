@@ -18,12 +18,12 @@ public class ProductDbSetup
         {
             transaction.query("DROP TABLE IF EXISTS `product`").executeUpdate();
             transaction.query("CREATE TABLE `product` (\n" +
-                "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
+                "  `theProductId` int(11) NOT NULL AUTO_INCREMENT,\n" +
                 "  `numerator` int(11) NOT NULL,\n" +
                 "  `denominator` int(11) NOT NULL,\n" +
-                "  PRIMARY KEY (`id`)\n" +
+                "  PRIMARY KEY (`theProductId`)\n" +
                 ")").executeUpdate();
-            transaction.query("insert into `product` (`id`, `numerator`, `denominator`) values (1, 2, 3)").executeUpdate();
+            transaction.query("insert into `product` (`theProductId`, `numerator`, `denominator`) values (1, 2, 3)").executeUpdate();
 
             transaction.commit();
         }

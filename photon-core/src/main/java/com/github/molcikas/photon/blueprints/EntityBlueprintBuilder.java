@@ -468,6 +468,8 @@ public class EntityBlueprintBuilder
 
     public EntityBlueprint build()
     {
+        boolean isSimpleEntity = childEntityBuilders.isEmpty() && joinedTableBuilders.isEmpty();
+
         Map<String, EntityBlueprint> childEntities = childEntityBuilders
             .entrySet()
             .stream()
@@ -512,10 +514,10 @@ public class EntityBlueprintBuilder
                 .collect(Collectors.toList());
         }
 
-        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(fields, parentTableBlueprints, null, joinedTableBuilders);
+        TableBlueprint tableBlueprint = tableBlueprintBuilder.build(isSimpleEntity, fields, parentTableBlueprints, null, joinedTableBuilders);
         List<TableBlueprint> joinedTableBlueprints = joinedTableBuilders
             .stream()
-            .map(t -> t.build(fields, Collections.singletonList(tableBlueprint.getTableName()), tableBlueprint, joinedTableBuilders))
+            .map(t -> t.build(isSimpleEntity, fields, Collections.singletonList(tableBlueprint.getTableName()), tableBlueprint, joinedTableBuilders))
             .collect(Collectors.toList());
 
         EntityBlueprint entityBlueprint = new EntityBlueprint(

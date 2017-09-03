@@ -38,6 +38,7 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
 
     @Override
     TableBlueprint build(
+        boolean isSimpleEntity,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,
         TableBlueprint mainTableBlueprint,
@@ -51,6 +52,11 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
         this.parentTableName = parentEntityTables.get(0);
         this.foreignKeyToParent = idFieldName;
 
-        return super.build(fields, parentEntityTables, mainTableBlueprint, joinedTableBuilders);
+        if(isSimpleEntity)
+        {
+            throw new PhotonException("Simple entity with main table '%s' cannot have joined tables.", parentTableName);
+        }
+
+        return super.build(false, fields, parentEntityTables, mainTableBlueprint, joinedTableBuilders);
     }
 }

@@ -17,7 +17,7 @@ public final class SqlJoinClauseBuilderService
                 alwaysUseInnerJoins ? "JOIN" : tableBlueprint.getJoinType().getJoinSql(),
                 tableBlueprint.getParentTableBlueprint().getTableName(),
                 tableBlueprint.getParentTableBlueprint().getTableName(),
-                tableBlueprint.getParentTableBlueprint().getPrimaryKeyColumn().getColumnName(),
+                tableBlueprint.getParentTableBlueprint().getPrimaryKeyColumnName(),
                 tableBlueprint.getTableName(),
                 tableBlueprint.getForeignKeyToParentColumn().getColumnName()
             ));
@@ -38,7 +38,7 @@ public final class SqlJoinClauseBuilderService
                 childTableBlueprint.getTableName(),
                 childTableBlueprint.getForeignKeyToParentColumn().getColumnName(),
                 parentTableBlueprint.getTableName(),
-                parentTableBlueprint.getPrimaryKeyColumn().getColumnName()
+                parentTableBlueprint.getPrimaryKeyColumnName()
             ));
         }
     }

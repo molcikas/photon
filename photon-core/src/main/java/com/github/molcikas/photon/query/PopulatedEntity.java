@@ -402,11 +402,11 @@ public class PopulatedEntity<T>
         {
             fieldBlueprint = entityBlueprint.getFieldForColumnNameUnqualified(columnName);
 
-            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnName()))
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumnName()))
             {
                 primaryKeyValue = databaseValue;
             }
-            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnName()))
+            if (StringUtils.equals(columnName, entityBlueprint.getTableBlueprint().getPrimaryKeyColumnName()))
             {
                 foreignKeyToParentValue = databaseValue;
             }

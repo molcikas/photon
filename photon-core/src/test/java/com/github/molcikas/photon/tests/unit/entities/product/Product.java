@@ -4,13 +4,13 @@ import org.apache.commons.lang3.math.Fraction;
 
 public class Product
 {
-    private int id;
+    private int theProductId;
 
     private Fraction quantity;
 
-    public int getId()
+    public int getTheProductId()
     {
-        return id;
+        return theProductId;
     }
 
     public Fraction getQuantity()
@@ -27,9 +27,9 @@ public class Product
     {
     }
 
-    public Product(int id, Fraction quantity)
+    public Product(int theProductId, Fraction quantity)
     {
-        this.id = id;
+        this.theProductId = theProductId;
         this.quantity = quantity;
     }
 }

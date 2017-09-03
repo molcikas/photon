@@ -70,9 +70,9 @@ public final class UpdateSqlBuilderService
             // exists in the table, so set the id equal to itself as a "dummy" set.
             sqlBuilder.append(String.format("[%s].[%s] = [%s].[%s]",
                 tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+                tableBlueprint.getPrimaryKeyColumnName(),
                 tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumn().getColumnName()
+                tableBlueprint.getPrimaryKeyColumnName()
             ));
             return;
         }
@@ -94,7 +94,7 @@ public final class UpdateSqlBuilderService
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] = ?",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            tableBlueprint.getPrimaryKeyColumnName()
         ));
     }
 }

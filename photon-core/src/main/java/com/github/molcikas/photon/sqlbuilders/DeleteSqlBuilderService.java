@@ -66,7 +66,7 @@ public final class DeleteSqlBuilderService
     {
         String deleteSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?)",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            tableBlueprint.getPrimaryKeyColumnName()
         );
 
         deleteSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteSql, photonOptions);
@@ -90,7 +90,7 @@ public final class DeleteSqlBuilderService
         String deleteChildrenExceptSql = String.format("DELETE FROM [%s] WHERE [%s] = ? AND [%s] NOT IN (?)",
             tableBlueprint.getTableName(),
             tableBlueprint.getForeignKeyToParentColumn().getColumnName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName()
+            tableBlueprint.getPrimaryKeyColumnName()
         );
 
         deleteChildrenExceptSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteChildrenExceptSql, photonOptions);
@@ -108,7 +108,7 @@ public final class DeleteSqlBuilderService
             String deleteOrphansSql = String.format(
                 "DELETE FROM [%s] WHERE [%s] IN (?)",
                 tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumn().getColumnName()
+                tableBlueprint.getPrimaryKeyColumnName()
             );
             deleteOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteOrphansSql, photonOptions);
             log.debug("Delete Orphans Sql Level {} Sql for {}:\n{}", parentTableBlueprints.size(), tableBlueprint.getTableName(), deleteOrphansSql);
@@ -127,9 +127,9 @@ public final class DeleteSqlBuilderService
             "\nSELECT [%s].[%s]" +
             "\nFROM [%s]",
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName(),
-            tableBlueprint.getPrimaryKeyColumn().getColumnName(),
+            tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName()
         ));
         SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, true);
@@ -137,7 +137,7 @@ public final class DeleteSqlBuilderService
             "\nWHERE [%s].[%s] IN (?)" +
             "\n)",
             rootTableBlueprint.getTableName(),
-            rootTableBlueprint.getPrimaryKeyColumn().getColumnName()
+            rootTableBlueprint.getPrimaryKeyColumnName()
         ));
 
         String deleteOrphansSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteOrphansSqlBuilder.toString(), photonOptions);

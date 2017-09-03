@@ -163,7 +163,7 @@ public class PhotonAggregateSave
 
         if(tableBlueprint.isPrimaryKeyMappedToField())
         {
-            String primaryKeyColumnName = tableBlueprint.getPrimaryKeyColumn().getColumnName();
+            String primaryKeyColumnName = tableBlueprint.getPrimaryKeyColumnName();
             String selectOrphansSql = tableBlueprint.getSelectOrphansSql();
             if(selectOrphansSql == null)
             {
@@ -263,7 +263,7 @@ public class PhotonAggregateSave
             {
                 if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
                 {
-                    String primaryKeyColumnName = tableBlueprint.getPrimaryKeyColumn().getColumnName();
+                    String primaryKeyColumnName = tableBlueprint.getPrimaryKeyColumnName();
                     List<?> orphanIds;
 
                     try(PhotonPreparedStatement statement = new PhotonPreparedStatement(

@@ -27,6 +27,23 @@ public class ProductTests
     }
 
     @Test
+    public void query_simpleEntityWithoutId_returnsEntity()
+    {
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            String sql =
+                "SELECT theProductId " +
+                "FROM product " +
+                "WHERE theProductId = :theProductId ";
+
+            Product product = transaction.query(sql).addParameter("theProductId", 1).fetch(Product.class);
+
+            assertNotNull(product);
+            assertEquals(1, product.getTheProductId());
+        }
+    }
+
+    @Test
     public void fetchById_simpleEntity_returnsEntity()
     {
         registerAggregate();
@@ -38,7 +55,7 @@ public class ProductTests
                 .fetchById(1);
 
             assertNotNull(product);
-            assertEquals(1, product.getId());
+            assertEquals(1, product.getTheProductId());
             assertEquals(Fraction.getFraction(2, 3), product.getQuantity());
         }
     }
@@ -62,7 +79,7 @@ public class ProductTests
                 .fetchById(2);
 
             assertNotNull(product);
-            assertEquals(2, product.getId());
+            assertEquals(2, product.getTheProductId());
             assertEquals(Fraction.getFraction(3, 4), product.getQuantity());
         }
     }
@@ -90,7 +107,7 @@ public class ProductTests
                 .fetchById(1);
 
             assertNotNull(product);
-            assertEquals(1, product.getId());
+            assertEquals(1, product.getTheProductId());
             assertEquals(Fraction.getFraction(5, 6), product.getQuantity());
         }
     }
@@ -98,6 +115,7 @@ public class ProductTests
     private void registerAggregate()
     {
         photon.registerAggregate(Product.class)
+            .withId("theProductId")
             .withPrimaryKeyAutoIncrement()
             .withDatabaseColumns(
                 Arrays.asList(
