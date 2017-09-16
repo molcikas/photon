@@ -92,9 +92,9 @@ public class ShapeChildEntityTests
                         return null;
                 }
             })
-            .withChild(CornerCoordinates.class)
+            .withChild("corners", CornerCoordinates.class)
                 .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
-                .addAsChild("corners")
+                .addAsChild()
             .register();
     }
 

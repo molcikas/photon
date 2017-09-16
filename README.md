@@ -26,16 +26,16 @@ After constructing the `Photon` object, register each aggregate by describing ho
 ```java
 photon.registerAggregate(Recipe.class)
     .withId("recipeId")
-    .withChild(RecipeInstruction.class)
+    .withChild("instructions", RecipeInstruction.class)
         .withForeignKeyToParent("recipeId")
         .withOrderBySql("stepNumber")
-        .addAsChild("instructions")
-    .withChild(RecipeIngredient.class)
+        .addAsChild()
+    .withChild("ingredients", RecipeIngredient.class)
         .withForeignKeyToParent("recipeId")
         .withDatabaseColumn("quantity", ColumnDataType.INTEGER)
         .withFieldHydrater("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
         .withOrderBySql("RecipeIngredient.orderBy DESC")
-        .addAsChild("ingredients")
+        .addAsChild()
     .register();
 ```
 
@@ -172,10 +172,10 @@ public class ProductOrderDto
 photon
     .registerViewModelAggregate(ProductOrdersDto.class, "ProductOrdersMostRecentFirst")
     .withId("productId")
-    .withChild(ProductOrderDto.class)
+    .withChild("productOrders", ProductOrderDto.class)
         .withForeignKeyToParent("productOrderId")
         .withOrderBySql("Order.orderDate DESC")
-        .addChild("productOrders")
+        .addAsChild()
     .register();
 
 // Create a query similar to querying for a regular aggregate.
@@ -282,11 +282,11 @@ If you have a value object that is a list of items, you can add the list as a ch
 
 ```java
 photon.registerAggregate(Recipe.class)
-    .withChild(RecipeIngredient.class)
+    .withChild("ingredients", RecipeIngredient.class)
         // The id and foreign key to parent must be specified here, but do not need to be in the RecipeIngredient class.
         .withId("recipeIngredientId")
         .withForeignKeyToParent("recipeId")
-        .addAsChild("ingredients")
+        .addAsChild()
     .register();
 ```
 
@@ -350,6 +350,43 @@ photon.registerAggregate(Shape.class)
                 return Circle.class;
             case "rectangle":
                 return Rectangle.class;
+        }
+    })
+    .register();
+```
+
+Photon also supports multi-table inheritance using `withJoinedTable()`.
+
+```java
+photon.registerAggregate(Shape.class)
+    .withPrimaryKeyAutoIncrement()
+    .withJoinedTable(Circle.class, JoinType.LeftOuterJoin)
+        .withPrimaryKeyAutoIncrement()
+        .addAsJoinedTable()
+    .withJoinedTable(Rectangle.class, JoinType.LeftOuterJoin)
+        .withPrimaryKeyAutoIncrement()
+        .addAsJoinedTable()
+    .withChild("colorHistory", ShapeColorHistory.class)
+        .withPrimaryKeyAutoIncrement()
+        .withParentTable("Shape", "shapeId")
+        .addAsChild()
+    .withChild("corners", CornerCoordinates.class)
+        .withParentTable("Rectangle")
+        .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
+        .addAsChild()
+    .withClassDiscriminator(valueMap ->
+    {
+        if(valueMap.get("Circle_id") != null)
+        {
+            return Circle.class;
+        }
+        else if(valueMap.get("Rectangle_id") != null)
+        {
+            return Rectangle.class;
+        }
+        else
+        {
+            return Shape.class;
         }
     })
     .register();

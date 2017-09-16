@@ -234,19 +234,19 @@ public class RecipeDbSetup
     {
         photon.registerAggregate(Recipe.class)
             .withId("recipeId")
-            .withChild(RecipeInstruction.class)
+            .withChild("instructions", RecipeInstruction.class)
                 .withId("recipeInstructionId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId", ColumnDataType.BINARY)
                 .withOrderBySql("stepNumber")
-                .addAsChild("instructions")
-            .withChild(RecipeIngredient.class)
+                .addAsChild()
+            .withChild("ingredients", RecipeIngredient.class)
                 .withId("recipeIngredientId", ColumnDataType.BINARY)
                 .withForeignKeyToParent("recipeId")
                 .withDatabaseColumn("recipeId", ColumnDataType.BINARY)
                 .withDatabaseColumn("quantity", ColumnDataType.VARCHAR)
                 .withFieldHydrater("quantity", val -> val != null ? Fraction.getFraction((String) val) : null)
                 .withOrderBySql(orderBySql)
-                .addAsChild("ingredients")
+                .addAsChild()
             .register();
     }
 }

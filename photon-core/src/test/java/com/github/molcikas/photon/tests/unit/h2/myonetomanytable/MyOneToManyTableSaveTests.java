@@ -206,17 +206,17 @@ public class MyOneToManyTableSaveTests
         photon.registerAggregate(MyOneToManyTable.class)
             .withId("id")
             .withPrimaryKeyAutoIncrement()
-            .withChild(MyManyTable.class)
+            .withChild("myManyTables", MyManyTable.class)
                 .withId("id")
                 .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("parent")
                 .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName")
-                .withChild(MyThirdTable.class)
+                .withChild("myThirdTables", MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()
                     .withForeignKeyToParent("parent")
-                .addAsChild("myThirdTables")
-            .addAsChild("myManyTables")
+                    .addAsChild()
+            .addAsChild()
             .register();
     }
 }

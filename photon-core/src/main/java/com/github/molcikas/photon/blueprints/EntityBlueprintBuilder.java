@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
  */
 public class EntityBlueprintBuilder
 {
+    private final String fieldName;
     private final Photon photon;
     private final EntityBlueprintBuilder parentBuilder;
     private final Class entityClass;
@@ -38,22 +39,24 @@ public class EntityBlueprintBuilder
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
-        this(entityClass, null, true, null, photon);
+        this(null, entityClass, null, true, null, photon);
     }
 
-    public EntityBlueprintBuilder(Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon)
+
+    public EntityBlueprintBuilder(String fieldName, Class entityClass, EntityBlueprintBuilder parentBuilder, Photon photon)
     {
-        this(entityClass, null, false, parentBuilder, photon);
+        this(fieldName, entityClass, null, false, parentBuilder, photon);
     }
 
     public EntityBlueprintBuilder(Class entityClass, String aggregateBlueprintName, boolean registerBlueprintForSaving, Photon photon)
     {
-        this(entityClass, aggregateBlueprintName,
+        this(null, entityClass, aggregateBlueprintName,
             registerBlueprintForSaving, null, photon);
     }
 
-    private EntityBlueprintBuilder(Class entityClass, String aggregateBlueprintName, boolean registerBlueprintForSaving, EntityBlueprintBuilder parentBuilder, Photon photon)
+    private EntityBlueprintBuilder(String fieldName, Class entityClass, String aggregateBlueprintName, boolean registerBlueprintForSaving, EntityBlueprintBuilder parentBuilder, Photon photon)
     {
+        this.fieldName = fieldName;
         this.entityClass = entityClass;
         this.aggregateBlueprintName = aggregateBlueprintName;
         this.registerBlueprintForSaving = registerBlueprintForSaving;
@@ -400,12 +403,17 @@ public class EntityBlueprintBuilder
     /**
      * Creates a builder that is used to build the blueprint for a child entity.
      *
+     * @param fieldName - the field name on the parent that references the child entity.
      * @param childClass - the child entity class
      * @return - the child builder
      */
-    public EntityBlueprintBuilder withChild(Class childClass)
+    public EntityBlueprintBuilder withChild(String fieldName, Class childClass)
     {
-        return new EntityBlueprintBuilder(childClass, this, photon);
+        if(StringUtils.isBlank(fieldName))
+        {
+            throw new PhotonException("Field name for a child cannot be blank.");
+        }
+        return new EntityBlueprintBuilder(fieldName, childClass, this, photon);
     }
 
     public TableBlueprintBuilder withJoinedTable(String tableName, JoinType joinType)
@@ -424,11 +432,11 @@ public class EntityBlueprintBuilder
         return this;
     }
 
-    public EntityBlueprintBuilder addJoinedTable(TableBlueprintBuilder joinedTableBuilder)
+    public EntityBlueprintBuilder addAsJoinedTable(TableBlueprintBuilder joinedTableBuilder)
     {
         if(!(joinedTableBuilder instanceof JoinedTableBlueprintBuilder))
         {
-            throw new PhotonException("addJoinedTable() parameter must be created using withJoinedTable()");
+            throw new PhotonException("addAsJoinedTable() parameter must be created using withJoinedTable()");
         }
         joinedTableBuilders.add((JoinedTableBlueprintBuilder) joinedTableBuilder);
         return this;
@@ -437,10 +445,9 @@ public class EntityBlueprintBuilder
     /**
      * Completes the builder and registers it as a child of the parent entity.
      *
-     * @param fieldName - the field name on the parent that references the child entity.
      * @return - the parent builder for chaining
      */
-    public EntityBlueprintBuilder addAsChild(String fieldName)
+    public EntityBlueprintBuilder addAsChild()
     {
         if(parentBuilder == null)
         {

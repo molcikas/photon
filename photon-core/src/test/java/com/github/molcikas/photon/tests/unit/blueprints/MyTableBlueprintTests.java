@@ -21,9 +21,9 @@ public class MyTableBlueprintTests
         {
             photon.registerAggregate(MyTable.class)
                 .withId("id")
-                .withChild(MyOtherTable.class)
+                .withChild("myOtherTable", MyOtherTable.class)
                     .withId("id")
-                    .addAsChild("myOtherTable")
+                    .addAsChild()
                 .register();
 
             Assert.fail("Failed to throw PhotonException.");

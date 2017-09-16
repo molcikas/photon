@@ -37,9 +37,9 @@ public class SomeAggregateTests
     {
         photon
             .registerAggregate(SomeAggregate.class)
-            .withChild(SomeClass.class)
+            .withChild("fieldOne", SomeClass.class)
                 .withForeignKeyToParent("someAggregateId", ColumnDataType.INTEGER)
-                .addAsChild("fieldOne")
+                .addAsChild()
             .register();
     }
 }

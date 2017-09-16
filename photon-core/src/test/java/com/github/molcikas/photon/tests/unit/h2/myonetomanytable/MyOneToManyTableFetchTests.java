@@ -121,16 +121,16 @@ public class MyOneToManyTableFetchTests
         photon.registerAggregate(MyOneToManyTable.class)
             .withId("id")
             .withPrimaryKeyAutoIncrement()
-            .withChild(MyManyTable.class)
+            .withChild("myManyTables", MyManyTable.class)
                 .withId("id", true)
                 .withForeignKeyToParent("parent")
                 .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", ColumnDataType.VARCHAR)
-                .withChild(MyThirdTable.class)
+                .withChild("myThirdTables", MyThirdTable.class)
                     .withId("id")
                     .withPrimaryKeyAutoIncrement()
                     .withForeignKeyToParent("parent")
-                    .addAsChild("myThirdTables")
-                .addAsChild("myManyTables")
+                    .addAsChild()
+                .addAsChild()
             .register();
     }
 }

@@ -8,10 +8,7 @@ import com.github.molcikas.photon.tests.unit.entities.shape.*;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -84,23 +81,23 @@ public class ShapeAndDrawingCrudTests
     {
         photon
             .registerAggregate(Drawing.class)
-            .withChild(Shape.class)
+            .withChild("shapes", Shape.class)
                 .withPrimaryKeyAutoIncrement()
                 .withForeignKeyToParent("drawingId")
                 .withJoinedTable(Circle.class, JoinType.LeftOuterJoin)
                     .withPrimaryKeyAutoIncrement()
-                    .addJoinedTable()
+                    .addAsJoinedTable()
                 .withJoinedTable(Rectangle.class, JoinType.LeftOuterJoin)
                     .withPrimaryKeyAutoIncrement()
-                    .addJoinedTable()
-                .withChild(ShapeColorHistory.class)
+                    .addAsJoinedTable()
+                .withChild("colorHistory", ShapeColorHistory.class)
                     .withPrimaryKeyAutoIncrement()
                     .withParentTable("Shape", "shapeId")
-                    .addAsChild("colorHistory")
-                .withChild(CornerCoordinates.class)
+                    .addAsChild()
+                .withChild("corners", CornerCoordinates.class)
                     .withParentTable("Rectangle")
                     .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
-                    .addAsChild("corners")
+                    .addAsChild()
                 .withClassDiscriminator(valueMap ->
                 {
                     if(valueMap.get("Circle_id") != null)
@@ -116,7 +113,7 @@ public class ShapeAndDrawingCrudTests
                         return Shape.class;
                     }
                 })
-                .addAsChild("shapes")
+                .addAsChild()
             .register();
     }
 }

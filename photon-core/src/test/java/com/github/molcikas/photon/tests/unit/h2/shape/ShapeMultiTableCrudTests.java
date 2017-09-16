@@ -368,7 +368,7 @@ public class ShapeMultiTableCrudTests
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .withDatabaseColumn("drawingId")
-                .addJoinedTable()
+                .addAsJoinedTable()
             .withMainTableInsertedLast()
             .register();
 
@@ -380,7 +380,7 @@ public class ShapeMultiTableCrudTests
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .withDatabaseColumn("drawingId")
-                .addJoinedTable()
+                .addAsJoinedTable()
             .withMainTableInsertedLast()
             .register();
 
@@ -399,7 +399,7 @@ public class ShapeMultiTableCrudTests
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .withDatabaseColumn("drawingId")
-                .addJoinedTable()
+                .addAsJoinedTable()
             .withMainTableInsertedLast()
             .register();
 
@@ -411,11 +411,11 @@ public class ShapeMultiTableCrudTests
                 .withDatabaseColumn("type")
                 .withDatabaseColumn("color")
                 .withDatabaseColumn("drawingId")
-                .addJoinedTable()
-            .withChild(ShapeColorHistory.class)
+                .addAsJoinedTable()
+            .withChild("colorHistory", ShapeColorHistory.class)
                 .withPrimaryKeyAutoIncrement()
                 .withParentTable("Shape", "shapeId")
-                .addAsChild("colorHistory")
+                .addAsChild()
             .withMainTableInsertedLast()
             .register();
 
@@ -429,18 +429,18 @@ public class ShapeMultiTableCrudTests
             .withPrimaryKeyAutoIncrement()
             .withJoinedTable(Circle.class, JoinType.LeftOuterJoin)
                 .withPrimaryKeyAutoIncrement()
-                .addJoinedTable()
+                .addAsJoinedTable()
             .withJoinedTable(Rectangle.class, JoinType.LeftOuterJoin)
                 .withPrimaryKeyAutoIncrement()
-                .addJoinedTable()
-            .withChild(ShapeColorHistory.class)
+                .addAsJoinedTable()
+            .withChild("colorHistory", ShapeColorHistory.class)
                 .withPrimaryKeyAutoIncrement()
                 .withParentTable("Shape", "shapeId")
-                .addAsChild("colorHistory")
-            .withChild(CornerCoordinates.class)
+                .addAsChild()
+            .withChild("corners", CornerCoordinates.class)
                 .withParentTable("Rectangle")
                 .withForeignKeyToParent("shapeId", ColumnDataType.INTEGER)
-                .addAsChild("corners")
+                .addAsChild()
             .withClassDiscriminator(valueMap ->
             {
                 if(valueMap.get("Circle_id") != null)

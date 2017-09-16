@@ -372,9 +372,9 @@ public class TableBlueprintBuilder
         return this;
     }
 
-    public EntityBlueprintBuilder addJoinedTable()
+    public EntityBlueprintBuilder addAsJoinedTable()
     {
-        return entityBlueprintBuilder.addJoinedTable(this);
+        return entityBlueprintBuilder.addAsJoinedTable(this);
     }
 
     TableBlueprint build(
