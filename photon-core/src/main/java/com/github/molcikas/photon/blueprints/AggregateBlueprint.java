@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.blueprints;
 
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.sqlbuilders.DeleteSqlBuilderService;

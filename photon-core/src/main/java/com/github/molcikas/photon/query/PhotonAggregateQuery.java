@@ -2,9 +2,9 @@ package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.apache.commons.lang3.StringUtils;
 

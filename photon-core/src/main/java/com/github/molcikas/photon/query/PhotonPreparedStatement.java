@@ -1,5 +1,5 @@
 package com.github.molcikas.photon.query;
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -224,11 +224,22 @@ public class PhotonPreparedStatement implements Closeable
 
         try(ResultSet resultSet = preparedStatement.executeQuery())
         {
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            List<String> resultColumns = new ArrayList<>(metaData.getColumnCount());
+            for(int i = 1; i <= metaData.getColumnCount(); i++)
+            {
+                resultColumns.add(metaData.getColumnLabel(i).toLowerCase());
+            }
+
             while (resultSet.next())
             {
                 PhotonQueryResultRow row = new PhotonQueryResultRow();
                 for (String columnName : columnNames)
                 {
+                    if(!resultColumns.contains(columnName.toLowerCase()))
+                    {
+                        continue;
+                    }
                     Object value = resultSet.getObject(columnName);
                     if (value != null)
                     {

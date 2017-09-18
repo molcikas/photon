@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.junit.Assert;
 import org.junit.Before;

@@ -1,5 +1,6 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.entity;
 
+import com.github.molcikas.photon.blueprints.table.*;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +28,7 @@ public class EntityBlueprintBuilder
     private final List<String> ignoredFields;
     private final Map<String, EntityBlueprintBuilder> childEntityBuilders;
     private final Map<String, Converter> customFieldHydraters;
+    private String versionField;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
     private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
@@ -186,6 +188,12 @@ public class EntityBlueprintBuilder
     public EntityBlueprintBuilder withPrimaryKeyAutoIncrement()
     {
         tableBlueprintBuilder.withPrimaryKeyAutoIncrement();
+        return this;
+    }
+
+    public EntityBlueprintBuilder withVersionField(String versionField)
+    {
+        this.versionField = versionField;
         return this;
     }
 
@@ -526,6 +534,20 @@ public class EntityBlueprintBuilder
             .stream()
             .map(t -> t.build(isSimpleEntity, fields, Collections.singletonList(tableBlueprint.getTableName()), tableBlueprint, joinedTableBuilders))
             .collect(Collectors.toList());
+
+        if(StringUtils.isNotBlank(versionField))
+        {
+            if(parentBuilder != null)
+            {
+                throw new PhotonException("Entity '%s' cannot have a version field because it is not the aggregate root.", entityClass.getName());
+            }
+            Optional<FieldBlueprint> fieldBlueprint = fields.stream().filter(f -> f.getFieldName().equals(versionField)).findFirst();
+            if(!fieldBlueprint.isPresent())
+            {
+                throw new PhotonException("The version field '%s' does not exist for entity '%s'.", versionField, entityClass.getName());
+            }
+            fieldBlueprint.get().setAsVersionField();
+        }
 
         EntityBlueprint entityBlueprint = new EntityBlueprint(
             entityClass,

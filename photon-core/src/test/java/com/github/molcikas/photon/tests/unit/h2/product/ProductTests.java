@@ -2,9 +2,9 @@ package com.github.molcikas.photon.tests.unit.h2.product;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.ColumnDataType;
-import com.github.molcikas.photon.blueprints.CompoundEntityFieldValueMapping;
-import com.github.molcikas.photon.blueprints.DatabaseColumnDefinition;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.blueprints.entity.CompoundEntityFieldValueMapping;
+import com.github.molcikas.photon.blueprints.table.DatabaseColumnDefinition;
 import com.github.molcikas.photon.tests.unit.entities.product.Product;
 import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;

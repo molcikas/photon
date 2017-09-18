@@ -20,6 +20,7 @@ public class MyTableDbSetup
             transaction.query("CREATE TABLE `mytable` (\n" +
                 "  `id` int(11) NOT NULL AUTO_INCREMENT,\n" +
                 "  `myvalue` varchar(255) DEFAULT 'oops',\n" +
+                "  `version` int(11) NOT NULL DEFAULT 1,\n" +
                 "  PRIMARY KEY (`id`)\n" +
                 ")").executeUpdate();
             transaction.query("insert into `mytable` (`id`, `myvalue`) values (1, 'my1dbvalue')").executeUpdate();

@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.datasource.ExistingConnectionDataSource;
 import com.github.molcikas.photon.datasource.ReadOnlyConnection;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -9,7 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.EntityFieldValueMapping;
+import com.github.molcikas.photon.blueprints.entity.EntityFieldValueMapping;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyTable;
 

@@ -1,9 +1,9 @@
 package com.github.molcikas.photon.sqlbuilders;
 
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.ForeignKeyListBlueprint;
-import com.github.molcikas.photon.blueprints.TableBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

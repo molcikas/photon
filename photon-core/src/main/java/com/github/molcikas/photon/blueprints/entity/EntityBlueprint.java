@@ -1,5 +1,7 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.entity;
 
+import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -14,6 +16,8 @@ public class EntityBlueprint
     private final Class entityClass;
     private final EntityClassDiscriminator entityClassDiscriminator;
     private final List<FieldBlueprint> fields;
+    private final FieldBlueprint versionField;
+
     private final TableBlueprint tableBlueprint;
     private final List<TableBlueprint> joinedTableBlueprints;
 
@@ -53,6 +57,12 @@ public class EntityBlueprint
             Collections.reverse(allTableBlueprints);
             this.tableBlueprintsForInsertOrUpdate = Collections.unmodifiableList(new ArrayList<>(allTableBlueprints));
         }
+
+        this.versionField = fields
+            .stream()
+            .filter(FieldBlueprint::isVersionField)
+            .findFirst()
+            .orElse(null);
     }
 
     public Class getEntityClass()
@@ -187,6 +197,11 @@ public class EntityBlueprint
             .stream()
             .map(ColumnBlueprint::getColumnNameQualified)
             .collect(Collectors.toList());
+    }
+
+    public FieldBlueprint getVersionField()
+    {
+        return versionField;
     }
 
     void setMainTableBlueprintParent(List<TableBlueprint> parentEntityTableBlueprints)

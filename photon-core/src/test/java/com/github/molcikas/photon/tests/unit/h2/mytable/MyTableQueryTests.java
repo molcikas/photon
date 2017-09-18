@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -389,7 +389,7 @@ public class MyTableQueryTests
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
             String sql =
-                "INSERT INTO mytable VALUES (:id, :myvalue)";
+                "INSERT INTO mytable (id, myvalue) VALUES (:id, :myvalue)";
 
             int rowsInserted = transaction
                 .query(sql)

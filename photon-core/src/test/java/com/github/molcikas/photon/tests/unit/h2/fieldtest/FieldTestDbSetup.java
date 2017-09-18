@@ -2,7 +2,7 @@ package com.github.molcikas.photon.tests.unit.h2.fieldtest;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.tests.unit.entities.fieldtest.FieldTest;
 import com.github.molcikas.photon.tests.unit.h2.H2TestUtil;
 

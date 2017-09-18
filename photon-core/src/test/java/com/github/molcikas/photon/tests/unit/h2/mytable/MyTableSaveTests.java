@@ -1,7 +1,8 @@
 package com.github.molcikas.photon.tests.unit.h2.mytable;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
 import com.github.molcikas.photon.options.DefaultTableName;
 import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.tests.unit.h2.H2TestUtil;
@@ -10,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.EntityFieldValueMapping;
+import com.github.molcikas.photon.blueprints.entity.EntityFieldValueMapping;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.ConverterException;
 import com.github.molcikas.photon.tests.unit.entities.mytable.MyOtherTable;
@@ -494,6 +495,85 @@ public class MyTableSaveTests
         }
     }
 
+    @Test
+    public void aggregate_saveWithVersion_savesAggregate()
+    {
+        registerMyTableWithVersionAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            myTable.setMyvalue("MySavedValue");
+
+            // Save twice so version gets incremented from 1 to 3
+            transaction.save(myTable);
+            transaction.save(myTable);
+            transaction.commit();
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(3, myTableRetrieved.getVersion());
+            assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
+            transaction.commit();
+        }
+    }
+
+    @Test
+    public void aggregate_saveWithOldVersion_throwsConcurrencyException()
+    {
+        registerMyTableWithVersionAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            myTable.setVersion(0);
+
+            try
+            {
+                transaction.save(myTable);
+
+                Assert.fail("Failed to throw PhotonOptimisticConcurrencyException.");
+            }
+            catch(PhotonOptimisticConcurrencyException ignored)
+            {
+            }
+        }
+    }
+
+    @Test
+    public void aggregate_insertWithVersion_insertsAggregate()
+    {
+        registerMyTableWithVersionAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(0, "NewVal", null);
+
+            transaction.insert(myTable);
+            transaction.commit();
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(1, myTableRetrieved.getVersion());
+            assertEquals("NewVal", myTableRetrieved.getMyvalue());
+            transaction.commit();
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)
@@ -531,6 +611,15 @@ public class MyTableSaveTests
                 .withForeignKeyToParent("id")
                 .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName")
                 .addAsChild()
+            .register();
+    }
+
+    private void registerMyTableWithVersionAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .withVersionField("version")
             .register();
     }
 

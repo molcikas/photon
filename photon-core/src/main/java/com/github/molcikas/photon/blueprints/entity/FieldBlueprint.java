@@ -1,5 +1,6 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.entity;
 
+import com.github.molcikas.photon.PhotonUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -19,6 +20,8 @@ public class FieldBlueprint
 
     private final EntityBlueprint childEntityBlueprint;
     private final ForeignKeyListBlueprint foreignKeyListBlueprint;
+
+    private boolean isVersionField = false;
 
     public Field getReflectedField()
     {
@@ -65,12 +68,17 @@ public class FieldBlueprint
         return compoundEntityFieldValueMapping;
     }
 
-    FieldBlueprint(Field reflectedField,
-                   EntityBlueprint childEntityBlueprint,
-                   ForeignKeyListBlueprint foreignKeyListBlueprint,
-                   Converter customHydrater,
-                   EntityFieldValueMapping entityFieldValueMapping,
-                   CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
+    public boolean isVersionField()
+    {
+        return isVersionField;
+    }
+
+    public FieldBlueprint(Field reflectedField,
+                          EntityBlueprint childEntityBlueprint,
+                          ForeignKeyListBlueprint foreignKeyListBlueprint,
+                          Converter customHydrater,
+                          EntityFieldValueMapping entityFieldValueMapping,
+                          CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
     {
         if(reflectedField == null && entityFieldValueMapping == null && compoundEntityFieldValueMapping == null)
         {
@@ -163,5 +171,18 @@ public class FieldBlueprint
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;
         }
+    }
+
+    public void setAsVersionField()
+    {
+        if(reflectedField == null || fieldClass == null)
+        {
+            throw new PhotonException("Field '%s' cannot be a version field because it does not map to a real field on the entity.", fieldName);
+        }
+        if(!PhotonUtils.isNumericType(fieldClass))
+        {
+            throw new PhotonException("Field '%s' cannot be a version field because it is not a number field.", fieldName);
+        }
+        isVersionField = true;
     }
 }

@@ -1,7 +1,11 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.Photon;
-import com.github.molcikas.photon.blueprints.*;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprintBuilder;
+import com.github.molcikas.photon.blueprints.entity.EntityClassDiscriminator;
+import com.github.molcikas.photon.blueprints.entity.MappedClassBlueprint;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;

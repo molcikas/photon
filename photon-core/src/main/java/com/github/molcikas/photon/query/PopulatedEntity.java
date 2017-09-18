@@ -1,7 +1,11 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldType;
+import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import org.apache.commons.lang3.StringUtils;
-import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -148,6 +152,23 @@ public class PopulatedEntity<T>
         setInstanceFieldToDatabaseValue(entityBlueprint.getTableBlueprint().getForeignKeyToParentColumnNameQualified(), foreignKeyToParentValue, true);
     }
 
+    public void incrementVersionNumber()
+    {
+        for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
+        {
+            ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
+            if(versionColumn == null)
+            {
+                continue;
+            }
+            Number version = (Number) getInstanceValue(versionColumn);
+            Long incrementedVersionLong = version != null ? version.longValue() + 1 : 0;
+            Converter converter = Convert.getConverter(versionColumn.getMappedFieldBlueprint().getFieldClass());
+            Object incrementedVersion = converter.convert(incrementedVersionLong);
+            setInstanceFieldToValue(versionColumn.getMappedFieldBlueprint(), incrementedVersion);
+        }
+    }
+
     public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
     {
         if(fieldBlueprint.getFieldType() != FieldType.ForeignKeyList)
@@ -235,8 +256,16 @@ public class PopulatedEntity<T>
             return false;
         }
 
-        boolean canPerformUpdate = true;
         Map<String, Object> values = new HashMap<>();
+
+        ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
+        Number version = null;
+        Long incrementedVersion = null;
+        if(versionColumn != null)
+        {
+            version = (Number) getInstanceValue(versionColumn);
+            incrementedVersion = version != null ? version.longValue() + 1 : 0;
+        }
 
         for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumns())
         {
@@ -244,7 +273,11 @@ public class PopulatedEntity<T>
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
             Converter customColumnSerializer = null;
 
-            if (fieldBlueprint != null)
+            if(columnBlueprint.equals(versionColumn))
+            {
+                fieldValue = incrementedVersion;
+            }
+            else if (fieldBlueprint != null)
             {
                 if(fieldBlueprint.getFieldType() == FieldType.CompoundCustomValueMapper)
                 {
@@ -266,16 +299,15 @@ public class PopulatedEntity<T>
             }
             else
             {
-                canPerformUpdate = false;
-                break;
+                return false;
             }
 
             updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
         }
 
-        if(!canPerformUpdate)
+        if(versionColumn != null)
         {
-            return false;
+            updateStatement.setNextParameter(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer());
         }
 
         updateStatement.addToBatch();

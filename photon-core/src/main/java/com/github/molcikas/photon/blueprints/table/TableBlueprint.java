@@ -1,5 +1,8 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.table;
 
+import com.github.molcikas.photon.PhotonUtils;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.query.PopulatedEntity;
 
@@ -121,14 +124,6 @@ public class TableBlueprint
         return primaryKeyColumn != null ? primaryKeyColumn.getColumnNameQualified() : null;
     }
 
-    public Optional<ColumnBlueprint> getColumn(String columnName)
-    {
-        return columns
-            .stream()
-            .filter(c -> c.getColumnName().equals(columnName))
-            .findFirst();
-    }
-
     public List<ColumnBlueprint> getColumnsForInsertStatement(boolean alwaysIncludePrimaryKey)
     {
         if(alwaysIncludePrimaryKey)
@@ -141,6 +136,20 @@ public class TableBlueprint
             .collect(Collectors.toList());
     }
 
+    public ColumnBlueprint getVersionColumn(EntityBlueprint entityBlueprint)
+    {
+        FieldBlueprint versionField = entityBlueprint.getVersionField();
+        if(versionField == null)
+        {
+            return null;
+        }
+        return columns
+            .stream()
+            .filter(c -> versionField.equals(c.getMappedFieldBlueprint()))
+            .findFirst()
+            .orElse(null);
+    }
+
     public boolean shouldInsertUsingPrimaryKeySql(PopulatedEntity populatedEntity)
     {
         if (!getPrimaryKeyColumn().isAutoIncrementColumn())
@@ -148,7 +157,7 @@ public class TableBlueprint
             return false;
         }
         Object primaryKey = populatedEntity.getPrimaryKeyValue();
-        if (primaryKey == null || !Number.class.isAssignableFrom(primaryKey.getClass()))
+        if (primaryKey == null || !PhotonUtils.isNumericType(primaryKey.getClass()))
         {
             return false;
         }

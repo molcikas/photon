@@ -1,4 +1,4 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.table;
 
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.apache.commons.lang3.StringUtils;

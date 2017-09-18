@@ -1,8 +1,8 @@
 package com.github.molcikas.photon;
 
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprintBuilder;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprintBuilder;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.datasource.GenericDataSource;

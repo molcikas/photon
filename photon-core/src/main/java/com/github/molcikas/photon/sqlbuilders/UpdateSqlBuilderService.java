@@ -1,8 +1,8 @@
 package com.github.molcikas.photon.sqlbuilders;
 
-import com.github.molcikas.photon.blueprints.ColumnBlueprint;
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.TableBlueprint;
+import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +23,10 @@ public final class UpdateSqlBuilderService
         EntityBlueprint entityBlueprint,
         PhotonOptions photonOptions)
     {
-        buildUpdateSqlForTableBlueprint(entityBlueprint.getTableBlueprint(), photonOptions);
+        buildUpdateSqlForTableBlueprint(entityBlueprint, entityBlueprint.getTableBlueprint(), photonOptions);
         for(TableBlueprint joinedTableBlueprint : entityBlueprint.getJoinedTableBlueprints())
         {
-            buildUpdateSqlForTableBlueprint(joinedTableBlueprint, photonOptions);
+            buildUpdateSqlForTableBlueprint(entityBlueprint, joinedTableBlueprint, photonOptions);
         }
 
         entityBlueprint
@@ -34,14 +34,14 @@ public final class UpdateSqlBuilderService
             .forEach(entityField -> buildUpdateSqlRecursive(entityField.getChildEntityBlueprint(), photonOptions));
     }
 
-    private static void buildUpdateSqlForTableBlueprint(TableBlueprint tableBlueprint, PhotonOptions photonOptions)
+    private static void buildUpdateSqlForTableBlueprint(EntityBlueprint entityBlueprint, TableBlueprint tableBlueprint, PhotonOptions photonOptions)
     {
         int initialCapacity = tableBlueprint.getColumns().size() * 16 + 64;
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
         buildUpdateClauseSql(sqlBuilder, tableBlueprint);
         buildSetClauseSql(sqlBuilder, tableBlueprint);
-        buildWhereClauseSql(sqlBuilder, tableBlueprint);
+        buildWhereClauseSql(sqlBuilder, tableBlueprint, entityBlueprint);
 
         String updateSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
         log.debug("Update Sql for {}:\n{}", tableBlueprint.getTableName(), updateSql);
@@ -90,11 +90,22 @@ public final class UpdateSqlBuilderService
         }
     }
 
-    private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
+    private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint, EntityBlueprint entityBlueprint)
     {
         sqlBuilder.append(String.format("\nWHERE [%s].[%s] = ?",
             tableBlueprint.getTableName(),
             tableBlueprint.getPrimaryKeyColumnName()
+        ));
+
+        ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
+        if(versionColumn == null)
+        {
+            return;
+        }
+
+        sqlBuilder.append(String.format(" AND [%s].[%s] = ?",
+            tableBlueprint.getTableName(),
+            versionColumn.getColumnName()
         ));
     }
 }

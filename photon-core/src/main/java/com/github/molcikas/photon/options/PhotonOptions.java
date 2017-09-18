@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.options;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 
 /**
  * The options for photon.

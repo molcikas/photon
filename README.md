@@ -165,7 +165,9 @@ public class ProductOrderDto
     
     public Date orderDate;
 }
+```
 
+```java
 // Register the view model aggregate. You can re-use the same DTO classes in multiple view model aggregates (e.g. if you want different
 // view models with different sort orders), just give each aggregate view model a unique name.
 
@@ -392,6 +394,28 @@ photon.registerAggregate(Shape.class)
     .register();
 ```
 
+## Optimistic Concurrency
+
+Photon supports optimistic concurrency using an incrementing version number on the aggregate root.
+
+```java
+public class Recipe
+{
+    private UUID recipeId;
+    
+    private int version;
+}
+```
+
+```java
+photon.registerAggregate(Recipe.class)
+    .withId("recipeId")
+    .withVersionField("version")
+    .register();
+```
+
+Photon will automatically increment the version number each time it is saved. If the version number in the database does not match the one being saved, a `PhotonOptimisticConcurrencyException` will be thrown. Note that you *cannot* use `photonTransaction.save()` to upsert aggregates with a version field because the `save()` will throw a `PhotonOptimisticConcurrencyException` if the update fails. You *must* use `insert()` to insert new aggregates and `save()` to update existing ones.
+
 ## Many-to-Many Relationships
 
 Many-to-many relationships don't make sense inside an aggregate. If an entity can be related to more than one entity, then each entity should be their own aggregate. For example, if you have an `Order` entity and an `OrderAddress` entity with a many-to-many relationship, meaning that an `Order` can have many `OrderAddresses` and an `OrderAddress` can be linked to many `Orders`, then the `Order` and `OrderAddress` entities should be in separate aggregates.
@@ -408,7 +432,7 @@ This will map the `List<Integer> addresses` field on `Order` to have the `orderA
 
 If you're familiar with JPA, in JPA 2.0, the equivalent implementation would be to have a list field decorated with `@ElementCollection` and `@CollectionTable` with a `@JoinColumn` with both `joinColumns` and `referencedColumnName` set.
 
-## Using Photon Alongside another ORM (coming in 0.6)
+## Using Photon Alongside another ORM
 
 While Photon is powerful enough to be used as the sole ORM on a project, it does provide ways to use it alongside another ORM. The `ExistingConnectionDataSource` can be used to have Photon share a database connection with another ORM.
 

@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.sqlbuilders;
 
-import com.github.molcikas.photon.blueprints.TableBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 
 import java.util.*;
 

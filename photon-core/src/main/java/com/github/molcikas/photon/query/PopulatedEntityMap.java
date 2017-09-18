@@ -1,8 +1,8 @@
 package com.github.molcikas.photon.query;
 
-import com.github.molcikas.photon.blueprints.EntityBlueprint;
-import com.github.molcikas.photon.blueprints.ColumnBlueprint;
-import com.github.molcikas.photon.blueprints.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 
 import java.util.*;
 

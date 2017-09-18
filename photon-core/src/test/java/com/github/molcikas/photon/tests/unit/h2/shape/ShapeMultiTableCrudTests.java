@@ -2,8 +2,8 @@ package com.github.molcikas.photon.tests.unit.h2.shape;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.ColumnDataType;
-import com.github.molcikas.photon.blueprints.JoinType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.JoinType;
 import com.github.molcikas.photon.tests.unit.entities.shape.*;
 import org.junit.Before;
 import org.junit.Test;

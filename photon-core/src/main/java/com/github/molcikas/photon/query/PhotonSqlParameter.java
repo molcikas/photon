@@ -1,7 +1,7 @@
 package com.github.molcikas.photon.query;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
-import com.github.molcikas.photon.blueprints.TableBlueprintBuilder;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.TableBlueprintBuilder;
 import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.util.Collection;

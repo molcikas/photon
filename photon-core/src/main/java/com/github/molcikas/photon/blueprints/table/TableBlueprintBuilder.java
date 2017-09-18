@@ -1,5 +1,7 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.table;
 
+import com.github.molcikas.photon.blueprints.entity.CompoundEntityFieldValueMapping;
+import com.github.molcikas.photon.blueprints.entity.*;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
@@ -377,7 +379,7 @@ public class TableBlueprintBuilder
         return entityBlueprintBuilder.addAsJoinedTable(this);
     }
 
-    TableBlueprint build(
+    public TableBlueprint build(
         boolean isSimpleEntity,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,

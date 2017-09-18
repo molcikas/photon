@@ -1,5 +1,6 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.entity;
 
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.exceptions.PhotonException;
 

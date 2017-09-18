@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.twoaggregates;
 
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;

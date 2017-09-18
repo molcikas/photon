@@ -1,5 +1,7 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.table;
 
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprintBuilder;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -8,7 +10,7 @@ import java.util.List;
 
 public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
 {
-    JoinedTableBlueprintBuilder(
+    public JoinedTableBlueprintBuilder(
         Class entityClass,
         String tableName,
         JoinType joinType,
@@ -37,7 +39,7 @@ public class JoinedTableBlueprintBuilder extends TableBlueprintBuilder
     }
 
     @Override
-    TableBlueprint build(
+    public TableBlueprint build(
         boolean isSimpleEntity,
         List<FieldBlueprint> fields,
         List<String> parentEntityTables,

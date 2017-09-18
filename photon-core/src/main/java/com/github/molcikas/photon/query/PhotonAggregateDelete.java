@@ -1,6 +1,10 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.blueprints.*;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;

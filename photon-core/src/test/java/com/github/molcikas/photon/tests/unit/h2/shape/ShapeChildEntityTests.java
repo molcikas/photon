@@ -2,7 +2,7 @@ package com.github.molcikas.photon.tests.unit.h2.shape;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.blueprints.ColumnDataType;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.tests.unit.entities.shape.Circle;
 import com.github.molcikas.photon.tests.unit.entities.shape.CornerCoordinates;
 import com.github.molcikas.photon.tests.unit.entities.shape.Rectangle;

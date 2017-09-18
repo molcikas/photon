@@ -1,8 +1,13 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.blueprints.*;
+import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
+import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
 
@@ -122,6 +127,19 @@ public class PhotonAggregateSave
             .flatMap(Collection::stream)
             .distinct()
             .collect(Collectors.toList());
+
+        if(!isInsert && entityBlueprint.getVersionField() != null)
+        {
+            if(!populatedEntitiesToInsertList.isEmpty())
+            {
+                throw new PhotonOptimisticConcurrencyException();
+            }
+
+            for(PopulatedEntity populatedEntity : populatedEntities)
+            {
+                populatedEntity.incrementVersionNumber();
+            }
+        }
 
         insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity, entityBlueprint);
 

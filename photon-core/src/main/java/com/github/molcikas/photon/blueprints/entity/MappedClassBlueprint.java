@@ -1,4 +1,4 @@
-package com.github.molcikas.photon.blueprints;
+package com.github.molcikas.photon.blueprints.entity;
 
 import com.github.molcikas.photon.exceptions.PhotonException;
 
