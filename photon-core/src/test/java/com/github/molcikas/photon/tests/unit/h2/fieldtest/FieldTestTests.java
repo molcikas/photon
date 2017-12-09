@@ -20,6 +20,7 @@ public class FieldTestTests
     @Before
     public void setupDatabase()
     {
+        TimeZone.setDefault(TimeZone.getTimeZone("GMT-08:30"));
         photon = FieldTestDbSetup.setupDatabase();
     }
 

@@ -419,4 +419,47 @@ public class MyTableQueryTests
             transaction.commit();
         }
     }
+
+    private static class MyTableInnerClass
+    {
+        private Long id;
+
+        private String myvalue;
+
+        public Long getId()
+        {
+            return id;
+        }
+
+        public String getMyvalue()
+        {
+            return myvalue;
+        }
+
+        protected MyTableInnerClass()
+        {
+        }
+    }
+
+    @Test
+    public void query_innerClass_constructsObject()
+    {
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            String sql =
+                "SELECT * " +
+                "FROM mytable " +
+                "WHERE id = 1 ";
+
+            MyTableInnerClass myTableInnerClass = transaction
+                .query(sql)
+                .fetch(MyTableInnerClass.class);
+
+            assertNotNull(myTableInnerClass);
+            assertEquals(new Long(1L), myTableInnerClass.getId());
+            assertEquals("my1dbvalue", myTableInnerClass.getMyvalue());
+
+            transaction.commit();
+        }
+    }
 }

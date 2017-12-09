@@ -109,7 +109,7 @@ public class EntityBlueprint
         {
             throw new PhotonException(
                 ex,
-                "Error getting constructor for entity class '%s'. Make sure the class has a parameterless constructor (private is ok).",
+                "Error getting constructor for entity class '%s'. Make sure the class has a parameterless constructor (private is ok). If this is a nested inner class, make sure the class declaration is static.",
                 classToConstruct
             );
         }

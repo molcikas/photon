@@ -53,6 +53,23 @@ public class MyOneToManyTableFetchTests
     }
 
     @Test
+    public void aggregateQuery_fetchByIdNoChildren_returnsAggregateWithEmptyNotNullChildList()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(1);
+
+            assertNotNull(myOneToManyTable);
+            assertNotNull(myOneToManyTable.getMyManyTables());
+            assertEquals(0, myOneToManyTable.getMyManyTables().size());
+        }
+    }
+
+    @Test
     public void aggregateQuery_fetchByIdExcludeChild_returnsAggregateWithNullChild()
     {
         registerMyOneToManyTableAggregate();
