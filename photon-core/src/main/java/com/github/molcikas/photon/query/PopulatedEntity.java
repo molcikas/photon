@@ -23,6 +23,7 @@ public class PopulatedEntity<T>
     private T entityInstance;
     private Object primaryKeyValue;
     private Object foreignKeyToParentValue;
+    private PhotonQueryResultRow photonQueryResultRow;
 
     public EntityBlueprint getEntityBlueprint()
     {
@@ -49,10 +50,11 @@ public class PopulatedEntity<T>
         this(entityBlueprint, queryResultRow, true);
     }
 
-    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
+    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow photonQueryResultRow, boolean columnsFullyQualified)
     {
         this.entityBlueprint = entityBlueprint;
-        constructOrphanEntityInstance(queryResultRow, columnsFullyQualified);
+        this.photonQueryResultRow = photonQueryResultRow;
+        constructOrphanEntityInstance(columnsFullyQualified);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
@@ -390,21 +392,20 @@ public class PopulatedEntity<T>
         }
     }
 
-    @SneakyThrows
-    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
+    private void constructOrphanEntityInstance(boolean columnsFullyQualified)
     {
-        Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
+        Constructor<T> constructor = entityBlueprint.getEntityConstructor(photonQueryResultRow.getValuesMap());
 
         entityInstance = constructor.newInstance();
 
-        for(Map.Entry<String, Object> entry : queryResultRow.getValues())
+        for(Map.Entry<String, Object> entry : photonQueryResultRow.getValues())
         {
             setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue(), columnsFullyQualified);
         }
 
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getCompoundCustomValueMapperFields())
         {
-            Map<String, Object> databaseValues = queryResultRow
+            Map<String, Object> databaseValues = photonQueryResultRow
                 .getValues()
                 .stream()
                 .filter(v -> entityBlueprint.getFieldsForColumnNameQualified(v.getKey()).contains(fieldBlueprint))

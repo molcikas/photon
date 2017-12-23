@@ -87,6 +87,7 @@ public class PhotonAggregateSave
 
         if(!isInsert)
         {
+            // TODO: How to do change tracking for these??
             findAndDeleteOrphans(entityBlueprint, populatedEntities, parentPopulatedEntity, parentFieldBlueprint);
             findAndDeleteJoinedOrphans(entityBlueprint, populatedEntities);
         }

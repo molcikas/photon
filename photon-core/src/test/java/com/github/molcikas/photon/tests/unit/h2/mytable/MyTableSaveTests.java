@@ -574,6 +574,37 @@ public class MyTableSaveTests
         }
     }
 
+    @Test
+    public void aggregate_saveWithChangeTracking_savesChangesOnly()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .trackChanges()
+                .fetchById(2);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing because we're tracking changes and none were made.
+            transaction.save(myTable);
+
+            transaction.commit();
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
     private void registerMyTableOnlyAggregate()
     {
         photon.registerAggregate(MyTable.class)

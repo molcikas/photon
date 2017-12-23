@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.Photon;
+import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
@@ -16,16 +17,20 @@ public class PhotonAggregateQuery<T>
 {
     private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
+    private final PhotonTransaction.PhotonTransactionHandle photonTransaction;
     private final Photon photon;
     private final List<String> excludedFieldPaths;
+    private boolean trackChanges = false;
 
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
         Connection connection,
+        PhotonTransaction.PhotonTransactionHandle photonTransaction,
         Photon photon)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
+        this.photonTransaction = photonTransaction;
         this.photon = photon;
         this.excludedFieldPaths = new ArrayList<>();
     }
@@ -37,6 +42,12 @@ public class PhotonAggregateQuery<T>
             throw new PhotonException("Excluded field name cannot be blank.");
         }
         excludedFieldPaths.add(fieldName);
+        return this;
+    }
+
+    public PhotonAggregateQuery<T> trackChanges()
+    {
+        this.trackChanges = true;
         return this;
     }
 
@@ -129,6 +140,12 @@ public class PhotonAggregateQuery<T>
         }
 
         populatedEntityMap.mapAllEntityInstanceChildren();
+
+        // TODO: Register map of entities with transaction.
+        if(trackChanges)
+        {
+            photonTransaction.track(aggregateBlueprint.getAggregateRootClass(), populatedEntityMap);
+        }
 
         return populatedEntityMap
             .getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass())

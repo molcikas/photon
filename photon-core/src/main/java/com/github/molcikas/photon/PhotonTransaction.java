@@ -1,9 +1,7 @@
 package com.github.molcikas.photon;
 
-import com.github.molcikas.photon.query.PhotonAggregateDelete;
-import com.github.molcikas.photon.query.PhotonAggregateQuery;
-import com.github.molcikas.photon.query.PhotonAggregateSave;
-import com.github.molcikas.photon.query.PhotonQuery;
+import com.github.molcikas.photon.query.*;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -11,21 +9,26 @@ import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 
 import java.io.Closeable;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Contains a database transaction for Photon.
  */
+@Slf4j
 public class PhotonTransaction implements Closeable
 {
-    private static final Logger log = LoggerFactory.getLogger(PhotonTransaction.class);
+    public class PhotonTransactionHandle
+    {
+        public void track(Class<?> aggregateRootClass, PopulatedEntityMap populatedEntityMap)
+        {
+            trackedAggregates.put(aggregateRootClass, populatedEntityMap);
+        }
+    }
 
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
     private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
+    private final Map<Class<?>, PopulatedEntityMap> trackedAggregates;
     private final Photon photon;
     private boolean hasUncommittedChanges = false;
 
@@ -39,6 +42,7 @@ public class PhotonTransaction implements Closeable
         this.registeredAggregates = registeredAggregates;
         this.registeredViewModelAggregates = registeredViewModelAggregates;
         this.photon = photon;
+        this.trackedAggregates = new HashMap<>();
 
         try
         {
@@ -89,7 +93,7 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("query", false);
         AggregateBlueprint<T> aggregateBlueprint = getAggregateBlueprint(aggregateClass);
-        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photon);
+        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon);
     }
 
     /**
@@ -104,7 +108,7 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("query", false);
         AggregateBlueprint<T> aggregateBlueprint = getViewModelAggregateBlueprint(aggregateClass, viewModelAggregateBlueprintName);
-        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photon);
+        return new PhotonAggregateQuery<>(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon);
     }
 
     /**
