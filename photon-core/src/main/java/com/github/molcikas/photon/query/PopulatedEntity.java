@@ -169,16 +169,16 @@ public class PopulatedEntity<T>
         }
     }
 
-    public void appendValueToForeignKeyListField(FieldBlueprint fieldBlueprint, Object value)
+    public void appendValueToFlattenedCollectionField(FieldBlueprint fieldBlueprint, Object value)
     {
-        if(fieldBlueprint.getFieldType() != FieldType.ForeignKeyList)
+        if(fieldBlueprint.getFieldType() != FieldType.FlattenedCollection)
         {
             throw new PhotonException("Field '%s' is not a foreign key list field.", fieldBlueprint.getFieldName());
         }
 
         Object fieldCollection = getInstanceValue(fieldBlueprint);
 
-        Converter converter = Convert.getConverterIfExists(fieldBlueprint.getForeignKeyListBlueprint().getFieldListItemClass());
+        Converter converter = Convert.getConverterIfExists(fieldBlueprint.getFlattenedCollectionBlueprint().getFieldClass());
         Object fieldValue = converter.convert(value);
         ((Collection) fieldCollection).add(fieldValue);
     }
@@ -406,7 +406,7 @@ public class PopulatedEntity<T>
             setInstanceFieldsToValues(valuesToSet);
         }
 
-        for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
+        for (FieldBlueprint fieldBlueprint : entityBlueprint.getFlattenedCollectionFields())
         {
             Collection fieldCollection = createCompatibleCollection(fieldBlueprint.getFieldClass());
             setInstanceFieldToValue(fieldBlueprint, fieldCollection);

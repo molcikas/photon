@@ -6,7 +6,6 @@ import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.tests.unit.entities.twoaggregates.AggregateOne;
-import com.github.molcikas.photon.tests.unit.entities.twoaggregates.AggregateTwo;
 
 import java.util.Arrays;
 import java.util.List;
@@ -185,12 +184,7 @@ public class TwoAggregatesTests
     {
         photon.registerAggregate(AggregateOne.class)
             .withId("aggregateOneId")
-            .withForeignKeyListToOtherAggregate("aggregateTwos", "aggregatemapping", "aggregateOneId", "aggregateTwoId", ColumnDataType.BINARY, UUID.class)
-            .register();
-
-        photon.registerAggregate(AggregateTwo.class)
-            .withId("aggregateTwoId")
-            .withForeignKeyListToOtherAggregate("aggregateOnes", "aggregatemapping", "aggregateTwoId", "aggregateOneId", ColumnDataType.BINARY, UUID.class)
+            .withFlattenedCollection("aggregateTwos", UUID.class, "aggregatemapping", "aggregateOneId", "aggregateTwoId", ColumnDataType.BINARY)
             .register();
     }
 }

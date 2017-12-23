@@ -87,7 +87,7 @@ public class PopulatedEntityMap
     {
         ColumnBlueprint primaryKeyColumn = entityBlueprint.getTableBlueprint().getPrimaryKeyColumn();
         List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
-        String foreignTableKeyColumnName = fieldBlueprint.getForeignKeyListBlueprint().getForeignTableKeyColumnName();
+        String foreignTableKeyColumnName = fieldBlueprint.getFlattenedCollectionBlueprint().getColumnName();
 
         int entityIndex = 0;
         for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
@@ -102,7 +102,7 @@ public class PopulatedEntityMap
                 break;
             }
             PopulatedEntity populatedEntity = populatedEntities.get(entityIndex);
-            populatedEntity.appendValueToForeignKeyListField(fieldBlueprint, photonQueryResultRow.getValue(foreignTableKeyColumnName));
+            populatedEntity.appendValueToFlattenedCollectionField(fieldBlueprint, photonQueryResultRow.getValue(foreignTableKeyColumnName));
         }
     }
 

@@ -27,7 +27,7 @@ public class TableBlueprintBuilder
     private final Map<String, EntityFieldValueMapping> customDatabaseColumns;
     private final Map<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumns;
     private final Map<String, String> customFieldToColumnMappings;
-    private final Map<String, ForeignKeyListBlueprint> foreignKeyListBlueprints;
+    private final Map<String, FlattenedCollectionBlueprint> flattenedCollectionBlueprints;
     private final Map<String, Converter> customDatabaseColumnSerializers;
 
     protected String idFieldName;
@@ -54,9 +54,9 @@ public class TableBlueprintBuilder
         return Collections.unmodifiableMap(customCompoundDatabaseColumns);
     }
 
-    public Map<String, ForeignKeyListBlueprint> getForeignKeyListBlueprints()
+    public Map<String, FlattenedCollectionBlueprint> getFlattenedCollectionBlueprints()
     {
-        return Collections.unmodifiableMap(foreignKeyListBlueprints);
+        return Collections.unmodifiableMap(flattenedCollectionBlueprints);
     }
 
     public TableBlueprintBuilder(EntityBlueprintBuilder entityBlueprintBuilder, PhotonOptions photonOptions)
@@ -81,7 +81,7 @@ public class TableBlueprintBuilder
         this.customDatabaseColumns = new HashMap<>();
         this.customCompoundDatabaseColumns = new HashMap<>();
         this.customFieldToColumnMappings = new HashMap<>();
-        this.foreignKeyListBlueprints = new HashMap<>();
+        this.flattenedCollectionBlueprints = new HashMap<>();
         this.customDatabaseColumnSerializers = new HashMap<>();
 
         if(entityClass != null)
@@ -221,30 +221,30 @@ public class TableBlueprintBuilder
     }
 
     /**
-     * Sets up a many-to-many relationship, mapping an aggregate to a list of other aggregates.
+     * Sets up a collection that flattens a child table into a list of values from a column in the table.
      *
-     * @param fieldName - the field containing the list of foreign aggregate ids
-     * @param foreignTableName - the many-to-many intermediate table
-     * @param foreignTableJoinColumnName - the foreign table column that joins back to the aggregate
-     * @param foreignTableKeyColumnName - the foreign table column that joins to the foreign aggregate
-     * @param foreignTableKeyColumnType - the column data type for the foreign table key column
-     * @param fieldListItemClass - the class type for the items in the field list.
+     * @param fieldName - the field that will contain the flattened collection
+     * @param fieldClass - the class type for the items in the field collection
+     * @param tableName - the table name of the collection to flatten
+     * @param foreignKeyToParent - the foreign table column that joins back to the aggregate
+     * @param columnName - the foreign table column that contains the values in the flattened collection
+     * @param columnDataType - the column data type for the foreign table key column
      * @return - builder for chaining
      */
-    public TableBlueprintBuilder withForeignKeyListToOtherAggregate(
+    public TableBlueprintBuilder withFlattenedCollection(
         String fieldName,
-        String foreignTableName,
-        String foreignTableJoinColumnName,
-        String foreignTableKeyColumnName,
-        ColumnDataType foreignTableKeyColumnType,
-        Class fieldListItemClass)
+        Class fieldClass,
+        String tableName,
+        String foreignKeyToParent,
+        String columnName,
+        ColumnDataType columnDataType)
     {
-        foreignKeyListBlueprints.put(fieldName, new ForeignKeyListBlueprint(
-            foreignTableName,
-            foreignTableJoinColumnName,
-            foreignTableKeyColumnName,
-            foreignTableKeyColumnType,
-            fieldListItemClass
+        flattenedCollectionBlueprints.put(fieldName, new FlattenedCollectionBlueprint(
+            fieldClass,
+            tableName,
+            foreignKeyToParent,
+            columnName,
+            columnDataType
         ));
         return this;
     }
@@ -430,7 +430,7 @@ public class TableBlueprintBuilder
 
         List<FieldBlueprint> fieldsWithColumnMappings = fields
             .stream()
-            .filter(f -> f.getFieldType() != FieldType.ForeignKeyList)
+            .filter(f -> f.getFieldType() != FieldType.FlattenedCollection)
             .collect(Collectors.toList());
 
         List<ColumnBlueprint> columns = new ArrayList<>(fieldsWithColumnMappings.size() + 2); // 2 extra for primary key and foreign key to parent.

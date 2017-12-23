@@ -3,7 +3,7 @@ package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
@@ -145,7 +145,7 @@ public class PhotonAggregateSave
 
         setForeignKeyToParentForPopulatedEntities(populatedEntities, entityBlueprint.getFieldsWithChildEntities());
 
-        insertAndDeleteForeignKeyListFields(populatedEntities, entityBlueprint.getForeignKeyListFields());
+        insertAndDeleteFlattenedCollectionFields(populatedEntities, entityBlueprint.getFlattenedCollectionFields());
 
         for(PopulatedEntity populatedEntity : populatedEntities)
         {
@@ -510,7 +510,7 @@ public class PhotonAggregateSave
         }
     }
 
-    private void insertAndDeleteForeignKeyListFields(List<PopulatedEntity> populatedEntities, List<FieldBlueprint> foreignKeyListFields)
+    private void insertAndDeleteFlattenedCollectionFields(List<PopulatedEntity> populatedEntities, List<FieldBlueprint> flattenedCollectionFields)
     {
         if(populatedEntities == null || populatedEntities.isEmpty())
         {
@@ -523,63 +523,63 @@ public class PhotonAggregateSave
             .map(PopulatedEntity::getPrimaryKeyValue)
             .collect(Collectors.toList());
 
-        for (FieldBlueprint fieldBlueprint : foreignKeyListFields)
+        for (FieldBlueprint fieldBlueprint : flattenedCollectionFields)
         {
-            ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
-            Map<Object, Collection> existingDatabaseForeignKeyListValues = getExistingDatabaseForeignKeyListValues(
+            FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
+            Map<Object, Collection> existingFlattenedCollectionValues = getExistingFlattenedCollectionValues(
                 ids,
-                foreignKeyListBlueprint,
+                flattenedCollectionBlueprint,
                 entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass()
             );
 
-            try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(foreignKeyListBlueprint.getInsertSql(), false, connection, photonOptions))
+            try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getInsertSql(), false, connection, photonOptions))
             {
                 for (PopulatedEntity populatedEntity : populatedEntities)
                 {
                     EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
-                    Collection databaseForeignKeyListValuesForEntity = existingDatabaseForeignKeyListValues.get(populatedEntity.getPrimaryKeyValue());
-                    if(databaseForeignKeyListValuesForEntity == null)
+                    Collection foreignKeyToParentValues = existingFlattenedCollectionValues.get(populatedEntity.getPrimaryKeyValue());
+                    if(foreignKeyToParentValues == null)
                     {
-                        databaseForeignKeyListValuesForEntity = Collections.emptyList();
+                        foreignKeyToParentValues = Collections.emptyList();
                     }
-                    final Collection databaseForeignKeyListValuesForEntityFinal = databaseForeignKeyListValuesForEntity;
-                    Collection currentForeignKeyListValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint);
-                    if(currentForeignKeyListValues == null)
+                    final Collection foreignKeyToParentValuesFinal = foreignKeyToParentValues;
+                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint);
+                    if(flattenedCollectionValues == null)
                     {
-                        currentForeignKeyListValues = Collections.emptyList();
+                        flattenedCollectionValues = Collections.emptyList();
                     }
-                    final Collection currentForeignKeyListValuesFinal = (Collection) currentForeignKeyListValues
+                    final Collection flattenedCollectionValuesFinal = (Collection) flattenedCollectionValues
                         .stream()
                         .distinct()
                         .collect(Collectors.toList());
 
-                    Collection foreignKeyValuesToDelete = (Collection) databaseForeignKeyListValuesForEntityFinal
+                    Collection foreignKeyValuesToDelete = (Collection) foreignKeyToParentValuesFinal
                         .stream()
-                        .filter(value -> !currentForeignKeyListValuesFinal.contains(value))
+                        .filter(value -> !flattenedCollectionValuesFinal.contains(value))
                         .collect(Collectors.toList());
 
                     if(!foreignKeyValuesToDelete.isEmpty())
                     {
                         try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(
-                            foreignKeyListBlueprint.getDeleteForeignKeysSql(),
+                            flattenedCollectionBlueprint.getDeleteForeignKeysSql(),
                             false,
                             connection,
                             photonOptions))
                         {
-                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
+                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, flattenedCollectionBlueprint.getColumnDataType(), null);
                             deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
                             deleteStatement.executeUpdate();
                         }
                     }
 
-                    Collection foreignKeyValuesToInsert = (Collection) currentForeignKeyListValuesFinal
+                    Collection foreignKeyValuesToInsert = (Collection) flattenedCollectionValuesFinal
                         .stream()
-                        .filter(value -> !databaseForeignKeyListValuesForEntityFinal.contains(value))
+                        .filter(value -> !foreignKeyToParentValuesFinal.contains(value))
                         .collect(Collectors.toList());
 
                     for (Object foreignKeyValue : foreignKeyValuesToInsert)
                     {
-                        insertStatement.setNextParameter(foreignKeyValue, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
+                        insertStatement.setNextParameter(foreignKeyValue, flattenedCollectionBlueprint.getColumnDataType(), null);
                         insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
                         insertStatement.addToBatch();
                     }
@@ -590,33 +590,36 @@ public class PhotonAggregateSave
         }
     }
 
-    private Map<Object, Collection> getExistingDatabaseForeignKeyListValues(List<Object> ids, ForeignKeyListBlueprint foreignKeyListBlueprint, Class primaryKeyFieldClass)
+    private Map<Object, Collection> getExistingFlattenedCollectionValues(
+        List<Object> ids,
+        FlattenedCollectionBlueprint flattenedCollectionBlueprint,
+        Class primaryKeyFieldClass)
     {
-        Map<Object, Collection> existingDatabaseForeignKeyListValues = new HashMap<>();
+        Map<Object, Collection> existingFlattenedCollectionValues = new HashMap<>();
         List<PhotonQueryResultRow> photonQueryResultRows;
 
-        try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection, photonOptions))
+        try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photonOptions))
         {
-            statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
-            photonQueryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
+            statement.setNextArrayParameter(ids, flattenedCollectionBlueprint.getColumnDataType(), null);
+            photonQueryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
         }
 
         Converter joinColumnConverter = Convert.getConverterIfExists(primaryKeyFieldClass);
-        Converter foreignKeyConverter = Convert.getConverterIfExists(foreignKeyListBlueprint.getFieldListItemClass());
+        Converter foreignKeyConverter = Convert.getConverterIfExists(flattenedCollectionBlueprint.getFieldClass());
 
         for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
         {
-            Object joinColumnValue = joinColumnConverter.convert(photonQueryResultRow.getValue(foreignKeyListBlueprint.getForeignTableJoinColumnName()));
-            Object foreignKeyValue = foreignKeyConverter.convert(photonQueryResultRow.getValue(foreignKeyListBlueprint.getForeignTableKeyColumnName()));
-            Collection existingForeignKeysList = existingDatabaseForeignKeyListValues.get(joinColumnValue);
+            Object joinColumnValue = joinColumnConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getForeignKeyToParent()));
+            Object foreignKeyValue = foreignKeyConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName()));
+            Collection existingForeignKeysList = existingFlattenedCollectionValues.get(joinColumnValue);
             if(existingForeignKeysList == null)
             {
                 existingForeignKeysList = new ArrayList<>();
-                existingDatabaseForeignKeyListValues.put(joinColumnValue, existingForeignKeysList);
+                existingFlattenedCollectionValues.put(joinColumnValue, existingForeignKeysList);
             }
             existingForeignKeysList.add(foreignKeyValue);
         }
 
-        return existingDatabaseForeignKeyListValues;
+        return existingFlattenedCollectionValues;
     }
 }

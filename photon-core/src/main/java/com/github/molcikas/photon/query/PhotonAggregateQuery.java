@@ -4,7 +4,7 @@ import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import org.apache.commons.lang3.StringUtils;
 
@@ -195,20 +195,20 @@ public class PhotonAggregateQuery<T>
                 .collect(Collectors.toList());
         }
 
-        populateForeignKeyListFields(populatedEntityMap, entityBlueprint, ids);
+        populateFlattenedCollectionFields(populatedEntityMap, entityBlueprint, ids);
 
         return ids;
     }
 
-    private void populateForeignKeyListFields(PopulatedEntityMap populatedEntityMap, EntityBlueprint entityBlueprint, List<?> ids)
+    private void populateFlattenedCollectionFields(PopulatedEntityMap populatedEntityMap, EntityBlueprint entityBlueprint, List<?> ids)
     {
-        for(FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
+        for(FieldBlueprint fieldBlueprint : entityBlueprint.getFlattenedCollectionFields())
         {
-            ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
-            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(foreignKeyListBlueprint.getSelectSql(), false, connection, photon.getOptions()))
+            FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
+            try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photon.getOptions()))
             {
-                statement.setNextArrayParameter(ids, foreignKeyListBlueprint.getForeignTableKeyColumnType(), null);
-                List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(foreignKeyListBlueprint.getSelectColumnNames());
+                statement.setNextArrayParameter(ids, flattenedCollectionBlueprint.getColumnDataType(), null);
+                List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
                 populatedEntityMap.setFieldValuesOnEntityInstances(queryResultRows, fieldBlueprint, entityBlueprint);
             }
         }

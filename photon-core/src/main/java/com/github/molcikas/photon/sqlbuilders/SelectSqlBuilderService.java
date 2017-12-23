@@ -2,7 +2,7 @@ package com.github.molcikas.photon.sqlbuilders;
 
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
@@ -34,7 +34,7 @@ public final class SelectSqlBuilderService
             buildSelectByIdSql(tableBlueprint, photonOptions);
         }
 
-        entityBlueprint.getForeignKeyListFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
+        entityBlueprint.getFlattenedCollectionFields().forEach(f -> buildSelectKeysFromForeignTableSql(f, photonOptions));
 
         entityBlueprint
             .getFieldsWithChildEntities()
@@ -218,18 +218,18 @@ public final class SelectSqlBuilderService
 
     private static void buildSelectKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
     {
-        ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+        FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
 
-        String foreignKeyListSql = String.format("SELECT [%s], [%s] FROM [%s] WHERE [%s] IN (?) ORDER BY [%s]",
-            foreignKeyListBlueprint.getForeignTableKeyColumnName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName(),
-            foreignKeyListBlueprint.getForeignTableName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+        String flattenedCollectionSql = String.format("SELECT [%s], [%s] FROM [%s] WHERE [%s] IN (?) ORDER BY [%s]",
+            flattenedCollectionBlueprint.getColumnName(),
+            flattenedCollectionBlueprint.getForeignKeyToParent(),
+            flattenedCollectionBlueprint.getTableName(),
+            flattenedCollectionBlueprint.getForeignKeyToParent(),
+            flattenedCollectionBlueprint.getForeignKeyToParent()
         );
 
-        foreignKeyListSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(foreignKeyListSql, photonOptions);
-        log.debug("Select Foreign Key List Sql for {}:\n{}", fieldBlueprint.getFieldName(), foreignKeyListSql);
-        foreignKeyListBlueprint.setSelectSql(foreignKeyListSql);
+        flattenedCollectionSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(flattenedCollectionSql, photonOptions);
+        log.debug("Select Flattened Collection Sql for {}:\n{}", fieldBlueprint.getFieldName(), flattenedCollectionSql);
+        flattenedCollectionBlueprint.setSelectSql(flattenedCollectionSql);
     }
 }

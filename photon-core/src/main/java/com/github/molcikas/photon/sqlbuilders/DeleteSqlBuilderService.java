@@ -2,7 +2,7 @@ package com.github.molcikas.photon.sqlbuilders;
 
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -53,7 +53,7 @@ public final class DeleteSqlBuilderService
             buildDeleteOrphansSqlRecursive(joinTableBlueprint, parentTableBlueprints, photonOptions);
         }
 
-        entityBlueprint.getForeignKeyListFields().forEach(f -> buildDeleteKeysFromForeignTableSql(f, photonOptions));
+        entityBlueprint.getFlattenedCollectionFields().forEach(f -> buildDeleteKeysFromForeignTableSql(f, photonOptions));
 
         entityBlueprint
             .getFieldsWithChildEntities()
@@ -153,25 +153,25 @@ public final class DeleteSqlBuilderService
 
     private static void buildDeleteKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
     {
-        ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+        FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
 
         String deleteSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?)",
-            foreignKeyListBlueprint.getForeignTableName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+            flattenedCollectionBlueprint.getTableName(),
+            flattenedCollectionBlueprint.getForeignKeyToParent()
         );
 
         deleteSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteSql, photonOptions);
         log.debug("Delete All Foreign Key Sql for {}:\n{}", fieldBlueprint.getFieldName(), deleteSql);
-        foreignKeyListBlueprint.setDeleteSql(deleteSql);
+        flattenedCollectionBlueprint.setDeleteSql(deleteSql);
 
         String deleteForeignKeysSql = String.format("DELETE FROM [%s] WHERE [%s] IN (?) AND [%s] = ?",
-            foreignKeyListBlueprint.getForeignTableName(),
-            foreignKeyListBlueprint.getForeignTableKeyColumnName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+            flattenedCollectionBlueprint.getTableName(),
+            flattenedCollectionBlueprint.getColumnName(),
+            flattenedCollectionBlueprint.getForeignKeyToParent()
         );
 
         deleteForeignKeysSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(deleteForeignKeysSql, photonOptions);
         log.debug("Delete Foreign Keys Sql for {}:\n{}", fieldBlueprint.getFieldName(), deleteForeignKeysSql);
-        foreignKeyListBlueprint.setDeleteForeignKeysSql(deleteForeignKeysSql);
+        flattenedCollectionBlueprint.setDeleteForeignKeysSql(deleteForeignKeysSql);
     }
 }

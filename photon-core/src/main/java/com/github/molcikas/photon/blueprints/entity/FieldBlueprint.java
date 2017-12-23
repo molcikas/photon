@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints.entity;
 
 import com.github.molcikas.photon.PhotonUtils;
+import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
@@ -10,72 +11,39 @@ import java.util.Collection;
 
 public class FieldBlueprint
 {
+    @Getter
     private final Field reflectedField;
+
+    @Getter
     private final String fieldName;
+
+    @Getter
     private final Class fieldClass;
+
+    @Getter
     private final FieldType fieldType;
+
+    @Getter
     private final Converter customHydrater;
+
+    @Getter
     private final EntityFieldValueMapping entityFieldValueMapping;
+
+    @Getter
     private final CompoundEntityFieldValueMapping compoundEntityFieldValueMapping;
 
+    @Getter
     private final EntityBlueprint childEntityBlueprint;
-    private final ForeignKeyListBlueprint foreignKeyListBlueprint;
 
+    @Getter
+    private final FlattenedCollectionBlueprint flattenedCollectionBlueprint;
+
+    @Getter
     private boolean isVersionField = false;
-
-    public Field getReflectedField()
-    {
-        return reflectedField;
-    }
-
-    public String getFieldName()
-    {
-        return fieldName;
-    }
-
-    public Class getFieldClass()
-    {
-        return fieldClass;
-    }
-
-    public FieldType getFieldType()
-    {
-        return fieldType;
-    }
-
-    public EntityBlueprint getChildEntityBlueprint()
-    {
-        return childEntityBlueprint;
-    }
-
-    public ForeignKeyListBlueprint getForeignKeyListBlueprint()
-    {
-        return foreignKeyListBlueprint;
-    }
-
-    public Converter getCustomHydrater()
-    {
-        return customHydrater;
-    }
-
-    public EntityFieldValueMapping getEntityFieldValueMapping()
-    {
-        return entityFieldValueMapping;
-    }
-
-    public CompoundEntityFieldValueMapping getCompoundEntityFieldValueMapping()
-    {
-        return compoundEntityFieldValueMapping;
-    }
-
-    public boolean isVersionField()
-    {
-        return isVersionField;
-    }
 
     public FieldBlueprint(Field reflectedField,
                           EntityBlueprint childEntityBlueprint,
-                          ForeignKeyListBlueprint foreignKeyListBlueprint,
+                          FlattenedCollectionBlueprint flattenedCollectionBlueprint,
                           Converter customHydrater,
                           EntityFieldValueMapping entityFieldValueMapping,
                           CompoundEntityFieldValueMapping compoundEntityFieldValueMapping)
@@ -103,41 +71,41 @@ public class FieldBlueprint
 
         if(entityFieldValueMapping != null)
         {
-            if(reflectedField != null || childEntityBlueprint != null || foreignKeyListBlueprint != null || compoundEntityFieldValueMapping != null)
+            if(reflectedField != null || childEntityBlueprint != null || flattenedCollectionBlueprint != null || compoundEntityFieldValueMapping != null)
             {
                 throw new PhotonException("A field has a custom entity field value mapping, therefore the field cannot have a compound mapping, reflected field, child entity, or foreign key list.");
             }
             this.fieldType = FieldType.CustomValueMapper;
             this.childEntityBlueprint = null;
-            this.foreignKeyListBlueprint = null;
+            this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = entityFieldValueMapping;
             this.compoundEntityFieldValueMapping = null;
         }
         else if(compoundEntityFieldValueMapping != null)
         {
-            if(reflectedField != null || childEntityBlueprint != null || foreignKeyListBlueprint != null)
+            if(reflectedField != null || childEntityBlueprint != null || flattenedCollectionBlueprint != null)
             {
                 throw new PhotonException("A field has a custom compound entity field value mapping, therefore the field cannot have a reflected field, child entity, or foreign key list.");
             }
             this.fieldType = FieldType.CompoundCustomValueMapper;
             this.childEntityBlueprint = null;
-            this.foreignKeyListBlueprint = null;
+            this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = compoundEntityFieldValueMapping;
         }
-        else if(foreignKeyListBlueprint != null)
+        else if(flattenedCollectionBlueprint != null)
         {
-            this.fieldType = FieldType.ForeignKeyList;
+            this.fieldType = FieldType.FlattenedCollection;
             this.childEntityBlueprint = null;
-            this.foreignKeyListBlueprint = foreignKeyListBlueprint;
+            this.flattenedCollectionBlueprint = flattenedCollectionBlueprint;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;
 
-            if(StringUtils.isBlank(foreignKeyListBlueprint.getForeignTableName()) ||
-                StringUtils.isBlank(foreignKeyListBlueprint.getForeignTableKeyColumnName()) ||
-                StringUtils.isBlank(foreignKeyListBlueprint.getForeignTableJoinColumnName()) ||
-                foreignKeyListBlueprint.getFieldListItemClass() == null ||
-                foreignKeyListBlueprint.getForeignTableKeyColumnType() == null)
+            if(StringUtils.isBlank(flattenedCollectionBlueprint.getTableName()) ||
+                StringUtils.isBlank(flattenedCollectionBlueprint.getColumnName()) ||
+                StringUtils.isBlank(flattenedCollectionBlueprint.getForeignKeyToParent()) ||
+                flattenedCollectionBlueprint.getFieldClass() == null ||
+                flattenedCollectionBlueprint.getColumnDataType() == null)
             {
                 throw new PhotonException(String.format("The foreign key list data for '%s' must be non-null.", fieldName));
             }
@@ -159,7 +127,7 @@ public class FieldBlueprint
             }
 
             this.childEntityBlueprint = childEntityBlueprint;
-            this.foreignKeyListBlueprint = null;
+            this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;
         }
@@ -167,7 +135,7 @@ public class FieldBlueprint
         {
             this.fieldType = FieldType.Primitive;
             this.childEntityBlueprint = null;
-            this.foreignKeyListBlueprint = null;
+            this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;
         }

@@ -7,5 +7,5 @@ public enum FieldType
     EntityList,
     CustomValueMapper,
     CompoundCustomValueMapper,
-    ForeignKeyList,
+    FlattenedCollection,
 }

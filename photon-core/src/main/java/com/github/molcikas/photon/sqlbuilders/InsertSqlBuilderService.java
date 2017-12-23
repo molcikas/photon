@@ -2,7 +2,7 @@ package com.github.molcikas.photon.sqlbuilders;
 
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.entity.ForeignKeyListBlueprint;
+import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.options.PhotonOptions;
@@ -33,7 +33,7 @@ public final class InsertSqlBuilderService
             buildInsertSqlForTableBlueprint(joinedTableBlueprint, photonOptions, true);
         }
 
-        entityBlueprint.getForeignKeyListFields().forEach(f -> buildInsertKeysFromForeignTableSql(f, photonOptions));
+        entityBlueprint.getFlattenedCollectionFields().forEach(f -> buildInsertKeysFromForeignTableSql(f, photonOptions));
 
         entityBlueprint
             .getFieldsWithChildEntities()
@@ -86,16 +86,16 @@ public final class InsertSqlBuilderService
 
     private static void buildInsertKeysFromForeignTableSql(FieldBlueprint fieldBlueprint, PhotonOptions photonOptions)
     {
-        ForeignKeyListBlueprint foreignKeyListBlueprint = fieldBlueprint.getForeignKeyListBlueprint();
+        FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
 
         String sql = String.format("INSERT INTO [%s] ([%s], [%s]) VALUES (?, ?)",
-            foreignKeyListBlueprint.getForeignTableName(),
-            foreignKeyListBlueprint.getForeignTableKeyColumnName(),
-            foreignKeyListBlueprint.getForeignTableJoinColumnName()
+            flattenedCollectionBlueprint.getTableName(),
+            flattenedCollectionBlueprint.getColumnName(),
+            flattenedCollectionBlueprint.getForeignKeyToParent()
         );
 
         sql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sql, photonOptions);
         log.debug("Insert Foreign Key List Sql:\n" + sql);
-        foreignKeyListBlueprint.setInsertSql(sql);
+        flattenedCollectionBlueprint.setInsertSql(sql);
     }
 }

@@ -245,31 +245,32 @@ public class EntityBlueprintBuilder
     }
 
     /**
-     * Sets up a many-to-many relationship, mapping an aggregate to a list of other aggregates.
+     * Sets up a collection that flattens a child table into a list of values from a column in the table.
      *
-     * @param fieldName - the field containing the list of foreign aggregate ids
-     * @param foreignTableName - the many-to-many intermediate table
-     * @param foreignTableJoinColumnName - the foreign table column that joins back to the aggregate
-     * @param foreignTableKeyColumnName - the foreign table column that joins to the foreign aggregate
-     * @param foreignTableKeyColumnType - the column data type for the foreign table key column
-     * @param fieldListItemClass - the class type for the items in the field list.
+     * @param fieldName - the field that will contain the flattened collection
+     * @param fieldClass - the class type for the items in the field collection
+     * @param tableName - the table name of the collection to flatten
+     * @param foreignKeyToParent - the foreign table column that joins back to the aggregate
+     * @param columnName - the foreign table column that contains the values in the flattened collection
+     * @param columnDataType - the column data type for the foreign table key column
+     *
      * @return - builder for chaining
      */
-    public EntityBlueprintBuilder withForeignKeyListToOtherAggregate(
+    public EntityBlueprintBuilder withFlattenedCollection(
         String fieldName,
-        String foreignTableName,
-        String foreignTableJoinColumnName,
-        String foreignTableKeyColumnName,
-        ColumnDataType foreignTableKeyColumnType,
-        Class fieldListItemClass)
+        Class fieldClass,
+        String tableName,
+        String foreignKeyToParent,
+        String columnName,
+        ColumnDataType columnDataType)
     {
-        tableBlueprintBuilder.withForeignKeyListToOtherAggregate(
+        tableBlueprintBuilder.withFlattenedCollection(
             fieldName,
-            foreignTableName,
-            foreignTableJoinColumnName,
-            foreignTableKeyColumnName,
-            foreignTableKeyColumnType,
-            fieldListItemClass
+            fieldClass,
+            tableName,
+            foreignKeyToParent,
+            columnName,
+            columnDataType
         );
         return this;
     }
@@ -512,7 +513,7 @@ public class EntityBlueprintBuilder
             .map(entry -> new FieldBlueprint(
                 entry.getValue(),
                 childEntities.get(entry.getValue().getName()),
-                tableBlueprintBuilder.getForeignKeyListBlueprints().get(entry.getValue().getName()),
+                tableBlueprintBuilder.getFlattenedCollectionBlueprints().get(entry.getValue().getName()),
                 customFieldHydraters.get(entry.getValue().getName()),
                 null,
                 null

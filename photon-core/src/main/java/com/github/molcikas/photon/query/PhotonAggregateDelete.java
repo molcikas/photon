@@ -76,10 +76,10 @@ public class PhotonAggregateDelete
             .collect(Collectors.toList());
         ColumnDataType primaryKeyColumnDataType = entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType();
 
-        for (FieldBlueprint fieldBlueprint : entityBlueprint.getForeignKeyListFields())
+        for (FieldBlueprint fieldBlueprint : entityBlueprint.getFlattenedCollectionFields())
         {
             try(PhotonPreparedStatement photonPreparedStatement = new PhotonPreparedStatement(
-                fieldBlueprint.getForeignKeyListBlueprint().getDeleteSql(),
+                fieldBlueprint.getFlattenedCollectionBlueprint().getDeleteSql(),
                 false,
                 connection,
                 photonOptions))

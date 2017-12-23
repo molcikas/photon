@@ -78,11 +78,11 @@ public class EntityBlueprint
             .collect(Collectors.toList());
     }
 
-    public List<FieldBlueprint> getForeignKeyListFields()
+    public List<FieldBlueprint> getFlattenedCollectionFields()
     {
         return fields
             .stream()
-            .filter(f -> f.getFieldType() == FieldType.ForeignKeyList)
+            .filter(f -> f.getFieldType() == FieldType.FlattenedCollection)
             .collect(Collectors.toList());
     }
 
