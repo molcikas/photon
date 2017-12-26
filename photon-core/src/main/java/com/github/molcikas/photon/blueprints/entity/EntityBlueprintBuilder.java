@@ -75,7 +75,7 @@ public class EntityBlueprintBuilder
 
     /**
      * Use a custom constructor for this child collection. This can be used to construct child fields that contain multiple
-     * entities but are not a list or set. For example, a child field could be a Map<Integer, ChildClass>.
+     * entities but are not a list or set. For example, a child field could be a Map&lt;Integer, ChildClass&gt;.
      *
      * @param childCollectionConstructor - the child entity constructor
      * @return - builder for chaining
