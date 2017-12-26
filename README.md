@@ -285,7 +285,8 @@ If you have a value object that is a list of items, you can add the list as a ch
 ```java
 photon.registerAggregate(Recipe.class)
     .withChild("ingredients", RecipeIngredient.class)
-        // The id and foreign key to parent must be specified here, but do not need to be in the RecipeIngredient class.
+        // The id and foreign key to parent must be specified here, but do not need to be in 
+        // the RecipeIngredient class.
         .withId("recipeIngredientId")
         .withForeignKeyToParent("recipeId")
         .addAsChild()
@@ -404,16 +405,19 @@ For example, if you have a `Recipe` entity and you want it to contain a map of i
 photon.registerAggregate(Recipe.class)
     .withChild("ingredients", RecipeIngredient.class)
         .withForeignKeyToParent("recipeId")
-        .withChildCollectionConstructor(new ChildCollectionConstructor<Map<String, RecipeIngredient>, RecipeIngredient, Recipe>()
+        .withChildCollectionConstructor(
+            new ChildCollectionConstructor<Map<String, RecipeIngredient>, RecipeIngredient, Recipe>()
         {
             @Override
-            public Collection<RecipeIngredient> toCollection(Map<RecipeIngredient, RecipeIngredient> ingredientsMap, Recipe recipe)
+            public Collection<RecipeIngredient> toCollection(Map<String, RecipeIngredient> ingredientsMap, 
+                                                             Recipe recipe)
             {
                 return ingredientsMap.values();
             }
 
             @Override
-            public Map<String, RecipeIngredient> toFieldValue(Collection<RecipeIngredient> ingredients, Recipe parentEntityInstance)
+            public Map<String, RecipeIngredient> toFieldValue(Collection<RecipeIngredient> ingredients, 
+                                                              Recipe parentEntityInstance)
             {
                 Map<String, RecipeIngredient> ingredientsMap = new HashMap<>();
                 for(RecipeIngredient ingredient : ingredients)
@@ -435,7 +439,8 @@ In a relational database, a many-to-many relationship is usually implemented by 
 
 ```java
 photon.registerAggregate(Order.class)
-    .withFlattenedCollection("addresses", Integer.class, "OrderAddressAssignmentTable", "orderId", "orderAddressId", ColumnDataType.INTEGER)
+    .withFlattenedCollection("addresses", Integer.class, "OrderAddressAssignmentTable", "orderId", 
+                             "orderAddressId", ColumnDataType.INTEGER)
     .register();
 ```
 
