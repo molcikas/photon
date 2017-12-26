@@ -457,6 +457,8 @@ public class TableBlueprintBuilder
                 null,
                 null,
                 null,
+                null,
+                null,
                 customDatabaseColumnEntry.getValue(),
                 null
             );
@@ -477,6 +479,8 @@ public class TableBlueprintBuilder
         for(Map.Entry<List<String>, CompoundEntityFieldValueMapping> customCompoundDatabaseColumnEntry : customCompoundDatabaseColumns.entrySet())
         {
             FieldBlueprint fieldBlueprint = new FieldBlueprint(
+                null,
+                null,
                 null,
                 null,
                 null,

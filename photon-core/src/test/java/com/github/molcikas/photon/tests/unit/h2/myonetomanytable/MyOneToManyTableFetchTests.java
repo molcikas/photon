@@ -2,6 +2,7 @@ package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyMapTable;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -10,6 +11,8 @@ import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyThirdTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
+
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.*;
 
@@ -130,6 +133,40 @@ public class MyOneToManyTableFetchTests
         catch (PhotonException ex)
         {
             assertTrue(ex.getMessage().contains("notARealField"));
+        }
+    }
+
+    @Test
+    public void aggregateQuery_fieldAsMap_returnsAggregate()
+    {
+        photon.registerAggregate(MyOneToManyMapTable.class)
+            .withTableName("MyOneToManyTable")
+            .withId("myOneToManyMapTableId")
+            .withDatabaseColumn("id", "myOneToManyMapTableId")
+            .withPrimaryKeyAutoIncrement()
+            .withChild("myManyTables", MyManyTable.class)
+                .withParentFieldMap(ConcurrentHashMap.class, "id")
+                .withId("id", true)
+                .withForeignKeyToParent("parent")
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", ColumnDataType.VARCHAR)
+                .addAsChild()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyMapTable myOneToManyTable = transaction
+                .query(MyOneToManyMapTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTable);
+            assertNotNull(myOneToManyTable.getMyManyTables());
+            assertEquals(ConcurrentHashMap.class, myOneToManyTable.getMyManyTables().getClass());
+            assertEquals(3, myOneToManyTable.getMyManyTables().size());
+
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(9);
+            assertEquals(Integer.valueOf(9), myManyTable.getId());
+            assertEquals(Integer.valueOf(6), myManyTable.getParent());
+            assertEquals("my63otherdbvalue", myManyTable.getMyOtherValueWithDiffName());
         }
     }
 

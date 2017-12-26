@@ -5,6 +5,7 @@ public enum FieldType
     Primitive,
     Entity,
     EntityList,
+    EntityMap,
     CustomValueMapper,
     CompoundCustomValueMapper,
     FlattenedCollection,

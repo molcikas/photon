@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints.entity;
 
 import com.github.molcikas.photon.blueprints.table.*;
+import lombok.Getter;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +21,10 @@ public class EntityBlueprintBuilder
     private final String fieldName;
     private final Photon photon;
     private final EntityBlueprintBuilder parentBuilder;
+
+    @Getter
     private final Class entityClass;
+
     private final String aggregateBlueprintName;
     private final boolean registerBlueprintForSaving;
     private final List<MappedClassBlueprint> mappedClasses;
@@ -29,15 +33,12 @@ public class EntityBlueprintBuilder
     private final Map<String, EntityBlueprintBuilder> childEntityBuilders;
     private final Map<String, Converter> customFieldHydraters;
     private String versionField;
+    private Class<? extends Map> parentFieldMapClass;
+    private String parentFieldMapKey;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
     private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
     private boolean mainTableInsertedFirst;
-
-    public Class getEntityClass()
-    {
-        return entityClass;
-    }
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
@@ -71,6 +72,13 @@ public class EntityBlueprintBuilder
         this.tableBlueprintBuilder = new TableBlueprintBuilder(this, photon.getOptions());
         this.joinedTableBuilders = new ArrayList<>();
         this.mainTableInsertedFirst = true;
+    }
+
+    public EntityBlueprintBuilder withParentFieldMap(Class<? extends Map> mapClass, String mapKey)
+    {
+        this.parentFieldMapClass = mapClass;
+        this.parentFieldMapKey = mapKey;
+        return this;
     }
 
     /**
@@ -510,14 +518,19 @@ public class EntityBlueprintBuilder
             .entries()
             .stream()
             .filter(entry -> !ignoredFields.contains(entry.getValue().getName()))
-            .map(entry -> new FieldBlueprint(
-                entry.getValue(),
-                childEntities.get(entry.getValue().getName()),
-                tableBlueprintBuilder.getFlattenedCollectionBlueprints().get(entry.getValue().getName()),
-                customFieldHydraters.get(entry.getValue().getName()),
-                null,
-                null
-            ))
+            .map(entry -> {
+                EntityBlueprint childEntityBlueprint = childEntities.get(entry.getValue().getName());
+                return new FieldBlueprint(
+                    entry.getValue(),
+                    childEntityBlueprint,
+                    childEntityBlueprint != null ? childEntityBlueprint.getParentFieldMapClass() : null,
+                    childEntityBlueprint != null ? childEntityBlueprint.getParentFieldMapKey() : null,
+                    tableBlueprintBuilder.getFlattenedCollectionBlueprints().get(entry.getValue().getName()),
+                    customFieldHydraters.get(entry.getValue().getName()),
+                    null,
+                    null
+                );
+            })
             .collect(Collectors.toList());
 
         List<String> parentTableBlueprints = Collections.emptyList();
@@ -550,13 +563,27 @@ public class EntityBlueprintBuilder
             fieldBlueprint.get().setAsVersionField();
         }
 
+        FieldBlueprint parentFieldMapKeyField = null;
+
+        if(parentFieldMapKey != null)
+        {
+            parentFieldMapKeyField = fields
+                .stream()
+                .filter(f -> f.getFieldName().equals(parentFieldMapKey))
+                .findFirst()
+                .orElseThrow(() -> new PhotonException("Could not find field '%s' on entity '%s'",
+                    parentFieldMapKey, entityClass.getName()));
+        }
+
         EntityBlueprint entityBlueprint = new EntityBlueprint(
             entityClass,
             entityClassDiscriminator,
             fields,
             tableBlueprint,
             joinedTableBlueprints,
-            mainTableInsertedFirst
+            mainTableInsertedFirst,
+            parentFieldMapClass,
+            parentFieldMapKeyField
         );
 
         childEntities.values().forEach(e -> e.setMainTableBlueprintParent(entityBlueprint.getTableBlueprintsForInsertOrUpdate()));

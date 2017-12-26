@@ -8,6 +8,7 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Map;
 
 public class FieldBlueprint
 {
@@ -39,10 +40,18 @@ public class FieldBlueprint
     private final FlattenedCollectionBlueprint flattenedCollectionBlueprint;
 
     @Getter
+    private final Class<? extends Map> parentFieldMapClass;
+
+    @Getter
+    private final FieldBlueprint parentFieldMapKey;
+
+    @Getter
     private boolean isVersionField = false;
 
     public FieldBlueprint(Field reflectedField,
                           EntityBlueprint childEntityBlueprint,
+                          Class<? extends Map> parentFieldMapClass,
+                          FieldBlueprint parentFieldMapKey,
                           FlattenedCollectionBlueprint flattenedCollectionBlueprint,
                           Converter customHydrater,
                           EntityFieldValueMapping entityFieldValueMapping,
@@ -77,6 +86,8 @@ public class FieldBlueprint
             }
             this.fieldType = FieldType.CustomValueMapper;
             this.childEntityBlueprint = null;
+            this.parentFieldMapClass = null;
+            this.parentFieldMapKey = null;
             this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = entityFieldValueMapping;
             this.compoundEntityFieldValueMapping = null;
@@ -89,6 +100,8 @@ public class FieldBlueprint
             }
             this.fieldType = FieldType.CompoundCustomValueMapper;
             this.childEntityBlueprint = null;
+            this.parentFieldMapClass = null;
+            this.parentFieldMapKey = null;
             this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = compoundEntityFieldValueMapping;
@@ -97,6 +110,8 @@ public class FieldBlueprint
         {
             this.fieldType = FieldType.FlattenedCollection;
             this.childEntityBlueprint = null;
+            this.parentFieldMapClass = null;
+            this.parentFieldMapKey = null;
             this.flattenedCollectionBlueprint = flattenedCollectionBlueprint;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;
@@ -120,10 +135,20 @@ public class FieldBlueprint
             if(Collection.class.isAssignableFrom(this.fieldClass))
             {
                 this.fieldType = FieldType.EntityList;
+                this.parentFieldMapClass = null;
+                this.parentFieldMapKey = null;
+            }
+            else if(Map.class.isAssignableFrom(this.fieldClass))
+            {
+                this.fieldType = FieldType.EntityMap;
+                this.parentFieldMapClass = parentFieldMapClass;
+                this.parentFieldMapKey = parentFieldMapKey;
             }
             else
             {
                 this.fieldType = FieldType.Entity;
+                this.parentFieldMapClass = null;
+                this.parentFieldMapKey = null;
             }
 
             this.childEntityBlueprint = childEntityBlueprint;
@@ -135,6 +160,8 @@ public class FieldBlueprint
         {
             this.fieldType = FieldType.Primitive;
             this.childEntityBlueprint = null;
+            this.parentFieldMapClass = null;
+            this.parentFieldMapKey = null;
             this.flattenedCollectionBlueprint = null;
             this.entityFieldValueMapping = null;
             this.compoundEntityFieldValueMapping = null;

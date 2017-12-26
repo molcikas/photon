@@ -5,6 +5,7 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldType;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.Convert;
@@ -13,6 +14,8 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class PopulatedEntity<T>
@@ -220,6 +223,35 @@ public class PopulatedEntity<T>
                     );
                 }
             }
+            else if(fieldBlueprint.getFieldType() == FieldType.EntityMap)
+            {
+                Map map = createCompatibleMap(fieldBlueprint.getParentFieldMapClass());
+                populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(map, fieldBlueprint.getParentFieldMapKey(), childEntityClass, primaryKey);
+
+                if(map.isEmpty())
+                {
+                    if(Arrays.stream(entityInstance.getClass().getDeclaredFields()).noneMatch(f -> f.getName().equals(fieldBlueprint.getFieldName())))
+                    {
+                        // If the instance does not have the field and the collection is empty, just skip it.
+                        continue;
+                    }
+                }
+
+                try
+                {
+                    Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
+                    field.set(entityInstance, map);
+                }
+                catch(Exception ex)
+                {
+                    throw new PhotonException(
+                        ex,
+                        "Error setting map field '%s' on entity '%s'.",
+                        fieldBlueprint.getFieldName(),
+                        entityBlueprint.getEntityClassName()
+                    );
+                }
+            }
             else if(fieldBlueprint.getFieldClass().equals(fieldBlueprint.getChildEntityBlueprint().getEntityClass()))
             {
                 Object childInstance = populatedEntityMap.getNextInstanceWithClassAndForeignKeyToParent(childEntityClass, primaryKey);
@@ -376,18 +408,12 @@ public class PopulatedEntity<T>
         }
     }
 
+    @SneakyThrows
     private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
     {
         Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
 
-        try
-        {
-            entityInstance = constructor.newInstance();
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException(ex);
-        }
+        entityInstance = constructor.newInstance();
 
         for(Map.Entry<String, Object> entry : queryResultRow.getValues())
         {
@@ -523,5 +549,19 @@ public class PopulatedEntity<T>
         }
 
         throw new PhotonException("Unable to create instance of collection type '%s'.", collectionClass.getName());
+    }
+
+    private Map createCompatibleMap(Class<? extends Map> mapClass)
+    {
+        try
+        {
+            Constructor constructor = mapClass.getConstructor();
+
+            return (Map) constructor.newInstance();
+        }
+        catch(Exception ex)
+        {
+            throw new PhotonException("Error creating instance of map type '%s'.", mapClass.getName());
+        }
     }
 }

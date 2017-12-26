@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyMapTable;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -9,6 +11,9 @@ import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTab
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
@@ -198,6 +203,58 @@ public class MyOneToManyTableSaveTests
                 .fetchById(6);
 
             assertNull(myOneToManyTable);
+        }
+    }
+
+    @Test
+    public void aggregateSave_fieldAsMap_savesAggregate()
+    {
+        photon.registerAggregate(MyOneToManyMapTable.class)
+            .withTableName("MyOneToManyTable")
+            .withId("myOneToManyMapTableId")
+            .withDatabaseColumn("id", "myOneToManyMapTableId")
+            .withPrimaryKeyAutoIncrement()
+            .withChild("myManyTables", MyManyTable.class)
+                .withParentFieldMap(ConcurrentHashMap.class, "id")
+                .withId("id", true)
+                .withForeignKeyToParent("parent")
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", ColumnDataType.VARCHAR)
+                .addAsChild()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Map<Integer, MyManyTable> map = new LinkedHashMap<>();
+
+            // TODO: Disallow maps if we have generated keys??
+            map.put(1, new MyManyTable(0, "My1ManyValue", null));
+            map.put(2, new MyManyTable(0, "My2ManyValue", null));
+
+            MyOneToManyMapTable myOneToManyTable = new MyOneToManyMapTable(
+                null,
+                "MyOneToManyTableValue",
+                map
+            );
+
+            transaction.save(myOneToManyTable);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(7);
+
+            assertNotNull(myOneToManyTable);
+            assertEquals(Integer.valueOf(7), myOneToManyTable.getId());
+            assertEquals("MyOneToManyTableValue", myOneToManyTable.getMyvalue());
+            assertEquals(4, myOneToManyTable.getMyManyTables().size());
+
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(2);
+            assertEquals(Integer.valueOf(12), myManyTable.getId());
+            assertEquals(Integer.valueOf(7), myManyTable.getParent());
+            assertEquals("My3ManyValue", myManyTable.getMyOtherValueWithDiffName());
         }
     }
 

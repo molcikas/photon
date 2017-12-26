@@ -56,6 +56,27 @@ public class PopulatedEntityMap
         childIndexes.put(entityClass, index);
     }
 
+    public void addNextInstancesWithClassAndForeignKeyToParent(Map map, FieldBlueprint mapKey, Class entityClass, Object foreignKeyToParent)
+    {
+        Integer index = childIndexes.get(entityClass);
+        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityClass);
+        if(populatedEntities == null)
+        {
+            return;
+        }
+        if (index == null)
+        {
+            index = 0;
+        }
+        while (index < populatedEntities.size() && keysAreEqual(foreignKeyToParent, populatedEntities.get(index).getForeignKeyToParentValue()))
+        {
+            PopulatedEntity populatedEntity = populatedEntities.get(index);
+            map.put(populatedEntity.getInstanceValue(mapKey), populatedEntity.getEntityInstance());
+            index++;
+        }
+        childIndexes.put(entityClass, index);
+    }
+
     public Object getNextInstanceWithClassAndForeignKeyToParent(Class entityClass, Object foreignKeyToParentValue)
     {
         Integer index = childIndexes.get(entityClass);
