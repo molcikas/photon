@@ -117,7 +117,7 @@ public class FieldBlueprint
         }
         else if(childEntityBlueprint != null)
         {
-            if(Collection.class.isAssignableFrom(this.fieldClass))
+            if(Collection.class.isAssignableFrom(this.fieldClass) || childEntityBlueprint.getChildCollectionConstructor() != null)
             {
                 this.fieldType = FieldType.EntityList;
             }

@@ -1,10 +1,12 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.blueprints.entity.ChildCollectionConstructor;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldType;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.Convert;
@@ -122,10 +124,16 @@ public class PopulatedEntity<T>
     {
         Collection childEntityInstances;
         Object fieldValue = getInstanceValue(fieldBlueprint);
+        EntityBlueprint childEntityBlueprint = fieldBlueprint.getChildEntityBlueprint();
+        ChildCollectionConstructor childCollectionConstructor = childEntityBlueprint.getChildCollectionConstructor();
 
         if(fieldValue == null)
         {
             childEntityInstances = Collections.emptyList();
+        }
+        else if(childCollectionConstructor != null)
+        {
+            childEntityInstances = childCollectionConstructor.toCollection(fieldValue, entityInstance);
         }
         else if(Collection.class.isAssignableFrom(fieldValue.getClass()))
         {
@@ -189,11 +197,12 @@ public class PopulatedEntity<T>
 
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
         {
+            ChildCollectionConstructor childCollectionConstructor = fieldBlueprint.getChildEntityBlueprint().getChildCollectionConstructor();
             Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
             if(fieldBlueprint.getFieldType() == FieldType.EntityList)
             {
-                Collection collection = createCompatibleCollection(fieldBlueprint.getFieldClass());
+                Collection collection = childCollectionConstructor != null ? new ArrayList() : createCompatibleCollection(fieldBlueprint.getFieldClass());
                 populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
 
                 if(collection.isEmpty())
@@ -208,7 +217,12 @@ public class PopulatedEntity<T>
                 try
                 {
                     Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                    field.set(entityInstance, collection);
+                    Object fieldValue = collection;
+                    if(childCollectionConstructor != null)
+                    {
+                        fieldValue = childCollectionConstructor.toFieldValue(collection, entityInstance);
+                    }
+                    field.set(entityInstance, fieldValue);
                 }
                 catch(Exception ex)
                 {
@@ -376,18 +390,12 @@ public class PopulatedEntity<T>
         }
     }
 
+    @SneakyThrows
     private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
     {
         Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
 
-        try
-        {
-            entityInstance = constructor.newInstance();
-        }
-        catch (Exception ex)
-        {
-            throw new RuntimeException(ex);
-        }
+        entityInstance = constructor.newInstance();
 
         for(Map.Entry<String, Object> entry : queryResultRow.getValues())
         {

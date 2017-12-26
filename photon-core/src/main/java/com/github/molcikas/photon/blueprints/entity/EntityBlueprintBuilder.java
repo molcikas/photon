@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints.entity;
 
 import com.github.molcikas.photon.blueprints.table.*;
+import lombok.Getter;
 import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
@@ -20,7 +21,10 @@ public class EntityBlueprintBuilder
     private final String fieldName;
     private final Photon photon;
     private final EntityBlueprintBuilder parentBuilder;
+
+    @Getter
     private final Class entityClass;
+
     private final String aggregateBlueprintName;
     private final boolean registerBlueprintForSaving;
     private final List<MappedClassBlueprint> mappedClasses;
@@ -29,15 +33,11 @@ public class EntityBlueprintBuilder
     private final Map<String, EntityBlueprintBuilder> childEntityBuilders;
     private final Map<String, Converter> customFieldHydraters;
     private String versionField;
+    private ChildCollectionConstructor childCollectionConstructor;
 
     private final TableBlueprintBuilder tableBlueprintBuilder;
     private final List<JoinedTableBlueprintBuilder> joinedTableBuilders;
     private boolean mainTableInsertedFirst;
-
-    public Class getEntityClass()
-    {
-        return entityClass;
-    }
 
     public EntityBlueprintBuilder(Class entityClass, Photon photon)
     {
@@ -71,6 +71,23 @@ public class EntityBlueprintBuilder
         this.tableBlueprintBuilder = new TableBlueprintBuilder(this, photon.getOptions());
         this.joinedTableBuilders = new ArrayList<>();
         this.mainTableInsertedFirst = true;
+    }
+
+    /**
+     * Use a custom constructor for this child collection. This can be used to construct child fields that contain multiple
+     * entities but are not a list or set. For example, a child field could be a Map<Integer, ChildClass>.
+     *
+     * @param childCollectionConstructor - the child entity constructor
+     * @return - builder for chaining
+     */
+    public EntityBlueprintBuilder withChildCollectionConstructor(ChildCollectionConstructor childCollectionConstructor)
+    {
+        if(parentBuilder == null)
+        {
+            throw new PhotonException("withChildCollectionConstructor cannot be called on an aggregate root entity.");
+        }
+        this.childCollectionConstructor = childCollectionConstructor;
+        return this;
     }
 
     /**
@@ -510,14 +527,17 @@ public class EntityBlueprintBuilder
             .entries()
             .stream()
             .filter(entry -> !ignoredFields.contains(entry.getValue().getName()))
-            .map(entry -> new FieldBlueprint(
-                entry.getValue(),
-                childEntities.get(entry.getValue().getName()),
-                tableBlueprintBuilder.getFlattenedCollectionBlueprints().get(entry.getValue().getName()),
-                customFieldHydraters.get(entry.getValue().getName()),
-                null,
-                null
-            ))
+            .map(entry -> {
+                EntityBlueprint childEntityBlueprint = childEntities.get(entry.getValue().getName());
+                return new FieldBlueprint(
+                    entry.getValue(),
+                    childEntityBlueprint,
+                    tableBlueprintBuilder.getFlattenedCollectionBlueprints().get(entry.getValue().getName()),
+                    customFieldHydraters.get(entry.getValue().getName()),
+                    null,
+                    null
+                );
+            })
             .collect(Collectors.toList());
 
         List<String> parentTableBlueprints = Collections.emptyList();
@@ -556,7 +576,8 @@ public class EntityBlueprintBuilder
             fields,
             tableBlueprint,
             joinedTableBlueprints,
-            mainTableInsertedFirst
+            mainTableInsertedFirst,
+            childCollectionConstructor
         );
 
         childEntities.values().forEach(e -> e.setMainTableBlueprintParent(entityBlueprint.getTableBlueprintsForInsertOrUpdate()));

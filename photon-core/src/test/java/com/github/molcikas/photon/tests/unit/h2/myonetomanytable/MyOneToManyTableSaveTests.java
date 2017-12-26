@@ -1,5 +1,8 @@
 package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 
+import com.github.molcikas.photon.blueprints.entity.ChildCollectionConstructor;
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyMapTable;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -8,7 +11,7 @@ import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyThirdTa
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTable;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
 
-import java.util.Arrays;
+import java.util.*;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
@@ -198,6 +201,86 @@ public class MyOneToManyTableSaveTests
                 .fetchById(6);
 
             assertNull(myOneToManyTable);
+        }
+    }
+
+    @Test
+    public void aggregateSave_fieldAsMap_savesAggregate()
+    {
+        photon.registerAggregate(MyOneToManyMapTable.class)
+            .withTableName("MyOneToManyTable")
+            .withId("myOneToManyMapTableId")
+            .withDatabaseColumn("id", "myOneToManyMapTableId")
+            .withPrimaryKeyAutoIncrement()
+            .withChild("myManyTables", MyManyTable.class)
+                .withChildCollectionConstructor(new ChildCollectionConstructor<Map<Integer, MyManyTable>, MyManyTable, MyOneToManyMapTable>()
+                {
+                    @Override
+                    public Collection<MyManyTable> toCollection(Map<Integer, MyManyTable> fieldValue, MyOneToManyMapTable parentEntityInstance)
+                    {
+                        return fieldValue.values();
+                    }
+
+                    @Override
+                    public Map<Integer, MyManyTable> toFieldValue(Collection<MyManyTable> collection, MyOneToManyMapTable parentEntityInstance)
+                    {
+                        Map<Integer, MyManyTable> map = new HashMap<>();
+                        for(MyManyTable myManyTable : collection)
+                        {
+                            map.put(myManyTable.getId(), myManyTable);
+                        }
+                        return map;
+                    }
+                })
+                .withId("id", true)
+                .withForeignKeyToParent("parent")
+                .withDatabaseColumn("myothervalue", "myOtherValueWithDiffName", ColumnDataType.VARCHAR)
+                .addAsChild()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Map<Integer, MyManyTable> map = new LinkedHashMap<>();
+
+            map.put(1, new MyManyTable(0, "My1ManyValue", null));
+            map.put(2, new MyManyTable(0, "My2ManyValue", null));
+
+            MyOneToManyMapTable myOneToManyTable = new MyOneToManyMapTable(
+                null,
+                "MyOneToManyTableValue",
+                map
+            );
+
+            transaction.save(myOneToManyTable);
+            transaction.commit();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyMapTable myOneToManyTable = transaction
+                .query(MyOneToManyMapTable.class)
+                .fetchById(7);
+
+            assertNotNull(myOneToManyTable);
+            assertEquals(Integer.valueOf(7), myOneToManyTable.getMyOneToManyMapTableId());
+            assertEquals("MyOneToManyTableValue", myOneToManyTable.getMyvalue());
+            assertEquals(2, myOneToManyTable.getMyManyTables().size());
+
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().get(11);
+            assertEquals(Integer.valueOf(11), myManyTable.getId());
+            assertEquals(Integer.valueOf(7), myManyTable.getParent());
+            assertEquals("My2ManyValue", myManyTable.getMyOtherValueWithDiffName());
+
+            myOneToManyTable.getMyManyTables().remove(11);
+            transaction.save(myOneToManyTable);
+            transaction.commit();
+
+            myOneToManyTable = transaction
+                .query(MyOneToManyMapTable.class)
+                .fetchById(7);
+
+            assertEquals(1, myOneToManyTable.getMyManyTables().size());
+            assertEquals(Integer.valueOf(10), myOneToManyTable.getMyManyTables().values().iterator().next().getId());
         }
     }
 

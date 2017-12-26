@@ -3,6 +3,7 @@ package com.github.molcikas.photon.blueprints.entity;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,12 +14,21 @@ import java.util.stream.Collectors;
 
 public class EntityBlueprint
 {
+    @Getter
     private final Class entityClass;
+
     private final EntityClassDiscriminator entityClassDiscriminator;
     private final List<FieldBlueprint> fields;
+
+    @Getter
     private final FieldBlueprint versionField;
 
+    @Getter
+    private final ChildCollectionConstructor childCollectionConstructor;
+
+    @Getter
     private final TableBlueprint tableBlueprint;
+
     private final List<TableBlueprint> joinedTableBlueprints;
 
     private final List<ColumnBlueprint> allColumns;
@@ -31,13 +41,15 @@ public class EntityBlueprint
         List<FieldBlueprint> fields,
         TableBlueprint tableBlueprint,
         List<TableBlueprint> joinedTableBlueprints,
-        boolean mainTableInsertedFirst)
+        boolean mainTableInsertedFirst,
+        ChildCollectionConstructor childCollectionConstructor)
     {
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
         this.fields = fields;
         this.tableBlueprint = tableBlueprint;
         this.joinedTableBlueprints = joinedTableBlueprints;
+        this.childCollectionConstructor = childCollectionConstructor;
 
         this.allColumns = Collections.unmodifiableList(ListUtils.union(
             tableBlueprint.getColumns(),
@@ -63,11 +75,6 @@ public class EntityBlueprint
             .filter(FieldBlueprint::isVersionField)
             .findFirst()
             .orElse(null);
-    }
-
-    public Class getEntityClass()
-    {
-        return entityClass;
     }
 
     public List<FieldBlueprint> getFieldsWithChildEntities()
@@ -163,11 +170,6 @@ public class EntityBlueprint
             .collect(Collectors.toList());
     }
 
-    public TableBlueprint getTableBlueprint()
-    {
-        return tableBlueprint;
-    }
-
     public List<TableBlueprint> getJoinedTableBlueprints()
     {
         return Collections.unmodifiableList(joinedTableBlueprints);
@@ -197,11 +199,6 @@ public class EntityBlueprint
             .stream()
             .map(ColumnBlueprint::getColumnNameQualified)
             .collect(Collectors.toList());
-    }
-
-    public FieldBlueprint getVersionField()
-    {
-        return versionField;
     }
 
     void setMainTableBlueprintParent(List<TableBlueprint> parentEntityTableBlueprints)
