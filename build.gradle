@@ -8,6 +8,7 @@ subprojects {
     apply plugin: 'groovy'
     apply plugin: 'maven'
     apply plugin: 'signing'
+    apply plugin: 'findbugs'
     
     version = parent.version
     group = parent.group
@@ -21,6 +22,7 @@ subprojects {
 
     dependencies {
         compile 'org.codehaus.groovy:groovy-all:2.3.11'
+        compile group: 'net.sourceforge.findbugs', name: 'annotations', version: '1.3.2'
 
         // Logging
         compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.1.3'
@@ -29,6 +31,8 @@ subprojects {
         compile group: 'org.slf4j', name: 'log4j-over-slf4j', version: '1.7.12'
 
         testCompile group: 'junit', name: 'junit', version: '4.11'
+
+        findbugsPlugins group: 'com.h3xstream.findsecbugs', name: 'findsecbugs-plugin', version: '1.7.1'
     }
 
     tasks.idea {
@@ -50,6 +54,40 @@ subprojects {
             exceptionFormat = 'full'
             showStandardStreams = true
         }
+    }
+
+    findbugs {
+        toolVersion = "3.0.1"
+        sourceSets = [sourceSets.main] //don't run against tests
+        ignoreFailures = true //checkFindbugsReport task will handle the failure
+        includeFilter = file(project.rootDir.absolutePath + "/findbugs-include-filter.xml")
+        excludeFilter = file(project.rootDir.absolutePath + "/findbugs-exclude-filter.xml")
+    }
+
+    task checkFindBugsReport {
+        doLast {
+            def xmlReport = findbugsMain.reports.xml
+            if (xmlReport.destination.exists()) {
+                def slurped = new XmlSlurper().parse(xmlReport.destination)
+                def bugsFound = slurped.BugInstance.size()
+
+                slurped.BugInstance.each {
+                    System.err <<
+                            "Findbugs violation ${it.@category} : ${it.@type} in ${it.SourceLine.@classname}: ${it.SourceLine.@start}\n"
+                }
+
+                if (bugsFound > 0) {
+                    throw new GradleException(
+                            "$bugsFound FindBugs rule violations were found. See the report at: $xmlReport.destination")
+                }
+            }
+        }
+    }
+
+    findbugsMain.finalizedBy checkFindBugsReport
+
+    task analyze {
+        dependsOn = [findbugsMain]
     }
 
     task javadocJar(type: Jar) {

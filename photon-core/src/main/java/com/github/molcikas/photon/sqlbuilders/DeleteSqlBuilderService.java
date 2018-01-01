@@ -124,8 +124,8 @@ public final class DeleteSqlBuilderService
 
         deleteOrphansSqlBuilder.append(String.format(
             "DELETE FROM [%s] WHERE [%s] IN (" +
-            "\nSELECT [%s].[%s]" +
-            "\nFROM [%s]",
+            "%nSELECT [%s].[%s]" +
+            "%nFROM [%s]",
             tableBlueprint.getTableName(),
             tableBlueprint.getPrimaryKeyColumnName(),
             tableBlueprint.getTableName(),
@@ -134,8 +134,8 @@ public final class DeleteSqlBuilderService
         ));
         SqlJoinClauseBuilderService.buildChildToParentJoinClauseSql(deleteOrphansSqlBuilder, tableBlueprint, true);
         deleteOrphansSqlBuilder.append(String.format(
-            "\nWHERE [%s].[%s] IN (?)" +
-            "\n)",
+            "%nWHERE [%s].[%s] IN (?)" +
+            "%n)",
             rootTableBlueprint.getTableName(),
             rootTableBlueprint.getPrimaryKeyColumnName()
         ));

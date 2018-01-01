@@ -11,7 +11,7 @@ public class BooleanConverter implements Converter<Boolean>
 {
 
     public Boolean convert(Object val) throws ConverterException {
-        if (val == null) return null;
+        if (val == null) return false;
 
         if (val instanceof Boolean) {
             return (Boolean) val;

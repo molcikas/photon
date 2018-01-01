@@ -35,11 +35,6 @@ public class ExistingConnectionDataSource implements DataSource
         return connection;
     }
 
-    public void setConnection()
-    {
-        this.connection = connection;
-    }
-
     public PrintWriter getLogWriter() throws SQLException
     {
         return DriverManager.getLogWriter();

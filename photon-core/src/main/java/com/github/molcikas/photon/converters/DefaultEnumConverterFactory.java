@@ -23,10 +23,6 @@ public class DefaultEnumConverterFactory implements EnumConverterFactory {
                 }
                 throw new ConverterException("Cannot convert type '" + val.getClass().getName() + "' to an Enum");
             }
-
-            public Object toDatabaseParam(Enum val) {
-                return val.name();
-            }
         };
     }
 }

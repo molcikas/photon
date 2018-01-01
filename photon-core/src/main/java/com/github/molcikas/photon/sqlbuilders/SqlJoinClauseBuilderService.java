@@ -13,7 +13,7 @@ public final class SqlJoinClauseBuilderService
     {
         while(tableBlueprint.getParentTableBlueprint() != null)
         {
-            sqlBuilder.append(String.format("\n%s [%s] ON [%s].[%s] = [%s].[%s]",
+            sqlBuilder.append(String.format("%n%s [%s] ON [%s].[%s] = [%s].[%s]",
                 alwaysUseInnerJoins ? "JOIN" : tableBlueprint.getJoinType().getJoinSql(),
                 tableBlueprint.getParentTableBlueprint().getTableName(),
                 tableBlueprint.getParentTableBlueprint().getTableName(),
@@ -32,7 +32,7 @@ public final class SqlJoinClauseBuilderService
     {
         for(TableBlueprint childTableBlueprint : childTableBlueprints)
         {
-            sqlBuilder.append(String.format("\n%s [%s] ON [%s].[%s] = [%s].[%s]",
+            sqlBuilder.append(String.format("%n%s [%s] ON [%s].[%s] = [%s].[%s]",
                 childTableBlueprint.getJoinType().getJoinSql(),
                 childTableBlueprint.getTableName(),
                 childTableBlueprint.getTableName(),

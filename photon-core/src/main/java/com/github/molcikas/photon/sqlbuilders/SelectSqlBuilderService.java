@@ -112,12 +112,12 @@ public final class SelectSqlBuilderService
 
     private static void buildFromClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
-        sqlBuilder.append(String.format("\nFROM [%s]", tableBlueprint.getTableName()));
+        sqlBuilder.append(String.format("%nFROM [%s]", tableBlueprint.getTableName()));
     }
 
     private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
-        sqlBuilder.append(String.format("\nWHERE [%s].[%s] IN (%s)",
+        sqlBuilder.append(String.format("%nWHERE [%s].[%s] IN (%s)",
             tableBlueprint.getTableName(),
             tableBlueprint.getPrimaryKeyColumnName(),
             "%s"

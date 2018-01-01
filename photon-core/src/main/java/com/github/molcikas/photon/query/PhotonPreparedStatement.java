@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.options.PhotonOptions;
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -383,6 +384,7 @@ public class PhotonPreparedStatement implements Closeable
         return questionMarks.toString();
     }
 
+    @SuppressWarnings("SQL_INJECTION_JDBC")
     private void prepareStatement()
     {
         try

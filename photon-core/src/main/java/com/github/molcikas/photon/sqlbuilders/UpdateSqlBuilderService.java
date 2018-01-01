@@ -92,7 +92,7 @@ public final class UpdateSqlBuilderService
 
     private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint, EntityBlueprint entityBlueprint)
     {
-        sqlBuilder.append(String.format("\nWHERE [%s].[%s] = ?",
+        sqlBuilder.append(String.format("%nWHERE [%s].[%s] = ?",
             tableBlueprint.getTableName(),
             tableBlueprint.getPrimaryKeyColumnName()
         ));

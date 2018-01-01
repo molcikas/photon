@@ -225,9 +225,9 @@ public class PhotonQuery
             );
         }
 
-        for(String field : customFieldHydraters.keySet())
+        for(Map.Entry<String, Converter> entry : customFieldHydraters.entrySet())
         {
-            entityBlueprintBuilder.withFieldHydrater(field, customFieldHydraters.get(field));
+            entityBlueprintBuilder.withFieldHydrater(entry.getKey(), entry.getValue());
         }
 
         EntityBlueprint entityBlueprint = entityBlueprintBuilder.build();

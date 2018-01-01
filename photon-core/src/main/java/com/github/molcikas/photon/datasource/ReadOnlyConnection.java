@@ -1,5 +1,7 @@
 package com.github.molcikas.photon.datasource;
 
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+
 import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
@@ -9,6 +11,7 @@ import java.util.concurrent.Executor;
  * A JDBC database connection that ignores commands that change its state, such as commit() or close(). This is useful
  * if Photon is being used alongside another ORM.
  */
+@SuppressWarnings("SQL_INJECTION_JDBC")
 public class ReadOnlyConnection implements Connection
 {
     private final Connection connection;
