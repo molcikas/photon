@@ -9,6 +9,7 @@ subprojects {
     apply plugin: 'maven'
     apply plugin: 'signing'
     apply plugin: 'findbugs'
+    apply plugin: 'jacoco'
     
     version = parent.version
     group = parent.group
@@ -89,6 +90,15 @@ subprojects {
     task analyze {
         dependsOn = [findbugsMain]
     }
+
+    jacocoTestReport {
+        reports {
+            xml.enabled = true
+            html.enabled = true
+        }
+    }
+
+    check.dependsOn jacocoTestReport
 
     task javadocJar(type: Jar) {
         classifier = 'javadoc'

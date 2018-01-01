@@ -1,4 +1,4 @@
-# Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon)
+# Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon) [![Code Coverage](https://img.shields.io/codecov/c/github/molcikas/photon/master.svg)](https://codecov.io/github/molcikas/photon?branch=master)
 A micro ORM that gives developers the ability to write complex SELECT statements when performance is critical while also shielding them from having to hand-write routine CRUD SQL.
 
 Traditional ORMs are complex and cryptic. They are often orders of magnitude slower than lower-level frameworks like JDBC. Since they hide the SQL they are executing, diagnosing and troubleshooting issues requires deep knowledge about how the ORM works. They usually require the object-to-table mapping to be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence details and require the entities to be modeled after the database tables rather than the business domain.
