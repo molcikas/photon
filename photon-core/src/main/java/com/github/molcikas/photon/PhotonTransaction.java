@@ -31,7 +31,8 @@ public class PhotonTransaction implements Closeable
                     List<PhotonPreparedStatement.ParameterValue> parameterValues =
                         populatedEntity.getValuesForUpdate(tableBlueprint, populatedEntity.getParentPopulatedEntity());
 
-                    trackedValues.putAll(new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey()), parameterValues);
+                    TableBlueprintAndKey key = new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey());
+                    updateTrackedValues(key, parameterValues);
                 }
             }
         }
@@ -43,17 +44,16 @@ public class PhotonTransaction implements Closeable
             return values != null ? values : Collections.emptyList();
         }
 
-        public void updateTrackedValues(TableBlueprintAndKey tableBlueprintAndKey, List<PhotonPreparedStatement.ParameterValue> values)
+        public void updateTrackedValues(TableBlueprintAndKey key, List<PhotonPreparedStatement.ParameterValue> values)
         {
-            trackedValues.remove(tableBlueprintAndKey);
-            trackedValues.putAll(tableBlueprintAndKey, values);
+            trackedValues.remove(key);
+            trackedValues.putAll(key, values);
         }
     }
 
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
     private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
-    // TODO: Can't use this because it has a reference to the entity. We need to store a snapshot of the values!
     private final ListValuedMap<TableBlueprintAndKey, PhotonPreparedStatement.ParameterValue> trackedValues;
     private final Photon photon;
     private boolean hasUncommittedChanges = false;

@@ -586,7 +586,6 @@ public class MyTableSaveTests
         {
             MyTable myTable = transaction
                 .query(MyTable.class)
-                .trackChanges()
                 .fetchById(2);
 
             transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
@@ -596,6 +595,7 @@ public class MyTableSaveTests
 
             MyTable myTableRetrieved = transaction
                 .query(MyTable.class)
+                .noTracking()
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
@@ -615,7 +615,6 @@ public class MyTableSaveTests
         {
             MyTable myTable = transaction
                 .query(MyTable.class)
-                .trackChanges()
                 .fetchById(2);
 
             myTable.setMyvalue("MyNewValueInTheAggregate");
@@ -640,6 +639,36 @@ public class MyTableSaveTests
 
             assertNotNull(myTableRetrieved);
             assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_noChangeTracking_savesWholeAggregate()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should re-write value back to the database since the aggregate is untracked.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("my2dbvalue", myTableRetrieved.getMyvalue());
         }
     }
 

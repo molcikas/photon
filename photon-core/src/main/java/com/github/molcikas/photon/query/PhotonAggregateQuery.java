@@ -20,7 +20,7 @@ public class PhotonAggregateQuery<T>
     private final PhotonTransaction.PhotonTransactionHandle photonTransaction;
     private final Photon photon;
     private final List<String> excludedFieldPaths;
-    private boolean trackChanges = false;
+    private boolean trackChanges = true;
 
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
@@ -45,9 +45,9 @@ public class PhotonAggregateQuery<T>
         return this;
     }
 
-    public PhotonAggregateQuery<T> trackChanges()
+    public PhotonAggregateQuery<T> noTracking()
     {
-        this.trackChanges = true;
+        this.trackChanges = false;
         return this;
     }
 

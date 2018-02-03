@@ -191,7 +191,7 @@ public class PhotonAggregateSave
             String selectOrphansSql = tableBlueprint.getSelectOrphansSql();
             if(selectOrphansSql == null)
             {
-                // If the primary key and foreign key to parent are equal, there won't be any select orhans sql because
+                // If the primary key and foreign key to parent are equal, there won't be any select orphans sql because
                 // there can't be any orphans, so just return.
                 return;
             }
