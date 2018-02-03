@@ -1,9 +1,12 @@
 package com.github.molcikas.photon;
 
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprintAndKey;
+import com.github.molcikas.photon.blueprints.table.TableKey;
 import com.github.molcikas.photon.query.*;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 
@@ -19,16 +22,39 @@ public class PhotonTransaction implements Closeable
 {
     public class PhotonTransactionHandle
     {
-        public void track(Class<?> aggregateRootClass, PopulatedEntityMap populatedEntityMap)
+        public void track(PopulatedEntityMap populatedEntityMap)
         {
-            trackedAggregates.put(aggregateRootClass, populatedEntityMap);
+            for(PopulatedEntity<?> populatedEntity : populatedEntityMap.getAllPopulatedEntities())
+            {
+                for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
+                {
+                    List<PhotonPreparedStatement.ParameterValue> parameterValues =
+                        populatedEntity.getValuesForUpdate(tableBlueprint, populatedEntity.getParentPopulatedEntity());
+
+                    trackedValues.putAll(new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey()), parameterValues);
+                }
+            }
+        }
+
+        public List<PhotonPreparedStatement.ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableKey primaryKey)
+        {
+            List<PhotonPreparedStatement.ParameterValue> values =
+                trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
+            return values != null ? values : Collections.emptyList();
+        }
+
+        public void updateTrackedValues(TableBlueprintAndKey tableBlueprintAndKey, List<PhotonPreparedStatement.ParameterValue> values)
+        {
+            trackedValues.remove(tableBlueprintAndKey);
+            trackedValues.putAll(tableBlueprintAndKey, values);
         }
     }
 
     private final Connection connection;
     private final Map<Class, AggregateBlueprint> registeredAggregates;
     private final Map<String, AggregateBlueprint> registeredViewModelAggregates;
-    private final Map<Class<?>, PopulatedEntityMap> trackedAggregates;
+    // TODO: Can't use this because it has a reference to the entity. We need to store a snapshot of the values!
+    private final ListValuedMap<TableBlueprintAndKey, PhotonPreparedStatement.ParameterValue> trackedValues;
     private final Photon photon;
     private boolean hasUncommittedChanges = false;
 
@@ -42,7 +68,7 @@ public class PhotonTransaction implements Closeable
         this.registeredAggregates = registeredAggregates;
         this.registeredViewModelAggregates = registeredViewModelAggregates;
         this.photon = photon;
-        this.trackedAggregates = new HashMap<>();
+        this.trackedValues = new ArrayListValuedHashMap<>();
 
         try
         {
@@ -147,7 +173,8 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("save", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photon.getOptions()).save(aggregate, fieldsToExclude);
+        new PhotonAggregateSave(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon.getOptions())
+            .save(aggregate, fieldsToExclude);
         hasUncommittedChanges = true;
     }
 
@@ -190,7 +217,8 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photon.getOptions()).saveAll(aggregates, fieldsToExclude);
+        new PhotonAggregateSave(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon.getOptions())
+            .saveAll(aggregates, fieldsToExclude);
         hasUncommittedChanges = true;
     }
 
@@ -204,7 +232,8 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("insert", true);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photon.getOptions()).insert(aggregate);
+        new PhotonAggregateSave(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon.getOptions())
+            .insert(aggregate);
         hasUncommittedChanges = true;
     }
 
@@ -234,7 +263,8 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateSave(aggregateBlueprint, connection, photon.getOptions()).insertAll(aggregates);
+        new PhotonAggregateSave(aggregateBlueprint, connection, new PhotonTransactionHandle(), photon.getOptions())
+            .insertAll(aggregates);
         hasUncommittedChanges = true;
     }
 

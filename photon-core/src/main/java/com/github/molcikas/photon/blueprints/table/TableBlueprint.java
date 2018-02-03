@@ -5,10 +5,12 @@ import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.query.PopulatedEntity;
+import lombok.EqualsAndHashCode;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@EqualsAndHashCode
 public class TableBlueprint
 {
     private List<ColumnBlueprint> columns;

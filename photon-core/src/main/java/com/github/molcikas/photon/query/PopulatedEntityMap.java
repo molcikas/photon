@@ -3,13 +3,16 @@ package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PopulatedEntityMap
 {
-    private final Map<Class, List<PopulatedEntity>> populatedEntityMap;
-    private final Map<Class, Integer> childIndexes;
+    // TODO: Convert to multivalue map
+    private final Map<EntityBlueprint, List<PopulatedEntity<?>>> populatedEntityMap;
+    private final Map<EntityBlueprint, Integer> childIndexes;
 
     public PopulatedEntityMap()
     {
@@ -17,49 +20,66 @@ public class PopulatedEntityMap
         this.childIndexes = new HashMap<>();
     }
 
+    public List<PopulatedEntity<?>> getAllPopulatedEntities()
+    {
+        return populatedEntityMap
+            .values()
+            .stream()
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
+    }
+
     public void createPopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         PopulatedEntity populatedEntity = new PopulatedEntity(entityBlueprint, queryResultRow);
-        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
-        if(populatedEntities == null)
-        {
-            // 100 is the typical max length for an aggregate sub entity list.
-            populatedEntities = new ArrayList<>(100);
-            populatedEntityMap.put(entityBlueprint.getEntityClass(), populatedEntities);
-        }
+        // 100 is the typical max length for an aggregate sub entity list.
+        List<PopulatedEntity<?>> populatedEntities =
+            populatedEntityMap.computeIfAbsent(entityBlueprint, k -> new ArrayList<>(100));
         populatedEntities.add(populatedEntity);
     }
 
-    public List<PopulatedEntity> getPopulatedEntitiesForClass(Class entityClass)
+    public void updateEntity(PopulatedEntity<?> populatedEntity)
     {
-        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityClass);
-        return populatedEntities != null ? Collections.unmodifiableList(populatedEntities) : Collections.emptyList();
-    }
-
-    public void addNextInstancesWithClassAndForeignKeyToParent(Collection collection, Class entityClass, Object key)
-    {
-        Integer index = childIndexes.get(entityClass);
-        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityClass);
+        List<PopulatedEntity<?>> populatedEntities =
+            populatedEntityMap.get(populatedEntity.getEntityBlueprint());
         if(populatedEntities == null)
         {
             return;
         }
-        if (index == null)
+
+        for(PopulatedEntity<?> existingPopulatedEntity : populatedEntities)
         {
-            index = 0;
+            if(keysAreEqual(existingPopulatedEntity, populatedEntity))
+            {
+                populatedEntities.remove(existingPopulatedEntity);
+                break;
+            }
         }
-        while (index < populatedEntities.size() && keysAreEqual(key, populatedEntities.get(index).getForeignKeyToParentValue()))
-        {
-            collection.add(populatedEntities.get(index).getEntityInstance());
-            index++;
-        }
-        childIndexes.put(entityClass, index);
+
+        populatedEntities.add(populatedEntity);
     }
 
-    public Object getNextInstanceWithClassAndForeignKeyToParent(Class entityClass, Object foreignKeyToParentValue)
+    public List<PopulatedEntity<?>> getPopulatedEntitiesForBlueprint(EntityBlueprint entityBlueprint)
     {
-        Integer index = childIndexes.get(entityClass);
-        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityClass);
+        List<PopulatedEntity<?>> populatedEntities = populatedEntityMap.get(entityBlueprint);
+        return populatedEntities != null ? Collections.unmodifiableList(populatedEntities) : Collections.emptyList();
+    }
+
+    public void setParentAndAddChildrenToCollection(Collection collection, EntityBlueprint entityBlueprint, PopulatedEntity<?> parentPopulatedEntity)
+    {
+        PopulatedEntity<?> populatedEntity = setParentAndGetNextChild(entityBlueprint, parentPopulatedEntity);
+
+        while (populatedEntity != null)
+        {
+            collection.add(populatedEntity.getEntityInstance());
+            populatedEntity = setParentAndGetNextChild(entityBlueprint, parentPopulatedEntity);
+        }
+    }
+
+    public PopulatedEntity<?> setParentAndGetNextChild(EntityBlueprint entityBlueprint, PopulatedEntity<?> parentPopulatedEntity)
+    {
+        Integer index = childIndexes.get(entityBlueprint);
+        List<PopulatedEntity<?>> populatedEntities = populatedEntityMap.get(entityBlueprint);
         if(populatedEntities == null)
         {
             return null;
@@ -68,10 +88,12 @@ public class PopulatedEntityMap
         {
             index = 0;
         }
-        if (index < populatedEntities.size() && keysAreEqual(foreignKeyToParentValue, populatedEntities.get(index).getForeignKeyToParentValue()))
+        if (index < populatedEntities.size() && keysAreEqual(parentPopulatedEntity.getPrimaryKeyValue(), populatedEntities.get(index).getForeignKeyToParentValue()))
         {
-            childIndexes.put(entityClass, index + 1);
-            return populatedEntities.get(index).getEntityInstance();
+            childIndexes.put(entityBlueprint, index + 1);
+            PopulatedEntity<?> populatedEntity = populatedEntities.get(index);
+            populatedEntity.setParentPopulatedEntity(parentPopulatedEntity);
+            return populatedEntity;
         }
         return null;
     }
@@ -86,7 +108,7 @@ public class PopulatedEntityMap
     public void setFieldValuesOnEntityInstances(List<PhotonQueryResultRow> photonQueryResultRows, FieldBlueprint fieldBlueprint, EntityBlueprint entityBlueprint)
     {
         ColumnBlueprint primaryKeyColumn = entityBlueprint.getTableBlueprint().getPrimaryKeyColumn();
-        List<PopulatedEntity> populatedEntities = populatedEntityMap.get(entityBlueprint.getEntityClass());
+        List<PopulatedEntity<?>> populatedEntities = populatedEntityMap.get(entityBlueprint);
         String foreignTableKeyColumnName = fieldBlueprint.getFlattenedCollectionBlueprint().getColumnName();
 
         int entityIndex = 0;

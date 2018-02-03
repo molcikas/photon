@@ -1,10 +1,12 @@
 package com.github.molcikas.photon.blueprints.table;
 
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 
+@EqualsAndHashCode
 public class ColumnBlueprint
 {
     private final String columnNameQualified;

@@ -141,14 +141,13 @@ public class PhotonAggregateQuery<T>
 
         populatedEntityMap.mapAllEntityInstanceChildren();
 
-        // TODO: Register map of entities with transaction.
         if(trackChanges)
         {
-            photonTransaction.track(aggregateBlueprint.getAggregateRootClass(), populatedEntityMap);
+            photonTransaction.track(populatedEntityMap);
         }
 
         return populatedEntityMap
-            .getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass())
+            .getPopulatedEntitiesForBlueprint(aggregateBlueprint.getAggregateRootEntityBlueprint())
             .stream()
             .map(pe -> (T) pe.getEntityInstance())
             .collect(Collectors.toList());
@@ -206,7 +205,7 @@ public class PhotonAggregateQuery<T>
         if(ids == null)
         {
             ids = populatedEntityMap
-                .getPopulatedEntitiesForClass(entityBlueprint.getEntityClass())
+                .getPopulatedEntitiesForBlueprint(entityBlueprint)
                 .stream()
                 .map(PopulatedEntity::getPrimaryKeyValue)
                 .collect(Collectors.toList());

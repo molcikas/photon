@@ -2,6 +2,7 @@ package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.options.PhotonOptions;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,17 +11,15 @@ import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import java.io.Closeable;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PhotonPreparedStatement implements Closeable
 {
     private static final Logger log = LoggerFactory.getLogger(PhotonPreparedStatement.class);
 
-    private static class ParameterValue
+    @EqualsAndHashCode
+    public static class ParameterValue
     {
         public final Object value;
         public final ColumnDataType dataType;
@@ -109,6 +108,11 @@ public class PhotonPreparedStatement implements Closeable
     public void setNextParameter(Object value, ColumnDataType dataType, Converter customSerializer)
     {
         parameterValues.add(new ParameterValue(value, dataType, customSerializer));
+    }
+
+    public void setNextParameters(List<ParameterValue> parameterValues)
+    {
+        this.parameterValues.addAll(parameterValues);
     }
 
     public void addToBatch()

@@ -1,10 +1,12 @@
 package com.github.molcikas.photon.query;
 
+import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableBlueprintAndKey;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
@@ -20,15 +22,18 @@ public class PhotonAggregateSave
 {
     private final AggregateBlueprint aggregateBlueprint;
     private final Connection connection;
+    private final PhotonTransaction.PhotonTransactionHandle photonTransaction;
     private final PhotonOptions photonOptions;
 
     public PhotonAggregateSave(
         AggregateBlueprint aggregateBlueprint,
         Connection connection,
+        PhotonTransaction.PhotonTransactionHandle photonTransaction,
         PhotonOptions photonOptions)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
+        this.photonTransaction = photonTransaction;
         this.photonOptions = photonOptions;
     }
 
@@ -360,18 +365,42 @@ public class PhotonAggregateSave
         {
             String updateSql = tableBlueprint.getUpdateSql();
             final List<PopulatedEntity> attemptedUpdatedPopulatedEntities = new ArrayList<>(populatedEntities.size());
+            List<PopulatedEntity> upToDateEntities = new ArrayList<>();
+            Map<TableBlueprintAndKey, List<PhotonPreparedStatement.ParameterValue>> updatedTrackedValues = new HashMap<>();
 
             try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, false, connection, photonOptions))
             {
-                for (PopulatedEntity populatedEntity : populatedEntities)
+                for (PopulatedEntity<?> populatedEntity : populatedEntities)
                 {
-                    if(tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
+                    if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
                     {
-                        boolean addedToBatch = populatedEntity.addUpdateToBatch(updateStatement, tableBlueprint, parentPopulatedEntity);
-                        if(addedToBatch)
-                        {
-                            attemptedUpdatedPopulatedEntities.add(populatedEntity);
-                        }
+                        continue;
+                    }
+
+                    List<PhotonPreparedStatement.ParameterValue> trackedValues =
+                        photonTransaction.getTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey());
+                    PopulatedEntity.AddToBatchResult result =
+                        populatedEntity.getParameterValuesForUpdate(tableBlueprint, parentPopulatedEntity, trackedValues);
+                    if(result.isSkipped())
+                    {
+                        continue;
+                    }
+
+                    if(result.getParameterValuesForUpdate().isEmpty())
+                    {
+                        upToDateEntities.add(populatedEntity);
+                        continue;
+                    }
+
+                    updateStatement.setNextParameters(result.getParameterValuesForUpdate());
+                    updateStatement.addToBatch();
+                    attemptedUpdatedPopulatedEntities.add(populatedEntity);
+
+                    if(!trackedValues.isEmpty())
+                    {
+                        updatedTrackedValues.put(
+                            new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey()),
+                            result.getParameterValuesForUpdate());
                     }
                 }
 
@@ -380,10 +409,16 @@ public class PhotonAggregateSave
                 List<PopulatedEntity> updatedPopulatedEntitiesForTable = IntStream
                     .range(0, attemptedUpdatedPopulatedEntities.size())
                     .filter(i -> rowUpdateCounts[i] > 0)
-                    .mapToObj(i -> attemptedUpdatedPopulatedEntities.get(i))
+                    .mapToObj(attemptedUpdatedPopulatedEntities::get)
                     .collect(Collectors.toList());
 
+                updatedPopulatedEntitiesForTable.addAll(upToDateEntities);
                 updatedPopulatedEntities.put(tableBlueprint, updatedPopulatedEntitiesForTable);
+
+                for(Map.Entry<TableBlueprintAndKey, List<PhotonPreparedStatement.ParameterValue>> entry : updatedTrackedValues.entrySet())
+                {
+                    photonTransaction.updateTrackedValues(entry.getKey(), entry.getValue());
+                }
             }
         }
 
