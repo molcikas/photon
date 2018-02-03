@@ -392,6 +392,7 @@ public class PopulatedEntity<T>
         }
     }
 
+    @SneakyThrows
     private void constructOrphanEntityInstance(boolean columnsFullyQualified)
     {
         Constructor<T> constructor = entityBlueprint.getEntityConstructor(photonQueryResultRow.getValuesMap());
