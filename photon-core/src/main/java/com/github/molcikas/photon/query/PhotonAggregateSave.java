@@ -368,7 +368,7 @@ public class PhotonAggregateSave
     }
 
     private Map<TableBlueprint, List<PopulatedEntity>> updatePopulatedEntities(
-        List<PopulatedEntity> populatedEntities,
+        List<PopulatedEntity<?>> populatedEntities,
         PopulatedEntity parentPopulatedEntity,
         EntityBlueprint entityBlueprint)
     {

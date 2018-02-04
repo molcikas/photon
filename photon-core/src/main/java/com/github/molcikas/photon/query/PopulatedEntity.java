@@ -36,13 +36,6 @@ public class PopulatedEntity<T>
     @Getter
     private Object foreignKeyToParentValue;
 
-    // TODO: Does this need to be a field? Can it be changed back to a method arg?
-    private PhotonQueryResultRow photonQueryResultRow;
-
-    @Getter
-    @Setter
-    private PopulatedEntity<?> parentPopulatedEntity;
-
     public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         this(entityBlueprint, queryResultRow, true);
@@ -51,8 +44,7 @@ public class PopulatedEntity<T>
     public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow photonQueryResultRow, boolean columnsFullyQualified)
     {
         this.entityBlueprint = entityBlueprint;
-        this.photonQueryResultRow = photonQueryResultRow;
-        constructOrphanEntityInstance(columnsFullyQualified);
+        constructOrphanEntityInstance(columnsFullyQualified, photonQueryResultRow);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
@@ -427,7 +419,7 @@ public class PopulatedEntity<T>
     }
 
     @SneakyThrows
-    private void constructOrphanEntityInstance(boolean columnsFullyQualified)
+    private void constructOrphanEntityInstance(boolean columnsFullyQualified, PhotonQueryResultRow photonQueryResultRow)
     {
         Constructor<T> constructor = entityBlueprint.getEntityConstructor(photonQueryResultRow.getValuesMap());
 

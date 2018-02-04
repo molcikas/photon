@@ -3,7 +3,6 @@ package com.github.molcikas.photon.blueprints.entity;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -78,11 +77,16 @@ public class EntityBlueprint
             .orElse(null);
     }
 
+    public List<FieldBlueprint> getFields()
+    {
+        return Collections.unmodifiableList(fields);
+    }
+
     public List<FieldBlueprint> getFieldsWithChildEntities()
     {
         return fields
             .stream()
-            .filter(f -> f.getFieldType() == FieldType.Entity || f.getFieldType() == FieldType.EntityList)
+            .filter(f -> f.getFieldType().isHasChildEntities())
             .collect(Collectors.toList());
     }
 

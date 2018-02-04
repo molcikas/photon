@@ -1,5 +1,7 @@
 package com.github.molcikas.photon;
 
+import com.github.molcikas.photon.blueprints.AggregateBlueprint;
+import com.github.molcikas.photon.blueprints.AggregateBlueprintAndKey;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprintAndKey;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
@@ -9,56 +11,51 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.query.PhotonPreparedStatement;
 import com.github.molcikas.photon.query.PopulatedEntity;
 import com.github.molcikas.photon.query.PopulatedEntityMap;
+import com.github.molcikas.photon.query.PopulatedEntitySnapshot;
 import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.SetValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PhotonEntityState
 {
-    private final ListValuedMap<TableBlueprintAndKey, PhotonPreparedStatement.ParameterValue> trackedValues;
-    private final SetValuedMap<FieldBlueprintAndKey, TableKey> trackedChildren;
+    private final Map<AggregateBlueprintAndKey, PopulatedEntitySnapshot<?>> trackedAggregates;
 
     public PhotonEntityState()
     {
-        this.trackedValues = new ArrayListValuedHashMap<>();
-        this.trackedChildren = new HashSetValuedHashMap<>();
+        this.trackedAggregates = new HashMap<>();
     }
 
-    public void track(PopulatedEntityMap populatedEntityMap)
+    public void track(PopulatedEntityMap populatedEntityMap, AggregateBlueprint<?> aggregateBlueprint)
     {
-        for(PopulatedEntity<?> populatedEntity : populatedEntityMap.getAllPopulatedEntities())
+        List<PopulatedEntity<?>> rootEntities =
+            populatedEntityMap.getPopulatedEntitiesForBlueprint(aggregateBlueprint.getAggregateRootEntityBlueprint());
+
+        for(PopulatedEntity<?> rootEntity : rootEntities)
         {
-            for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
-            {
-                List<PhotonPreparedStatement.ParameterValue> values =
-                    populatedEntity.getParameterValues(tableBlueprint, populatedEntity.getParentPopulatedEntity());
-
-                updateTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey(), values);
-            }
-
-            for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFieldsWithChildEntities())
-            {
-                List<TableKey> childKeys = populatedEntity
-                    .getChildPopulatedEntitiesForField(fieldBlueprint)
-                    .stream()
-                    .map(PopulatedEntity::getPrimaryKey)
-                    .collect(Collectors.toList());
-
-                FieldBlueprintAndKey key = new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
-                trackedChildren.remove(key);
-                trackedChildren.putAll(key, childKeys);
-            }
+            PopulatedEntitySnapshot snapshot = new PopulatedEntitySnapshot<>(rootEntity);
+            trackedAggregates.put(new AggregateBlueprintAndKey(aggregateBlueprint, rootEntity.getPrimaryKey()), snapshot);
         }
     }
 
-    public List<PhotonPreparedStatement.ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableKey primaryKey)
+    public List<PhotonPreparedStatement.ParameterValue> getTrackedValues(
+        AggregateBlueprint<?> aggregateBlueprint,
+        TableKey aggregateKey,
+        TableBlueprint tableBlueprint,
+        TableKey primaryKey)
     {
+        PopulatedEntitySnapshot<?> snapshot = trackedAggregates.get(new AggregateBlueprintAndKey(aggregateBlueprint, aggregateKey));
+        if(snapshot == null)
+        {
+            return null;
+        }
+
+
+        snapshot
+
         List<PhotonPreparedStatement.ParameterValue> values =
             trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
         return values != null ? values : Collections.emptyList();

@@ -143,7 +143,7 @@ public class PhotonAggregateQuery<T>
 
         if(trackChanges)
         {
-            photonEntityState.track(populatedEntityMap);
+            photonEntityState.track(populatedEntityMap, aggregateBlueprint);
         }
 
         return populatedEntityMap
