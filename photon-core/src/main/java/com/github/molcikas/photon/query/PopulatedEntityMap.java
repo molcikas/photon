@@ -3,7 +3,6 @@ package com.github.molcikas.photon.query;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
-import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -35,27 +34,6 @@ public class PopulatedEntityMap
         // 100 is the typical max length for an aggregate sub entity list.
         List<PopulatedEntity<?>> populatedEntities =
             populatedEntityMap.computeIfAbsent(entityBlueprint, k -> new ArrayList<>(100));
-        populatedEntities.add(populatedEntity);
-    }
-
-    public void updateEntity(PopulatedEntity<?> populatedEntity)
-    {
-        List<PopulatedEntity<?>> populatedEntities =
-            populatedEntityMap.get(populatedEntity.getEntityBlueprint());
-        if(populatedEntities == null)
-        {
-            return;
-        }
-
-        for(PopulatedEntity<?> existingPopulatedEntity : populatedEntities)
-        {
-            if(keysAreEqual(existingPopulatedEntity, populatedEntity))
-            {
-                populatedEntities.remove(existingPopulatedEntity);
-                break;
-            }
-        }
-
         populatedEntities.add(populatedEntity);
     }
 

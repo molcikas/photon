@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.blueprints.entity;
 
 import com.github.molcikas.photon.PhotonUtils;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;

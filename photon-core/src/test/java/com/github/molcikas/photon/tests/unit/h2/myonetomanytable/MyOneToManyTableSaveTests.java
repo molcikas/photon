@@ -3,6 +3,7 @@ package com.github.molcikas.photon.tests.unit.h2.myonetomanytable;
 import com.github.molcikas.photon.blueprints.entity.ChildCollectionConstructor;
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyMapTable;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import com.github.molcikas.photon.Photon;
@@ -12,6 +13,7 @@ import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyManyTab
 import com.github.molcikas.photon.tests.unit.entities.myonetomanytable.MyOneToManyTable;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
@@ -281,6 +283,167 @@ public class MyOneToManyTableSaveTests
 
             assertEquals(1, myOneToManyTable.getMyManyTables().size());
             assertEquals(Integer.valueOf(10), myOneToManyTable.getMyManyTables().values().iterator().next().getId());
+        }
+    }
+
+    @Test
+    public void aggregateSave_withTrackingAndNoChildrenChanged_doesNotDeleteOrphans()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (10, 6, 'my64otherdbvalue')").executeUpdate();
+
+            // This should NOT delete the orphan we just inserted.
+            transaction.save(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(4, myOneToManyTableFetched.getMyManyTables().size());
+        }
+    }
+
+    @Test
+    public void aggregateSave_withNoTrackingAndNoChildrenChanged_deletesOrphans()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .noTracking()
+                .fetchById(6);
+
+            transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (10, 6, 'my64otherdbvalue')").executeUpdate();
+
+            // This should delete the orphan we just inserted.
+            transaction.save(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(3, myOneToManyTableFetched.getMyManyTables().size());
+        }
+    }
+
+    @Test
+    public void aggregateSave_withTrackingAndChildrenChanged_deletesOrphanAndInsertsNewChild()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            myOneToManyTable.getMyManyTables().remove(1);
+
+            List<MyThirdTable> myThirdTables = Arrays.asList(
+                new MyThirdTable(0, "NewThird1"),
+                new MyThirdTable(0, "NewThird2")
+            );
+            myOneToManyTable.getMyManyTables().add(1, new MyManyTable(null, "NewVal", myThirdTables));
+
+            transaction.save(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(3, myOneToManyTableFetched.getMyManyTables().size());
+
+            MyManyTable myManyTableFetched = myOneToManyTableFetched.getMyManyTables().get(2);
+            assertEquals("NewVal", myManyTableFetched.getMyOtherValueWithDiffName());
+            assertEquals(2, myManyTableFetched.getMyThirdTables().size());
+            assertEquals(new Integer(6), myManyTableFetched.getMyThirdTables().get(1).getId());
+            assertEquals("NewThird2", myManyTableFetched.getMyThirdTables().get(1).getVal());
+        }
+    }
+
+    @Test
+    public void aggregateSave_withTrackingAndAddAfterSave_tracksChangesThroughMultipleSaves()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            List<MyThirdTable> myThirdTables = Arrays.asList(
+                new MyThirdTable(0, "NewThird1"),
+                new MyThirdTable(0, "NewThird2")
+            );
+            myOneToManyTable.getMyManyTables().add(1, new MyManyTable(null, "NewVal", myThirdTables));
+
+            transaction.save(myOneToManyTable);
+
+            myOneToManyTable.getMyManyTables().remove(1);
+            transaction.save(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(
+                Arrays.asList(7, 8, 9),
+                myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getId).collect(Collectors.toList()));
+            assertEquals(
+                Arrays.asList("my61otherdbvalue", "my62otherdbvalue", "my63otherdbvalue"),
+                myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getMyOtherValueWithDiffName).collect(Collectors.toList()));
+        }
+    }
+
+    @Test
+    public void aggregateSave_withTrackingAndRemoveAfterSave_tracksChangesThroughMultipleSaves()
+    {
+        Assert.fail("TODO: Write this test");
+
+        registerMyOneToManyTableAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            List<MyThirdTable> myThirdTables = Arrays.asList(
+                new MyThirdTable(0, "NewThird1"),
+                new MyThirdTable(0, "NewThird2")
+            );
+            myOneToManyTable.getMyManyTables().add(1, new MyManyTable(null, "NewVal", myThirdTables));
+
+            transaction.save(myOneToManyTable);
+
+            myOneToManyTable.getMyManyTables().remove(1);
+            transaction.save(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(
+                Arrays.asList(7, 8, 9),
+                myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getId).collect(Collectors.toList()));
+            assertEquals(
+                Arrays.asList("my61otherdbvalue", "my62otherdbvalue", "my63otherdbvalue"),
+                myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getMyOtherValueWithDiffName).collect(Collectors.toList()));
         }
     }
 

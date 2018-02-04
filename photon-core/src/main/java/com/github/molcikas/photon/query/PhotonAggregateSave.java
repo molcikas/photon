@@ -8,6 +8,7 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FlattenedCollectionBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprintAndKey;
+import com.github.molcikas.photon.blueprints.table.TableKey;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
@@ -148,7 +149,7 @@ public class PhotonAggregateSave
             }
         }
 
-        insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity, entityBlueprint);
+        insertPopulatedEntities(populatedEntitiesToInsert, parentPopulatedEntity, parentFieldBlueprint, entityBlueprint);
 
         setForeignKeyToParentForPopulatedEntities(populatedEntities, entityBlueprint.getFieldsWithChildEntities());
 
@@ -197,12 +198,23 @@ public class PhotonAggregateSave
                 return;
             }
 
-            List<?> childIds = populatedEntities
+            List<Object> childIds = populatedEntities
                 .stream()
                 .map(PopulatedEntity::getPrimaryKeyValue)
                 .filter(Objects::nonNull) // Auto increment entities that have not been inserted yet will have null primary key values.
                 .collect(Collectors.toList());
-            List<?> orphanIds;
+            List<Object> orphanIds;
+
+            Set<TableKey> trackedKeys =
+                photonEntityState.getTrackedChildren(parentFieldBlueprint, parentPopulatedEntity.getPrimaryKey());
+            if(trackedKeys != null)
+            {
+                Set<Object> trackedKeyValues = trackedKeys.stream().map(TableKey::getKey).collect(Collectors.toSet());
+                if(new HashSet<>(childIds).equals(trackedKeyValues))
+                {
+                    return;
+                }
+            }
 
             try(PhotonPreparedStatement statement = new PhotonPreparedStatement(selectOrphansSql, false, connection, photonOptions))
             {
@@ -219,10 +231,13 @@ public class PhotonAggregateSave
                 orphanIds =
                     rows.stream().map(r -> r.getValue(primaryKeyColumnName)).collect(Collectors.toList());
             }
-            if(orphanIds.size() > 0)
+
+            if(orphanIds.size() == 0)
             {
-                deleteOrphansAndTheirChildrenRecursive(orphanIds, entityBlueprint, Collections.emptyList());
+                return;
             }
+
+            deleteOrphansAndTheirChildrenRecursive(orphanIds, entityBlueprint, Collections.emptyList());
         }
         else
         {
@@ -431,6 +446,7 @@ public class PhotonAggregateSave
     private void insertPopulatedEntities(
         Map<TableBlueprint, List<PopulatedEntity>> populatedEntities,
         PopulatedEntity parentPopulatedEntity,
+        FieldBlueprint parentFieldBlueprint,
         EntityBlueprint entityBlueprint)
     {
         if(populatedEntities == null || populatedEntities.isEmpty())
@@ -443,32 +459,42 @@ public class PhotonAggregateSave
             {
                 for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
                 {
-                    if(tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
+                    if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
                     {
-                        String insertSql = tableBlueprint.getInsertSql();
-                        boolean populateGeneratedKeys = tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn();
-                        boolean shouldInsertUsingPrimaryKeySql = tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity);
-                        if(shouldInsertUsingPrimaryKeySql)
+                        continue;
+                    }
+                    String insertSql = tableBlueprint.getInsertSql();
+                    boolean populateGeneratedKeys = tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn();
+                    boolean shouldInsertUsingPrimaryKeySql = tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity);
+                    if(shouldInsertUsingPrimaryKeySql)
+                    {
+                        insertSql = tableBlueprint.getInsertWithPrimaryKeySql();
+                        populateGeneratedKeys = false;
+                    }
+                    try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
+                        insertSql,
+                        populateGeneratedKeys,
+                        connection,
+                        photonOptions))
+                    {
+                        List<PhotonPreparedStatement.ParameterValue> values = populatedEntity
+                            .getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, shouldInsertUsingPrimaryKeySql);
+                        insertStatement.setNextParameters(values);
+                        insertStatement.executeInsert();
+                        Long generatedKey = insertStatement.getGeneratedKeys().get(0);
+                        populatedEntity.setPrimaryKeyValue(generatedKey);
+
+                        // TODO: Make these two calls into a single call
+                        photonEntityState.updateTrackedValues(
+                            tableBlueprint,
+                            populatedEntity.getPrimaryKey(),
+                            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                        if(parentPopulatedEntity != null)
                         {
-                            insertSql = tableBlueprint.getInsertWithPrimaryKeySql();
-                            populateGeneratedKeys = false;
-                        }
-                        try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
-                            insertSql,
-                            populateGeneratedKeys,
-                            connection,
-                            photonOptions))
-                        {
-                            List<PhotonPreparedStatement.ParameterValue> values = populatedEntity
-                                .getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, shouldInsertUsingPrimaryKeySql);
-                            insertStatement.setNextParameters(values);
-                            insertStatement.executeInsert();
-                            Long generatedKey = insertStatement.getGeneratedKeys().get(0);
-                            populatedEntity.setPrimaryKeyValue(generatedKey);
-                            photonEntityState.updateTrackedValues(
-                                tableBlueprint,
-                                populatedEntity.getPrimaryKey(),
-                                populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                            photonEntityState.addTrackedChild(
+                                parentFieldBlueprint,
+                                parentPopulatedEntity.getPrimaryKey(),
+                                populatedEntity.getPrimaryKey());
                         }
                     }
                 }
@@ -521,6 +547,13 @@ public class PhotonAggregateSave
                             tableBlueprint,
                             populatedEntity.getPrimaryKey(),
                             populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                        if(parentPopulatedEntity != null)
+                        {
+                            photonEntityState.addTrackedChild(
+                                parentFieldBlueprint,
+                                parentPopulatedEntity.getPrimaryKey(),
+                                populatedEntity.getPrimaryKey());
+                        }
                     }
                 }
 
@@ -549,6 +582,13 @@ public class PhotonAggregateSave
                                 tableBlueprint,
                                 populatedEntity.getPrimaryKey(),
                                 populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                            if(parentPopulatedEntity != null)
+                            {
+                                photonEntityState.addTrackedChild(
+                                    parentFieldBlueprint,
+                                    parentPopulatedEntity.getPrimaryKey(),
+                                    populatedEntity.getPrimaryKey());
+                            }
                         }
                     }
                 }

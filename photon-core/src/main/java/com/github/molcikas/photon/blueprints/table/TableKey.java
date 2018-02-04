@@ -1,14 +1,21 @@
 package com.github.molcikas.photon.blueprints.table;
 
-import lombok.AllArgsConstructor;
+import com.github.molcikas.photon.exceptions.PhotonException;
+import lombok.Getter;
 
 import java.util.Arrays;
 import java.util.Objects;
 
-@AllArgsConstructor
 public class TableKey
 {
-    private Object key;
+    @Getter
+    private final Object key;
+
+    public TableKey(Object key)
+    {
+        this.key = key;
+    }
+
 
     @Override
     public boolean equals(Object o)
@@ -17,7 +24,7 @@ public class TableKey
         if (o == null || getClass() != o.getClass()) return false;
         TableKey other = (TableKey) o;
 
-        if (key.equals(other.key))
+        if (Objects.equals(key, other.key))
         {
             return true;
         }

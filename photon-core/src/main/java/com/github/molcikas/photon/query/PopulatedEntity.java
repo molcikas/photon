@@ -36,6 +36,7 @@ public class PopulatedEntity<T>
     @Getter
     private Object foreignKeyToParentValue;
 
+    // TODO: Does this need to be a field? Can it be changed back to a method arg?
     private PhotonQueryResultRow photonQueryResultRow;
 
     @Getter
@@ -129,7 +130,7 @@ public class PopulatedEntity<T>
         );
     }
 
-    public List<PopulatedEntity> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
+    public List<PopulatedEntity<?>> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
     {
         Collection childEntityInstances;
         Object fieldValue = getInstanceValue(fieldBlueprint);
@@ -155,7 +156,7 @@ public class PopulatedEntity<T>
 
         return Arrays
             .stream(childEntityInstances.toArray())
-            .map(instance -> new PopulatedEntity(fieldBlueprint.getChildEntityBlueprint(), instance))
+            .map(instance -> new PopulatedEntity<>(fieldBlueprint.getChildEntityBlueprint(), instance))
             .collect(Collectors.toList());
     }
 
