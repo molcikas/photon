@@ -28,11 +28,10 @@ public class PhotonTransaction implements Closeable
             {
                 for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
                 {
-                    List<PhotonPreparedStatement.ParameterValue> parameterValues =
-                        populatedEntity.getValuesForUpdate(tableBlueprint, populatedEntity.getParentPopulatedEntity());
+                    List<PhotonPreparedStatement.ParameterValue> values =
+                        populatedEntity.getParameterValues(tableBlueprint, populatedEntity.getParentPopulatedEntity());
 
-                    TableBlueprintAndKey key = new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey());
-                    updateTrackedValues(key, parameterValues);
+                    updateTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey(), values);
                 }
             }
         }
@@ -42,6 +41,11 @@ public class PhotonTransaction implements Closeable
             List<PhotonPreparedStatement.ParameterValue> values =
                 trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
             return values != null ? values : Collections.emptyList();
+        }
+
+        public void updateTrackedValues(TableBlueprint tableBlueprint, TableKey key, List<PhotonPreparedStatement.ParameterValue> values)
+        {
+            updateTrackedValues(new TableBlueprintAndKey(tableBlueprint, key), values);
         }
 
         public void updateTrackedValues(TableBlueprintAndKey key, List<PhotonPreparedStatement.ParameterValue> values)

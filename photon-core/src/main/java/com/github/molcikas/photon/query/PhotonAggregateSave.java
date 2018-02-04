@@ -359,7 +359,7 @@ public class PhotonAggregateSave
             return Collections.emptyMap();
         }
 
-        Map<TableBlueprint, List<PopulatedEntity>> updatedPopulatedEntities = new LinkedHashMap<>();
+        Map<TableBlueprint, List<PopulatedEntity>> updatedOrUpdateToDateEntities = new LinkedHashMap<>();
 
         for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
         {
@@ -379,20 +379,20 @@ public class PhotonAggregateSave
 
                     List<PhotonPreparedStatement.ParameterValue> trackedValues =
                         photonTransaction.getTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey());
-                    PopulatedEntity.AddToBatchResult result =
+                    PopulatedEntity.GetParameterValuesResult result =
                         populatedEntity.getParameterValuesForUpdate(tableBlueprint, parentPopulatedEntity, trackedValues);
                     if(result.isSkipped())
                     {
                         continue;
                     }
 
-                    if(result.getParameterValuesForUpdate().isEmpty())
+                    if(result.getValues().isEmpty())
                     {
                         upToDateEntities.add(populatedEntity);
                         continue;
                     }
 
-                    updateStatement.setNextParameters(result.getParameterValuesForUpdate());
+                    updateStatement.setNextParameters(result.getValues());
                     updateStatement.addToBatch();
                     attemptedUpdatedPopulatedEntities.add(populatedEntity);
 
@@ -400,7 +400,7 @@ public class PhotonAggregateSave
                     {
                         updatedTrackedValues.put(
                             new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey()),
-                            result.getParameterValuesForUpdate());
+                            result.getValues());
                     }
                 }
 
@@ -413,7 +413,7 @@ public class PhotonAggregateSave
                     .collect(Collectors.toList());
 
                 updatedPopulatedEntitiesForTable.addAll(upToDateEntities);
-                updatedPopulatedEntities.put(tableBlueprint, updatedPopulatedEntitiesForTable);
+                updatedOrUpdateToDateEntities.put(tableBlueprint, updatedPopulatedEntitiesForTable);
 
                 for(Map.Entry<TableBlueprintAndKey, List<PhotonPreparedStatement.ParameterValue>> entry : updatedTrackedValues.entrySet())
                 {
@@ -422,7 +422,7 @@ public class PhotonAggregateSave
             }
         }
 
-        return updatedPopulatedEntities;
+        return updatedOrUpdateToDateEntities;
     }
 
     private void insertPopulatedEntities(
@@ -456,14 +456,16 @@ public class PhotonAggregateSave
                             connection,
                             photonOptions))
                         {
-                            populatedEntity.addParametersToInsertStatement(
-                                insertStatement,
-                                tableBlueprint,
-                                parentPopulatedEntity,
-                                shouldInsertUsingPrimaryKeySql);
+                            List<PhotonPreparedStatement.ParameterValue> values = populatedEntity
+                                .getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, shouldInsertUsingPrimaryKeySql);
+                            insertStatement.setNextParameters(values);
                             insertStatement.executeInsert();
                             Long generatedKey = insertStatement.getGeneratedKeys().get(0);
                             populatedEntity.setPrimaryKeyValue(generatedKey);
+                            photonTransaction.updateTrackedValues(
+                                tableBlueprint,
+                                populatedEntity.getPrimaryKey(),
+                                populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
                         }
                     }
                 }
@@ -481,18 +483,20 @@ public class PhotonAggregateSave
                 {
                     for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
                     {
-                        if(tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
+                        if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
                         {
-                            if(tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity))
-                            {
-                                insertEntityWithPrimaryKeySqlBatchList.add(populatedEntity);
-                            }
-                            else
-                            {
-                                populatedEntity.addInsertToBatch(insertStatement, tableBlueprint, parentPopulatedEntity, false);
-                                insertedEntityBatchList.add(populatedEntity);
-                            }
+                            continue;
                         }
+                        if(tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity))
+                        {
+                            insertEntityWithPrimaryKeySqlBatchList.add(populatedEntity);
+                            continue;
+                        }
+                        List<PhotonPreparedStatement.ParameterValue> values =
+                            populatedEntity.getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, false);
+                        insertStatement.setNextParameters(values);
+                        insertStatement.addToBatch();
+                        insertedEntityBatchList.add(populatedEntity);
                     }
 
                     insertStatement.executeBatch();
@@ -507,6 +511,14 @@ public class PhotonAggregateSave
                             index++;
                         }
                     }
+
+                    for (PopulatedEntity populatedEntity : insertedEntityBatchList)
+                    {
+                        photonTransaction.updateTrackedValues(
+                            tableBlueprint,
+                            populatedEntity.getPrimaryKey(),
+                            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                    }
                 }
 
                 if(!insertEntityWithPrimaryKeySqlBatchList.isEmpty())
@@ -519,11 +531,22 @@ public class PhotonAggregateSave
                     {
                         for (PopulatedEntity populatedEntity : insertEntityWithPrimaryKeySqlBatchList)
                         {
-                            populatedEntity.addInsertToBatch(insertStatement, tableBlueprint, parentPopulatedEntity, true);
+                            List<PhotonPreparedStatement.ParameterValue> values =
+                                populatedEntity.getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, true);
+                            insertStatement.setNextParameters(values);
+                            insertStatement.addToBatch();
                             insertedEntityBatchList.add(populatedEntity);
                         }
 
                         insertStatement.executeBatch();
+
+                        for(PopulatedEntity populatedEntity : insertEntityWithPrimaryKeySqlBatchList)
+                        {
+                            photonTransaction.updateTrackedValues(
+                                tableBlueprint,
+                                populatedEntity.getPrimaryKey(),
+                                populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+                        }
                     }
                 }
             }

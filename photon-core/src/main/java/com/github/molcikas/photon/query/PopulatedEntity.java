@@ -265,7 +265,7 @@ public class PopulatedEntity<T>
         }
     }
 
-    public List<PhotonPreparedStatement.ParameterValue> getValuesForUpdate(
+    public List<PhotonPreparedStatement.ParameterValue> getParameterValues(
         TableBlueprint tableBlueprint,
         PopulatedEntity parentPopulatedEntity)
     {
@@ -339,55 +339,45 @@ public class PopulatedEntity<T>
 
     @AllArgsConstructor
     @Getter
-    public class AddToBatchResult
+    public class GetParameterValuesResult
     {
         private final boolean skipped;
-        private final List<PhotonPreparedStatement.ParameterValue> parameterValuesForUpdate;
+        private final List<PhotonPreparedStatement.ParameterValue> values;
     }
 
-    public AddToBatchResult getParameterValuesForUpdate(
+    public GetParameterValuesResult getParameterValuesForUpdate(
         TableBlueprint tableBlueprint,
         PopulatedEntity<?> parentPopulatedEntity,
         List<PhotonPreparedStatement.ParameterValue> trackedValues)
     {
         if(primaryKeyValue == null)
         {
-            return new AddToBatchResult(true, Collections.emptyList());
+            return new GetParameterValuesResult(true, Collections.emptyList());
         }
 
         if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
-            return new AddToBatchResult(true, Collections.emptyList());
+            return new GetParameterValuesResult(true, Collections.emptyList());
         }
 
         List<PhotonPreparedStatement.ParameterValue> parameterValues =
-            getValuesForUpdate(tableBlueprint, parentPopulatedEntity);
+            getParameterValues(tableBlueprint, parentPopulatedEntity);
 
         // The tracked entity is identical to the current entity, so do not create an update statement for it.
         if(CollectionUtils.isEqualCollection(parameterValues, trackedValues))
         {
-            return new AddToBatchResult(false, Collections.emptyList());
+            return new GetParameterValuesResult(false, Collections.emptyList());
         }
 
-        return new AddToBatchResult(false, parameterValues);
+        return new GetParameterValuesResult(false, parameterValues);
     }
 
-    public void addInsertToBatch(
-        PhotonPreparedStatement insertStatement,
+    public List<PhotonPreparedStatement.ParameterValue> getParameterValuesForInsert(
         TableBlueprint tableBlueprint,
         PopulatedEntity parentPopulatedEntity,
         boolean alwaysIncludePrimaryKey)
     {
-        addParametersToInsertStatement(insertStatement, tableBlueprint, parentPopulatedEntity, alwaysIncludePrimaryKey);
-        insertStatement.addToBatch();
-    }
-
-    public void addParametersToInsertStatement(
-        PhotonPreparedStatement insertStatement,
-        TableBlueprint tableBlueprint,
-        PopulatedEntity parentPopulatedEntity,
-        boolean alwaysIncludePrimaryKey)
-    {
+        List<PhotonPreparedStatement.ParameterValue> parameterValues = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
 
         for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement(alwaysIncludePrimaryKey))
@@ -429,8 +419,10 @@ public class PopulatedEntity<T>
                 );
             }
 
-            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
+            parameterValues.add(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
         }
+
+        return parameterValues;
     }
 
     @SneakyThrows

@@ -618,7 +618,6 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             myTable.setMyvalue("MyNewValueInTheAggregate");
-
             transaction.save(myTable);
 
             MyTable myTableRetrieved = transaction
@@ -669,6 +668,41 @@ public class MyTableSaveTests
 
             assertNotNull(myTableRetrieved);
             assertEquals("my2dbvalue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void aggregate_insertWithChangeTracking_savesChangesOnly()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(100, "InsertedValue", null);
+            transaction.insert(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(100);
+            assertNotNull(myTableRetrieved);
+            assertEquals("InsertedValue", myTableRetrieved.getMyvalue());
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 100").executeUpdate();
+
+            // Save should do nothing because we're tracking changes and none were made.
+            transaction.save(myTable);
+
+            myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(100);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
         }
     }
 
