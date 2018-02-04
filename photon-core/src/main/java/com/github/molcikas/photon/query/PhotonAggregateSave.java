@@ -1,7 +1,6 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.PhotonEntityState;
-import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.blueprints.*;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
@@ -206,7 +205,7 @@ public class PhotonAggregateSave
             List<Object> orphanIds;
 
             Set<TableKey> trackedKeys =
-                photonEntityState.getTrackedChildren(parentFieldBlueprint, parentPopulatedEntity.getPrimaryKey());
+                photonEntityState.getTrackedChildrenKeys(parentFieldBlueprint, parentPopulatedEntity.getPrimaryKey());
             if(trackedKeys != null)
             {
                 Set<Object> trackedKeyValues = trackedKeys.stream().map(TableKey::getKey).collect(Collectors.toSet());
@@ -238,6 +237,12 @@ public class PhotonAggregateSave
             }
 
             deleteOrphansAndTheirChildrenRecursive(orphanIds, entityBlueprint, Collections.emptyList());
+
+            photonEntityState.removeTrackedValuesRecursive(
+                parentFieldBlueprint,
+                parentPopulatedEntity.getPrimaryKey(),
+                entityBlueprint,
+                orphanIds.stream().map(TableKey::new).collect(Collectors.toList()));
         }
         else
         {
@@ -465,7 +470,7 @@ public class PhotonAggregateSave
                     }
                     String insertSql = tableBlueprint.getInsertSql();
                     boolean populateGeneratedKeys = tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn();
-                    boolean shouldInsertUsingPrimaryKeySql = tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity);
+                    boolean shouldInsertUsingPrimaryKeySql = tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity, tableBlueprint);
                     if(shouldInsertUsingPrimaryKeySql)
                     {
                         insertSql = tableBlueprint.getInsertWithPrimaryKeySql();
@@ -494,6 +499,7 @@ public class PhotonAggregateSave
                             photonEntityState.addTrackedChild(
                                 parentFieldBlueprint,
                                 parentPopulatedEntity.getPrimaryKey(),
+                                entityBlueprint,
                                 populatedEntity.getPrimaryKey());
                         }
                     }
@@ -516,7 +522,7 @@ public class PhotonAggregateSave
                         {
                             continue;
                         }
-                        if(tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity))
+                        if(tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity, tableBlueprint))
                         {
                             insertEntityWithPrimaryKeySqlBatchList.add(populatedEntity);
                             continue;
@@ -552,6 +558,7 @@ public class PhotonAggregateSave
                             photonEntityState.addTrackedChild(
                                 parentFieldBlueprint,
                                 parentPopulatedEntity.getPrimaryKey(),
+                                entityBlueprint,
                                 populatedEntity.getPrimaryKey());
                         }
                     }
@@ -587,6 +594,7 @@ public class PhotonAggregateSave
                                 photonEntityState.addTrackedChild(
                                     parentFieldBlueprint,
                                     parentPopulatedEntity.getPrimaryKey(),
+                                    entityBlueprint,
                                     populatedEntity.getPrimaryKey());
                             }
                         }

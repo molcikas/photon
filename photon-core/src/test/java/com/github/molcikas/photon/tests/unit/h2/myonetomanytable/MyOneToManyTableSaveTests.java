@@ -374,7 +374,7 @@ public class MyOneToManyTableSaveTests
     }
 
     @Test
-    public void aggregateSave_withTrackingAndAddAfterSave_tracksChangesThroughMultipleSaves()
+    public void aggregateSave_withTrackingAndRemoveAfterSave_tracksChangesThroughMultipleSaves()
     {
         registerMyOneToManyTableAggregate();
 
@@ -410,10 +410,8 @@ public class MyOneToManyTableSaveTests
     }
 
     @Test
-    public void aggregateSave_withTrackingAndRemoveAfterSave_tracksChangesThroughMultipleSaves()
+    public void aggregateSave_withTrackingAndAddBackAfterSave_tracksChangesThroughMultipleSaves()
     {
-        Assert.fail("TODO: Write this test");
-
         registerMyOneToManyTableAggregate();
 
         try(PhotonTransaction transaction = photon.beginTransaction())
@@ -422,15 +420,10 @@ public class MyOneToManyTableSaveTests
                 .query(MyOneToManyTable.class)
                 .fetchById(6);
 
-            List<MyThirdTable> myThirdTables = Arrays.asList(
-                new MyThirdTable(0, "NewThird1"),
-                new MyThirdTable(0, "NewThird2")
-            );
-            myOneToManyTable.getMyManyTables().add(1, new MyManyTable(null, "NewVal", myThirdTables));
-
+            MyManyTable myManyTable = myOneToManyTable.getMyManyTables().remove(0);
             transaction.save(myOneToManyTable);
 
-            myOneToManyTable.getMyManyTables().remove(1);
+            myOneToManyTable.getMyManyTables().add(0, myManyTable);
             transaction.save(myOneToManyTable);
 
             MyOneToManyTable myOneToManyTableFetched = transaction
@@ -446,6 +439,8 @@ public class MyOneToManyTableSaveTests
                 myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getMyOtherValueWithDiffName).collect(Collectors.toList()));
         }
     }
+
+    // TODO: Add delete tracking tests
 
     private void registerMyOneToManyTableAggregate()
     {

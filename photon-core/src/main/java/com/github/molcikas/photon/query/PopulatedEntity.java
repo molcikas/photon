@@ -154,6 +154,11 @@ public class PopulatedEntity<T>
             childEntityInstances = Collections.singletonList(fieldValue);
         }
 
+        if(childEntityInstances == null)
+        {
+            return Collections.emptyList();
+        }
+
         return Arrays
             .stream(childEntityInstances.toArray())
             .map(instance -> new PopulatedEntity<>(fieldBlueprint.getChildEntityBlueprint(), instance))

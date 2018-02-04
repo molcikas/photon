@@ -51,7 +51,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -82,7 +82,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MyNewSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -107,7 +107,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
 
             // Not committing, but that won't matter because this transaction does not make any changes.
@@ -154,9 +154,29 @@ public class MyTableSaveTests
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals(new Integer(1111), myTableRetrieved.getId());
             assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
+        }
+    }
+
+    @Test
+    public void aggregate_save_insertSimpleEntityWithNullKey_throwsError()
+    {
+        registerMyTableOnlyAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(null, "MyInsertedSavedValue", null);
+
+            try
+            {
+                transaction.save(myTable);
+            }
+            catch(PhotonException ex)
+            {
+                assertTrue(ex.getMessage().contains("null primary key"));
+            }
         }
     }
 
@@ -179,7 +199,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTableRetrieved.getMyvalue());
         }
     }
@@ -204,7 +224,7 @@ public class MyTableSaveTests
                 .fetchById(3);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(3, myTableRetrieved.getId());
+            assertEquals(new Integer(3), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
@@ -236,7 +256,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MySavedValueAutoInc", myTableRetrieved.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
@@ -271,7 +291,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved1);
-            assertEquals(7, myTableRetrieved1.getId());
+            assertEquals(new Integer(7), myTableRetrieved1.getId());
             assertEquals("MySavedValueAutoInc1", myTableRetrieved1.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved1.getMyOtherTable();
@@ -341,7 +361,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
             MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
@@ -375,7 +395,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
             MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
@@ -414,7 +434,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTable);
-            assertEquals(7, myTable.getId());
+            assertEquals(new Integer(7), myTable.getId());
             assertEquals("oops", myTable.getMyvalue());
 
             transaction.commit();
@@ -441,7 +461,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTable);
-            assertEquals(7, myTable.getId());
+            assertEquals(new Integer(7), myTable.getId());
             assertEquals("MySavedMappedEntityValue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
 
             transaction.commit();
@@ -468,7 +488,7 @@ public class MyTableSaveTests
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals(new Integer(1111), myTableRetrieved.getId());
             assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -518,7 +538,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals(3, myTableRetrieved.getVersion());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
@@ -567,7 +587,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals(1, myTableRetrieved.getVersion());
             assertEquals("NewVal", myTableRetrieved.getMyvalue());
             transaction.commit();

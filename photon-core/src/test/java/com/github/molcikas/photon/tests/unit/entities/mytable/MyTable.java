@@ -2,13 +2,13 @@ package com.github.molcikas.photon.tests.unit.entities.mytable;
 
 public class MyTable
 {
-    private int id;
+    private Integer id;
     private String myvalue;
     private int version;
 
     private MyOtherTable myOtherTable;
 
-    public int getId()
+    public Integer getId()
     {
         return id;
     }
@@ -32,7 +32,7 @@ public class MyTable
     {
     }
 
-    public MyTable(int id, String myvalue, MyOtherTable myOtherTable)
+    public MyTable(Integer id, String myvalue, MyOtherTable myOtherTable)
     {
         this.id = id;
         this.myvalue = myvalue;

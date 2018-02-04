@@ -43,7 +43,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
 
             transaction.commit();
@@ -67,7 +67,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
 
             transaction.commit();
@@ -90,7 +90,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
 
             transaction.commit();
@@ -121,7 +121,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("MY2DBVALUE", myTable.getMyvalue());
 
             transaction.commit();
@@ -244,9 +244,9 @@ public class MyTableQueryTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(4, myTables.get(0).getId());
+            assertEquals(new Integer(4), myTables.get(0).getId());
             assertEquals("my4dbvalue", myTables.get(0).getMyvalue());
-            assertEquals(2, myTables.get(1).getId());
+            assertEquals(new Integer(2), myTables.get(1).getId());
             assertEquals("my2dbvalue", myTables.get(1).getMyvalue());
         }
     }
@@ -269,9 +269,9 @@ public class MyTableQueryTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(4, myTables.get(0).getId());
+            assertEquals(new Integer(4), myTables.get(0).getId());
             assertEquals("my4dbvalue", myTables.get(0).getMyvalue());
-            assertEquals(2, myTables.get(1).getId());
+            assertEquals(new Integer(2), myTables.get(1).getId());
             assertEquals("my2dbvalue", myTables.get(1).getMyvalue());
         }
     }
@@ -336,7 +336,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("MyNewValue", myTable.getMyvalue());
 
             transaction.commit();
@@ -376,7 +376,7 @@ public class MyTableQueryTests
                 .fetch(MyTable.class);
 
             assertNotNull(myTable);
-            assertEquals(7, myTable.getId());
+            assertEquals(new Integer(7), myTable.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTable.getMyvalue());
 
             transaction.commit();
