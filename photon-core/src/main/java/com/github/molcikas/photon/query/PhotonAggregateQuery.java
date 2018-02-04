@@ -1,7 +1,7 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.Photon;
-import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.PhotonEntityState;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
@@ -17,7 +17,7 @@ public class PhotonAggregateQuery<T>
 {
     private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
-    private final PhotonTransaction.PhotonTransactionHandle photonTransaction;
+    private final PhotonEntityState photonEntityState;
     private final Photon photon;
     private final List<String> excludedFieldPaths;
     private boolean trackChanges = true;
@@ -25,12 +25,12 @@ public class PhotonAggregateQuery<T>
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
         Connection connection,
-        PhotonTransaction.PhotonTransactionHandle photonTransaction,
+        PhotonEntityState photonEntityState,
         Photon photon)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
-        this.photonTransaction = photonTransaction;
+        this.photonEntityState = photonEntityState;
         this.photon = photon;
         this.excludedFieldPaths = new ArrayList<>();
     }
@@ -143,7 +143,7 @@ public class PhotonAggregateQuery<T>
 
         if(trackChanges)
         {
-            photonTransaction.track(populatedEntityMap);
+            photonEntityState.track(populatedEntityMap);
         }
 
         return populatedEntityMap
