@@ -105,6 +105,35 @@ public class TwoAggregatesTests
     }
 
     @Test
+    public void aggregate_save_noChangesAndTracking_doesNotPushAnyChangesToDb()
+    {
+        registerAggregates();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            AggregateOne aggregateOne = transaction
+                .query(AggregateOne.class)
+                .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"));
+
+            transaction
+                .query("DELETE FROM aggregatemapping WHERE aggregateOneId = :id1 AND aggregateTwoId = :id2")
+                .addParameter("id1", UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"), ColumnDataType.BINARY)
+                .addParameter("id2", UUID.fromString("3dffc3b3-a9b6-11e6-ab83-0a0027000021"), ColumnDataType.BINARY)
+                .executeUpdate();
+
+            // Should do nothing because no changes were made to the aggregate.
+            transaction.save(aggregateOne);
+
+            AggregateOne aggregateOneFetched = transaction
+                .query(AggregateOne.class)
+                .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"));
+
+            assertNotNull(aggregateOneFetched);
+            assertEquals(0, aggregateOneFetched.getAggregateTwos().size());
+        }
+    }
+
+    @Test
     public void aggregate_save_simpleEntity_updatesEntity()
     {
         registerAggregates();

@@ -16,6 +16,7 @@ import org.apache.commons.collections4.SetValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -25,11 +26,13 @@ public class PhotonEntityState
 {
     private final ListValuedMap<TableBlueprintAndKey, PhotonPreparedStatement.ParameterValue> trackedValues;
     private final SetValuedMap<FieldBlueprintAndKey, EntityBlueprintAndKey> trackedChildren;
+    private final SetValuedMap<FieldBlueprintAndKey, Object> trackedFlattenedCollectionValues;
 
     public PhotonEntityState()
     {
         this.trackedValues = new ArrayListValuedHashMap<>();
         this.trackedChildren = new HashSetValuedHashMap<>();
+        this.trackedFlattenedCollectionValues = new HashSetValuedHashMap<>();
     }
 
     public void track(PopulatedEntityMap populatedEntityMap)
@@ -46,15 +49,15 @@ public class PhotonEntityState
 
             for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFieldsWithChildEntities())
             {
+                FieldBlueprintAndKey parentBlueprintAndKey =
+                    new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
+                trackedChildren.remove(parentBlueprintAndKey);
+
                 List<TableKey> childKeys = populatedEntity
                     .getChildPopulatedEntitiesForField(fieldBlueprint)
                     .stream()
                     .map(PopulatedEntity::getPrimaryKey)
                     .collect(Collectors.toList());
-
-                FieldBlueprintAndKey parentBlueprintAndKey =
-                    new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
-                trackedChildren.remove(parentBlueprintAndKey);
 
                 for(TableKey childKey : childKeys)
                 {
@@ -62,6 +65,20 @@ public class PhotonEntityState
                         parentBlueprintAndKey,
                         new EntityBlueprintAndKey(fieldBlueprint.getChildEntityBlueprint(), childKey));
                 }
+            }
+
+            for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFlattenedCollectionFields())
+            {
+                FieldBlueprintAndKey parentBlueprintAndKey =
+                    new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
+                trackedFlattenedCollectionValues.remove(parentBlueprintAndKey);
+
+                Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
+                if(flattenedCollectionValues == null)
+                {
+                    flattenedCollectionValues = Collections.emptyList();
+                }
+                trackedFlattenedCollectionValues.putAll(parentBlueprintAndKey, flattenedCollectionValues);
             }
         }
     }
@@ -115,6 +132,11 @@ public class PhotonEntityState
             .collect(Collectors.toSet());
     }
 
+    public Collection getTrackedFlattenedCollectionValues(FieldBlueprint fieldBlueprint, TableKey primaryKey)
+    {
+        return trackedFlattenedCollectionValues.get(new FieldBlueprintAndKey(fieldBlueprint, primaryKey));
+    }
+
     public void addTrackedChild(
         FieldBlueprint fieldBlueprint,
         TableKey parentKey,
@@ -141,6 +163,11 @@ public class PhotonEntityState
         {
             TableBlueprintAndKey key = new TableBlueprintAndKey(childTableBlueprint, childKey);
             trackedValues.remove(key);
+        }
+
+        for(FieldBlueprint fieldBlueprint : childEntityBlueprint.getFlattenedCollectionFields())
+        {
+            trackedFlattenedCollectionValues.remove(fieldBlueprint);
         }
 
         if(parentFieldBlueprint == null)

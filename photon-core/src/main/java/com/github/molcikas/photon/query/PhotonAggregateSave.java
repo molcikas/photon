@@ -12,6 +12,7 @@ import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
@@ -642,6 +643,19 @@ public class PhotonAggregateSave
             {
                 for (PopulatedEntity populatedEntity : populatedEntities)
                 {
+                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
+                    if(flattenedCollectionValues == null)
+                    {
+                        flattenedCollectionValues = Collections.emptyList();
+                    }
+
+                    Collection trackedValues = photonEntityState
+                        .getTrackedFlattenedCollectionValues(fieldBlueprint, populatedEntity.getPrimaryKey());
+                    if(trackedValues != null && CollectionUtils.isEqualCollection(trackedValues, flattenedCollectionValues))
+                    {
+                        continue;
+                    }
+
                     EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
                     Collection existingCollectionValues = existingFlattenedCollectionValues.get(populatedEntity.getPrimaryKey());
                     if(existingCollectionValues == null)
@@ -649,11 +663,7 @@ public class PhotonAggregateSave
                         existingCollectionValues = Collections.emptyList();
                     }
                     final Collection existingCollectionValuesFinal = existingCollectionValues;
-                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
-                    if(flattenedCollectionValues == null)
-                    {
-                        flattenedCollectionValues = Collections.emptyList();
-                    }
+
                     final Collection flattenedCollectionValuesFinal = (Collection) flattenedCollectionValues
                         .stream()
                         .distinct()
@@ -686,7 +696,10 @@ public class PhotonAggregateSave
                     for (Object foreignKeyValue : valuesToInsert)
                     {
                         insertStatement.setNextParameter(foreignKeyValue, flattenedCollectionBlueprint.getColumnDataType(), null);
-                        insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
+                        insertStatement.setNextParameter(
+                            populatedEntity.getPrimaryKeyValue(),
+                            populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
+                            populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
                         insertStatement.addToBatch();
                     }
                 }
