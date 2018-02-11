@@ -73,6 +73,14 @@ public class PhotonEntityState
         return values != null ? values : Collections.emptyList();
     }
 
+    public List<TableKey> getTrackedKeys(TableBlueprint tableBlueprint, List<TableKey> primaryKeys)
+    {
+        return primaryKeys
+            .stream()
+            .filter(p -> (trackedValues.containsKey(new TableBlueprintAndKey(tableBlueprint, p))))
+            .collect(Collectors.toList());
+    }
+
     public void updateTrackedValues(TableBlueprint tableBlueprint, TableKey tableKey, List<PhotonPreparedStatement.ParameterValue> values)
     {
         updateTrackedValues(new TableBlueprintAndKey(tableBlueprint, tableKey), values);
@@ -122,7 +130,7 @@ public class PhotonEntityState
             new EntityBlueprintAndKey(childEntityBlueprint, childKey));
     }
 
-    public void removeTrackedValuesRecursive(
+    public void removeTrackedChildrenRecursive(
         FieldBlueprint parentFieldBlueprint,
         TableKey parentKey,
         EntityBlueprint childEntityBlueprint,
@@ -135,6 +143,11 @@ public class PhotonEntityState
                 TableBlueprintAndKey key = new TableBlueprintAndKey(tableBlueprint, childKey);
                 trackedValues.remove(key);
             }
+        }
+
+        if(parentFieldBlueprint == null)
+        {
+            return;
         }
 
         FieldBlueprintAndKey parentBlueprintAndKey = new FieldBlueprintAndKey(parentFieldBlueprint, parentKey);
@@ -157,7 +170,7 @@ public class PhotonEntityState
                 {
                     return;
                 }
-                removeTrackedValuesRecursive(
+                removeTrackedChildrenRecursive(
                     childFieldBlueprint,
                     childKey,
                     childFieldBlueprint.getChildEntityBlueprint(),

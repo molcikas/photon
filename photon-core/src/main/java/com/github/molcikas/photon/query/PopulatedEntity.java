@@ -70,7 +70,7 @@ public class PopulatedEntity<T>
             return null;
         }
 
-        return getInstanceValue(columnBlueprint.getMappedFieldBlueprint());
+        return getInstanceValue(columnBlueprint.getMappedFieldBlueprint(), columnBlueprint);
     }
 
     public TableKey getPrimaryKey()
@@ -88,7 +88,7 @@ public class PopulatedEntity<T>
         return fieldBlueprint.getCompoundEntityFieldValueMapping().getDatabaseValues(entityInstance);
     }
 
-    public Object getInstanceValue(FieldBlueprint fieldBlueprint)
+    public Object getInstanceValue(FieldBlueprint fieldBlueprint, ColumnBlueprint columnBlueprint)
     {
         if(fieldBlueprint == null)
         {
@@ -97,7 +97,12 @@ public class PopulatedEntity<T>
 
         if(fieldBlueprint.getEntityFieldValueMapping() != null)
         {
-            return fieldBlueprint.getEntityFieldValueMapping().getFieldValue(entityInstance);
+            Object fieldValue = fieldBlueprint.getEntityFieldValueMapping().getFieldValue(entityInstance);
+            if(columnBlueprint == null)
+            {
+                return fieldValue;
+            }
+            return PhotonPreparedStatement.convertValue(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint));
         }
 
         Exception thrownException;
@@ -105,7 +110,12 @@ public class PopulatedEntity<T>
         try
         {
             Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-            return field.get(entityInstance);
+            Object fieldValue = field.get(entityInstance);
+            if(columnBlueprint == null)
+            {
+                return fieldValue;
+            }
+            return PhotonPreparedStatement.convertValue(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint));
         }
         catch(IllegalArgumentException ex)
         {
@@ -133,7 +143,7 @@ public class PopulatedEntity<T>
     public List<PopulatedEntity<?>> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
     {
         Collection childEntityInstances;
-        Object fieldValue = getInstanceValue(fieldBlueprint);
+        Object fieldValue = getInstanceValue(fieldBlueprint, null);
         EntityBlueprint childEntityBlueprint = fieldBlueprint.getChildEntityBlueprint();
         ChildCollectionConstructor childCollectionConstructor = childEntityBlueprint.getChildCollectionConstructor();
 
@@ -199,7 +209,7 @@ public class PopulatedEntity<T>
             throw new PhotonException("Field '%s' is not a foreign key list field.", fieldBlueprint.getFieldName());
         }
 
-        Object fieldCollection = getInstanceValue(fieldBlueprint);
+        Object fieldCollection = getInstanceValue(fieldBlueprint, null);
 
         Converter converter = Convert.getConverterIfExists(fieldBlueprint.getFlattenedCollectionBlueprint().getFieldClass());
         Object fieldValue = converter.convert(value);
@@ -319,7 +329,7 @@ public class PopulatedEntity<T>
                 }
                 else
                 {
-                    fieldValue = getInstanceValue(fieldBlueprint);
+                    fieldValue = getInstanceValue(fieldBlueprint, null);
                     customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
@@ -404,7 +414,7 @@ public class PopulatedEntity<T>
                 }
                 else
                 {
-                    fieldValue = getInstanceValue(fieldBlueprint);
+                    fieldValue = getInstanceValue(fieldBlueprint, null);
                     customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }

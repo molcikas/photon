@@ -1,12 +1,7 @@
 package com.github.molcikas.photon;
 
-import com.github.molcikas.photon.blueprints.table.TableBlueprint;
-import com.github.molcikas.photon.blueprints.table.TableBlueprintAndKey;
-import com.github.molcikas.photon.blueprints.table.TableKey;
 import com.github.molcikas.photon.query.*;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.collections4.ListValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 
@@ -246,7 +241,7 @@ public class PhotonTransaction implements Closeable
     {
         verifyConnectionIsAvailable("delete", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
-        new PhotonAggregateDelete(aggregateBlueprint, connection, photon.getOptions()).delete(aggregate);
+        new PhotonAggregateDelete(aggregateBlueprint, connection, photonEntityState, photon.getOptions()).delete(aggregate);
         hasUncommittedChanges = true;
     }
 
@@ -274,7 +269,7 @@ public class PhotonTransaction implements Closeable
             return;
         }
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
-        new PhotonAggregateDelete(aggregateBlueprint, connection, photon.getOptions()).deleteAll(aggregates);
+        new PhotonAggregateDelete(aggregateBlueprint, connection, photonEntityState, photon.getOptions()).deleteAll(aggregates);
         hasUncommittedChanges = true;
     }
 

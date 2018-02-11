@@ -141,6 +141,27 @@ public class TwoAggregatesTests
     }
 
     @Test
+    public void aggregate_delete_deletesEntity()
+    {
+        registerAggregates();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            AggregateOne aggregateOne = transaction
+                .query(AggregateOne.class)
+                .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"));
+
+            transaction.delete(aggregateOne);
+
+            AggregateOne aggregateOneFetched = transaction
+                .query(AggregateOne.class)
+                .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000012"));
+
+            assertNull(aggregateOneFetched);
+        }
+    }
+
+    @Test
     public void aggregate_deleteAll_allButOneEntity_deletesEntities()
     {
         registerAggregates();

@@ -238,7 +238,7 @@ public class PhotonAggregateSave
 
             deleteOrphansAndTheirChildrenRecursive(orphanIds, entityBlueprint, Collections.emptyList());
 
-            photonEntityState.removeTrackedValuesRecursive(
+            photonEntityState.removeTrackedChildrenRecursive(
                 parentFieldBlueprint,
                 parentPopulatedEntity.getPrimaryKey(),
                 entityBlueprint,
@@ -627,7 +627,6 @@ public class PhotonAggregateSave
             return;
         }
 
-        EntityBlueprint entityBlueprint = populatedEntities.get(0).getEntityBlueprint();
         List<Object> ids = populatedEntities
             .stream()
             .map(PopulatedEntity::getPrimaryKeyValue)
@@ -636,24 +635,20 @@ public class PhotonAggregateSave
         for (FieldBlueprint fieldBlueprint : flattenedCollectionFields)
         {
             FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
-            Map<Object, Collection> existingFlattenedCollectionValues = getExistingFlattenedCollectionValues(
-                ids,
-                flattenedCollectionBlueprint,
-                entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass()
-            );
+            Map<TableKey, Collection> existingFlattenedCollectionValues = getExistingFlattenedCollectionValues(ids, flattenedCollectionBlueprint);
 
             try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getInsertSql(), false, connection, photonOptions))
             {
                 for (PopulatedEntity populatedEntity : populatedEntities)
                 {
                     EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
-                    Collection foreignKeyToParentValues = existingFlattenedCollectionValues.get(populatedEntity.getPrimaryKeyValue());
-                    if(foreignKeyToParentValues == null)
+                    Collection existingCollectionValues = existingFlattenedCollectionValues.get(populatedEntity.getPrimaryKey());
+                    if(existingCollectionValues == null)
                     {
-                        foreignKeyToParentValues = Collections.emptyList();
+                        existingCollectionValues = Collections.emptyList();
                     }
-                    final Collection foreignKeyToParentValuesFinal = foreignKeyToParentValues;
-                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint);
+                    final Collection existingCollectionValuesFinal = existingCollectionValues;
+                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
                     if(flattenedCollectionValues == null)
                     {
                         flattenedCollectionValues = Collections.emptyList();
@@ -663,12 +658,12 @@ public class PhotonAggregateSave
                         .distinct()
                         .collect(Collectors.toList());
 
-                    Collection foreignKeyValuesToDelete = (Collection) foreignKeyToParentValuesFinal
+                    Collection valuesToDelete = (Collection) existingCollectionValues
                         .stream()
                         .filter(value -> !flattenedCollectionValuesFinal.contains(value))
                         .collect(Collectors.toList());
 
-                    if(!foreignKeyValuesToDelete.isEmpty())
+                    if(!valuesToDelete.isEmpty())
                     {
                         try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(
                             flattenedCollectionBlueprint.getDeleteForeignKeysSql(),
@@ -676,18 +671,18 @@ public class PhotonAggregateSave
                             connection,
                             photonOptions))
                         {
-                            deleteStatement.setNextArrayParameter(foreignKeyValuesToDelete, flattenedCollectionBlueprint.getColumnDataType(), null);
+                            deleteStatement.setNextArrayParameter(valuesToDelete, flattenedCollectionBlueprint.getColumnDataType(), null);
                             deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
                             deleteStatement.executeUpdate();
                         }
                     }
 
-                    Collection foreignKeyValuesToInsert = (Collection) flattenedCollectionValuesFinal
+                    Collection valuesToInsert = (Collection) flattenedCollectionValuesFinal
                         .stream()
-                        .filter(value -> !foreignKeyToParentValuesFinal.contains(value))
+                        .filter(value -> !existingCollectionValuesFinal.contains(value))
                         .collect(Collectors.toList());
 
-                    for (Object foreignKeyValue : foreignKeyValuesToInsert)
+                    for (Object foreignKeyValue : valuesToInsert)
                     {
                         insertStatement.setNextParameter(foreignKeyValue, flattenedCollectionBlueprint.getColumnDataType(), null);
                         insertStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
@@ -700,12 +695,11 @@ public class PhotonAggregateSave
         }
     }
 
-    private Map<Object, Collection> getExistingFlattenedCollectionValues(
+    private Map<TableKey, Collection> getExistingFlattenedCollectionValues(
         List<Object> ids,
-        FlattenedCollectionBlueprint flattenedCollectionBlueprint,
-        Class primaryKeyFieldClass)
+        FlattenedCollectionBlueprint flattenedCollectionBlueprint)
     {
-        Map<Object, Collection> existingFlattenedCollectionValues = new HashMap<>();
+        Map<TableKey, Collection> existingFlattenedCollectionValues = new HashMap<>();
         List<PhotonQueryResultRow> photonQueryResultRows;
 
         try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photonOptions))
@@ -714,20 +708,12 @@ public class PhotonAggregateSave
             photonQueryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
         }
 
-        Converter joinColumnConverter = Convert.getConverterIfExists(primaryKeyFieldClass);
-        Converter foreignKeyConverter = Convert.getConverterIfExists(flattenedCollectionBlueprint.getFieldClass());
-
         for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
         {
-            Object joinColumnValue = joinColumnConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getForeignKeyToParent()));
-            Object foreignKeyValue = foreignKeyConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName()));
-            Collection existingForeignKeysList = existingFlattenedCollectionValues.get(joinColumnValue);
-            if(existingForeignKeysList == null)
-            {
-                existingForeignKeysList = new ArrayList<>();
-                existingFlattenedCollectionValues.put(joinColumnValue, existingForeignKeysList);
-            }
-            existingForeignKeysList.add(foreignKeyValue);
+            Object joinColumnValue = photonQueryResultRow.getValue(flattenedCollectionBlueprint.getForeignKeyToParent());
+            Object value = photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName());
+            Collection values = existingFlattenedCollectionValues.computeIfAbsent(new TableKey(joinColumnValue), k -> new ArrayList<>());
+            values.add(value);
         }
 
         return existingFlattenedCollectionValues;

@@ -1,4 +1,5 @@
 package com.github.molcikas.photon.query;
+import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.options.PhotonOptions;
 import edu.umd.cs.findbugs.annotations.SuppressWarnings;
@@ -30,6 +31,13 @@ public class PhotonPreparedStatement implements Closeable
             this.value = value;
             this.dataType = dataType;
             this.customSerializer = customSerializer;
+        }
+
+        public ParameterValue(Object value, ColumnBlueprint columnBlueprint)
+        {
+            this.value = value;
+            this.dataType = columnBlueprint.getColumnDataType();
+            this.customSerializer = columnBlueprint.getCustomSerializer();
         }
     }
 
@@ -357,9 +365,73 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    private <T> T convertValue(ParameterValue parameterValue, Class<T> toClass)
+    public static Object convertValue(ParameterValue parameterValue)
     {
-        Converter<T> converter = parameterValue.customSerializer != null ?
+        if(parameterValue == null || parameterValue.value == null)
+        {
+            return null;
+        }
+
+        if (parameterValue.dataType == null)
+        {
+            return parameterValue.value;
+        }
+
+        Class<?> toClass;
+
+        switch (parameterValue.dataType)
+        {
+            case BIT:
+            case BOOLEAN:
+                toClass = Boolean.class;
+                break;
+            case TINYINT:
+            case SMALLINT:
+            case INTEGER:
+                toClass = Integer.class;
+                break;
+            case BIGINT:
+                toClass = Long.class;
+                break;
+            case FLOAT:
+                toClass = Float.class;
+                break;
+            case REAL:
+            case DOUBLE:
+            case NUMERIC:
+            case DECIMAL:
+                toClass = Double.class;
+                break;
+            case CHAR:
+            case VARCHAR:
+            case LONGVARCHAR:
+                toClass = String.class;
+                break;
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+                toClass = Timestamp.class;
+                break;
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+                toClass = byte[].class;
+                break;
+            case NULL:
+            case OTHER:
+            case JAVA_OBJECT:
+            case DISTINCT:
+            case STRUCT:
+            case ARRAY:
+            case BLOB:
+            case CLOB:
+            case REF:
+            case DATALINK:
+            default:
+                return parameterValue.value;
+        }
+
+        Converter converter = parameterValue.customSerializer != null ?
             parameterValue.customSerializer :
             Convert.getConverterIfExists(toClass);
 
@@ -426,7 +498,8 @@ public class PhotonPreparedStatement implements Closeable
             {
                 if(parameterValue.value == null)
                 {
-                    preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType.getJdbcType() : ColumnDataType.VARCHAR.getJdbcType());
+                    preparedStatement.setNull(parameterIndex,
+                        parameterValue.dataType != null ? parameterValue.dataType.getJdbcType() : ColumnDataType.VARCHAR.getJdbcType());
                     continue;
                 }
 
@@ -440,39 +513,39 @@ public class PhotonPreparedStatement implements Closeable
                 {
                     case BIT:
                     case BOOLEAN:
-                        preparedStatement.setBoolean(parameterIndex, convertValue(parameterValue, Boolean.class));
+                        preparedStatement.setBoolean(parameterIndex, (Boolean) convertValue(parameterValue));
                         continue;
                     case TINYINT:
                     case SMALLINT:
                     case INTEGER:
-                        preparedStatement.setInt(parameterIndex, convertValue(parameterValue, Integer.class));
+                        preparedStatement.setInt(parameterIndex, (Integer) convertValue(parameterValue));
                         continue;
                     case BIGINT:
-                        preparedStatement.setLong(parameterIndex, convertValue(parameterValue, Long.class));
+                        preparedStatement.setLong(parameterIndex, (Long) convertValue(parameterValue));
                         continue;
                     case FLOAT:
-                        preparedStatement.setFloat(parameterIndex, convertValue(parameterValue, Float.class));
+                        preparedStatement.setFloat(parameterIndex, (Float) convertValue(parameterValue));
                         continue;
                     case REAL:
                     case DOUBLE:
                     case NUMERIC:
                     case DECIMAL:
-                        preparedStatement.setDouble(parameterIndex, convertValue(parameterValue, Double.class));
+                        preparedStatement.setDouble(parameterIndex, (Double) convertValue(parameterValue));
                         continue;
                     case CHAR:
                     case VARCHAR:
                     case LONGVARCHAR:
-                        preparedStatement.setString(parameterIndex, convertValue(parameterValue, String.class));
+                        preparedStatement.setString(parameterIndex, (String) convertValue(parameterValue));
                         continue;
                     case DATE:
                     case TIME:
                     case TIMESTAMP:
-                        preparedStatement.setTimestamp(parameterIndex, convertValue(parameterValue, Timestamp.class));
+                        preparedStatement.setTimestamp(parameterIndex, (Timestamp) convertValue(parameterValue));
                         continue;
                     case BINARY:
                     case VARBINARY:
                     case LONGVARBINARY:
-                        preparedStatement.setBytes(parameterIndex, convertValue(parameterValue, byte[].class));
+                        preparedStatement.setBytes(parameterIndex, (byte[]) convertValue(parameterValue));
                         continue;
                     case NULL:
                     case OTHER:

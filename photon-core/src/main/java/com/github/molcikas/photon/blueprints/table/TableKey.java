@@ -1,6 +1,5 @@
 package com.github.molcikas.photon.blueprints.table;
 
-import com.github.molcikas.photon.exceptions.PhotonException;
 import lombok.Getter;
 
 import java.util.Arrays;
@@ -15,7 +14,6 @@ public class TableKey
     {
         this.key = key;
     }
-
 
     @Override
     public boolean equals(Object o)
@@ -35,6 +33,19 @@ public class TableKey
     @Override
     public int hashCode()
     {
+        if (key instanceof byte[])
+        {
+            byte[] keyArray = (byte[]) key;
+            int hash = keyArray.length;
+            int position = 0;
+            for (byte b : keyArray)
+            {
+                hash += b << (position % 4);
+                position++;
+            }
+            return hash;
+        }
+
         return Objects.hash(key);
     }
 }

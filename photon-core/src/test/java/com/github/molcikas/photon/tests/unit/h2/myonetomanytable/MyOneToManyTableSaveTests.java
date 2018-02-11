@@ -440,7 +440,40 @@ public class MyOneToManyTableSaveTests
         }
     }
 
-    // TODO: Add delete tracking tests
+    @Test
+    public void aggregateSave_withTrackingAndDelete_tracksDelete()
+    {
+        registerMyOneToManyTableAggregate();
+
+        try (PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyOneToManyTable myOneToManyTable = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            transaction.delete(myOneToManyTable);
+            transaction.delete(myOneToManyTable);
+
+            MyOneToManyTable myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNull(myOneToManyTableFetched);
+
+            transaction.save(myOneToManyTable);
+
+            myOneToManyTableFetched = transaction
+                .query(MyOneToManyTable.class)
+                .fetchById(6);
+
+            assertNotNull(myOneToManyTableFetched);
+            assertEquals(
+                Arrays.asList(7, 8, 9),
+                myOneToManyTableFetched.getMyManyTables().stream().map(MyManyTable::getId).collect(Collectors.toList()));
+        }
+    }
+
+    // TODO: Flattened collection test
 
     private void registerMyOneToManyTableAggregate()
     {
