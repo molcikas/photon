@@ -709,10 +709,12 @@ public class PhotonAggregateSave
             photonQueryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
         }
 
+        Converter valueConverter = Convert.getConverterIfExists(flattenedCollectionBlueprint.getFieldClass());
+
         for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
         {
             Object joinColumnValue = photonQueryResultRow.getValue(flattenedCollectionBlueprint.getForeignKeyToParent());
-            Object value = photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName());
+            Object value = valueConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName()));
             Collection values = existingFlattenedCollectionValues.computeIfAbsent(new TableKey(joinColumnValue), k -> new ArrayList<>());
             values.add(value);
         }
