@@ -109,7 +109,6 @@ public class PhotonAggregateDelete
                     tableBlueprint, ids.stream().map(TableKey::new).collect(Collectors.toList()));
                 if(trackedKeys.isEmpty())
                 {
-                    // TODO: This breaks joined table tests
                     continue;
                 }
 
@@ -130,6 +129,7 @@ public class PhotonAggregateDelete
                         parentFieldBlueprint,
                         parentPopulatedEntity != null ? parentPopulatedEntity.getPrimaryKey() : null,
                         entityBlueprint,
+                        tableBlueprint,
                         ids.stream().map(TableKey::new).collect(Collectors.toList()));
                 }
             }

@@ -134,15 +134,13 @@ public class PhotonEntityState
         FieldBlueprint parentFieldBlueprint,
         TableKey parentKey,
         EntityBlueprint childEntityBlueprint,
+        TableBlueprint childTableBlueprint,
         List<TableKey> childKeysToRemove)
     {
-        for(TableBlueprint tableBlueprint : childEntityBlueprint.getTableBlueprintsForInsertOrUpdate())
+        for(TableKey childKey : childKeysToRemove)
         {
-            for(TableKey childKey : childKeysToRemove)
-            {
-                TableBlueprintAndKey key = new TableBlueprintAndKey(tableBlueprint, childKey);
-                trackedValues.remove(key);
-            }
+            TableBlueprintAndKey key = new TableBlueprintAndKey(childTableBlueprint, childKey);
+            trackedValues.remove(key);
         }
 
         if(parentFieldBlueprint == null)
@@ -170,10 +168,13 @@ public class PhotonEntityState
                 {
                     return;
                 }
+                EntityBlueprint grandchildEntityBlueprint =childFieldBlueprint.getChildEntityBlueprint();
+                for(TableBlueprint grandchildTableBlueprint : grandchildEntityBlueprint.getTableBlueprintsForDelete())
                 removeTrackedChildrenRecursive(
                     childFieldBlueprint,
                     childKey,
-                    childFieldBlueprint.getChildEntityBlueprint(),
+                    grandchildEntityBlueprint,
+                    grandchildTableBlueprint,
                     grandchildKeys.stream().map(EntityBlueprintAndKey::getPrimaryKey).collect(Collectors.toList()));
             }
         }

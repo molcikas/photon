@@ -242,6 +242,7 @@ public class PhotonAggregateSave
                 parentFieldBlueprint,
                 parentPopulatedEntity.getPrimaryKey(),
                 entityBlueprint,
+                tableBlueprint,
                 orphanIds.stream().map(TableKey::new).collect(Collectors.toList()));
         }
         else
