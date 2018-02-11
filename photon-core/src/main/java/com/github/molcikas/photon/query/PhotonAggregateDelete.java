@@ -6,7 +6,7 @@ import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
-import com.github.molcikas.photon.blueprints.table.TableKey;
+import com.github.molcikas.photon.blueprints.table.TableValue;
 import com.github.molcikas.photon.options.PhotonOptions;
 
 import java.sql.Connection;
@@ -48,7 +48,7 @@ public class PhotonAggregateDelete
      *
      * @param aggregateRootInstances - The aggregate instances to delete
      */
-    public void deleteAll(List<?> aggregateRootInstances)
+    public void deleteAll(Collection<?> aggregateRootInstances)
     {
         List<PopulatedEntity> aggregateRootEntities = aggregateRootInstances
             .stream()
@@ -105,8 +105,8 @@ public class PhotonAggregateDelete
         {
             if (tableBlueprint.isPrimaryKeyMappedToField())
             {
-                List<TableKey> trackedKeys = photonEntityState.getTrackedKeys(
-                    tableBlueprint, ids.stream().map(TableKey::new).collect(Collectors.toList()));
+                List<TableValue> trackedKeys = photonEntityState.getTrackedKeys(
+                    tableBlueprint, ids.stream().map(TableValue::new).collect(Collectors.toList()));
                 if(trackedKeys.isEmpty())
                 {
                     continue;
@@ -125,12 +125,12 @@ public class PhotonAggregateDelete
                     );
                     photonPreparedStatement.executeUpdate();
 
-                    photonEntityState.removeTrackedChildrenRecursive(
+                    photonEntityState.untrackChildrenRecursive(
                         parentFieldBlueprint,
                         parentPopulatedEntity != null ? parentPopulatedEntity.getPrimaryKey() : null,
                         entityBlueprint,
                         tableBlueprint,
-                        ids.stream().map(TableKey::new).collect(Collectors.toList()));
+                        ids.stream().map(TableValue::new).collect(Collectors.toList()));
                 }
             }
             else

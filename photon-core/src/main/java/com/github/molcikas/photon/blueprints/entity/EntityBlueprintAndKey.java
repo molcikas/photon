@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.blueprints.entity;
 
-import com.github.molcikas.photon.blueprints.table.TableKey;
+import com.github.molcikas.photon.blueprints.table.TableValue;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -11,5 +11,5 @@ import lombok.Getter;
 public class EntityBlueprintAndKey
 {
     private final EntityBlueprint entityBlueprint;
-    private final TableKey primaryKey;
+    private final TableValue primaryKey;
 }

@@ -6,9 +6,9 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprintAndKey;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprintAndKey;
-import com.github.molcikas.photon.blueprints.table.TableKey;
+import com.github.molcikas.photon.blueprints.table.TableValue;
 import com.github.molcikas.photon.exceptions.PhotonException;
-import com.github.molcikas.photon.query.PhotonPreparedStatement;
+import com.github.molcikas.photon.query.ParameterValue;
 import com.github.molcikas.photon.query.PopulatedEntity;
 import com.github.molcikas.photon.query.PopulatedEntityMap;
 import org.apache.commons.collections4.ListValuedMap;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public class PhotonEntityState
 {
-    private final ListValuedMap<TableBlueprintAndKey, PhotonPreparedStatement.ParameterValue> trackedValues;
+    private final ListValuedMap<TableBlueprintAndKey, ParameterValue> trackedValues;
     private final SetValuedMap<FieldBlueprintAndKey, EntityBlueprintAndKey> trackedChildren;
     private final SetValuedMap<FieldBlueprintAndKey, Object> trackedFlattenedCollectionValues;
 
@@ -35,62 +35,64 @@ public class PhotonEntityState
         this.trackedFlattenedCollectionValues = new HashSetValuedHashMap<>();
     }
 
-    public void track(PopulatedEntityMap populatedEntityMap)
+    public void track(PopulatedEntity<?> populatedEntity)
     {
-        for(PopulatedEntity<?> populatedEntity : populatedEntityMap.getAllPopulatedEntities())
+        for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
         {
-            for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
+            List<ParameterValue> values =
+                populatedEntity.getParameterValues(tableBlueprint, populatedEntity.getParentPopulatedEntity());
+
+            updateTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey(), values);
+        }
+
+        for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFieldsWithChildEntities())
+        {
+            FieldBlueprintAndKey parentBlueprintAndKey =
+                new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
+            trackedChildren.remove(parentBlueprintAndKey);
+
+            List<TableValue> childKeys = populatedEntity
+                .getChildPopulatedEntitiesForField(fieldBlueprint)
+                .stream()
+                .map(PopulatedEntity::getPrimaryKey)
+                .collect(Collectors.toList());
+
+            for(TableValue childKey : childKeys)
             {
-                List<PhotonPreparedStatement.ParameterValue> values =
-                    populatedEntity.getParameterValues(tableBlueprint, populatedEntity.getParentPopulatedEntity());
-
-                updateTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey(), values);
+                trackedChildren.put(
+                    parentBlueprintAndKey,
+                    new EntityBlueprintAndKey(fieldBlueprint.getChildEntityBlueprint(), childKey));
             }
+        }
 
-            for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFieldsWithChildEntities())
+        for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFlattenedCollectionFields())
+        {
+            FieldBlueprintAndKey parentBlueprintAndKey =
+                new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
+            trackedFlattenedCollectionValues.remove(parentBlueprintAndKey);
+
+            Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
+            if(flattenedCollectionValues == null)
             {
-                FieldBlueprintAndKey parentBlueprintAndKey =
-                    new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
-                trackedChildren.remove(parentBlueprintAndKey);
-
-                List<TableKey> childKeys = populatedEntity
-                    .getChildPopulatedEntitiesForField(fieldBlueprint)
-                    .stream()
-                    .map(PopulatedEntity::getPrimaryKey)
-                    .collect(Collectors.toList());
-
-                for(TableKey childKey : childKeys)
-                {
-                    trackedChildren.put(
-                        parentBlueprintAndKey,
-                        new EntityBlueprintAndKey(fieldBlueprint.getChildEntityBlueprint(), childKey));
-                }
+                flattenedCollectionValues = Collections.emptyList();
             }
-
-            for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFlattenedCollectionFields())
-            {
-                FieldBlueprintAndKey parentBlueprintAndKey =
-                    new FieldBlueprintAndKey(fieldBlueprint, populatedEntity.getPrimaryKey());
-                trackedFlattenedCollectionValues.remove(parentBlueprintAndKey);
-
-                Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
-                if(flattenedCollectionValues == null)
-                {
-                    flattenedCollectionValues = Collections.emptyList();
-                }
-                trackedFlattenedCollectionValues.putAll(parentBlueprintAndKey, flattenedCollectionValues);
-            }
+            trackedFlattenedCollectionValues.putAll(parentBlueprintAndKey, flattenedCollectionValues);
         }
     }
 
-    public List<PhotonPreparedStatement.ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableKey primaryKey)
+    public void track(PopulatedEntityMap populatedEntityMap)
     {
-        List<PhotonPreparedStatement.ParameterValue> values =
+        populatedEntityMap.getAllPopulatedEntities().forEach(this::track);
+    }
+
+    public List<ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableValue primaryKey)
+    {
+        List<ParameterValue> values =
             trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
         return values != null ? values : Collections.emptyList();
     }
 
-    public List<TableKey> getTrackedKeys(TableBlueprint tableBlueprint, List<TableKey> primaryKeys)
+    public List<TableValue> getTrackedKeys(TableBlueprint tableBlueprint, List<TableValue> primaryKeys)
     {
         return primaryKeys
             .stream()
@@ -98,19 +100,19 @@ public class PhotonEntityState
             .collect(Collectors.toList());
     }
 
-    public void updateTrackedValues(TableBlueprint tableBlueprint, TableKey tableKey, List<PhotonPreparedStatement.ParameterValue> values)
+    public void updateTrackedValues(TableBlueprint tableBlueprint, TableValue tableKey, List<ParameterValue> values)
     {
         updateTrackedValues(new TableBlueprintAndKey(tableBlueprint, tableKey), values);
     }
 
-    public void updateTrackedValues(TableBlueprintAndKey key, List<PhotonPreparedStatement.ParameterValue> values)
+    public void updateTrackedValues(TableBlueprintAndKey key, List<ParameterValue> values)
     {
         if(!key.getTableBlueprint().isPrimaryKeyMappedToField())
         {
             // We can't track the entity if the primary key is not mapped to a field.
             return;
         }
-        if(key.getPrimaryKey().getKey() == null)
+        if(key.getPrimaryKey().getValue() == null)
         {
             throw new PhotonException("Null table primary keys are not allowed in tracking.");
         }
@@ -118,7 +120,7 @@ public class PhotonEntityState
         trackedValues.putAll(key, values);
     }
 
-    public Set<TableKey> getTrackedChildrenKeys(FieldBlueprint fieldBlueprint, TableKey parentKey)
+    public Set<TableValue> getTrackedChildrenKeys(FieldBlueprint fieldBlueprint, TableValue parentKey)
     {
         FieldBlueprintAndKey parentBlueprintAndKey = new FieldBlueprintAndKey(fieldBlueprint, parentKey);
         if (!trackedChildren.containsKey(parentBlueprintAndKey))
@@ -132,18 +134,18 @@ public class PhotonEntityState
             .collect(Collectors.toSet());
     }
 
-    public Collection getTrackedFlattenedCollectionValues(FieldBlueprint fieldBlueprint, TableKey primaryKey)
+    public Collection getTrackedFlattenedCollectionValues(FieldBlueprint fieldBlueprint, TableValue primaryKey)
     {
         return trackedFlattenedCollectionValues.get(new FieldBlueprintAndKey(fieldBlueprint, primaryKey));
     }
 
     public void addTrackedChild(
         FieldBlueprint fieldBlueprint,
-        TableKey parentKey,
+        TableValue parentKey,
         EntityBlueprint childEntityBlueprint,
-        TableKey childKey)
+        TableValue childKey)
     {
-        if(parentKey.getKey() == null)
+        if(parentKey.getValue() == null)
         {
             throw new PhotonException("Null table primary keys are not allowed in tracking.");
         }
@@ -152,14 +154,48 @@ public class PhotonEntityState
             new EntityBlueprintAndKey(childEntityBlueprint, childKey));
     }
 
-    public void removeTrackedChildrenRecursive(
+    public void untrack(PopulatedEntity<?> populatedEntity)
+    {
+        for (TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForDelete())
+        {
+            TableBlueprintAndKey key = new TableBlueprintAndKey(tableBlueprint, populatedEntity.getPrimaryKey());
+            trackedValues.remove(key);
+        }
+
+        for (FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFlattenedCollectionFields())
+        {
+            trackedFlattenedCollectionValues.remove(fieldBlueprint);
+        }
+
+        for(FieldBlueprint fieldBlueprint : populatedEntity.getEntityBlueprint().getFieldsWithChildEntities())
+        {
+            for(TableBlueprint tableBlueprint : fieldBlueprint.getChildEntityBlueprint().getTableBlueprintsForDelete())
+            {
+                List<TableValue> childKeys = populatedEntity
+                    .getChildPopulatedEntitiesForField(fieldBlueprint)
+                    .stream()
+                    .map(PopulatedEntity::getPrimaryKey)
+                    .collect(Collectors.toList());
+
+                untrackChildrenRecursive(
+                    fieldBlueprint,
+                    populatedEntity.getPrimaryKey(),
+                    fieldBlueprint.getChildEntityBlueprint(),
+                    tableBlueprint,
+                    childKeys
+                );
+            }
+        }
+    }
+
+    public void untrackChildrenRecursive(
         FieldBlueprint parentFieldBlueprint,
-        TableKey parentKey,
+        TableValue parentKey,
         EntityBlueprint childEntityBlueprint,
         TableBlueprint childTableBlueprint,
-        List<TableKey> childKeysToRemove)
+        List<TableValue> childKeysToRemove)
     {
-        for(TableKey childKey : childKeysToRemove)
+        for(TableValue childKey : childKeysToRemove)
         {
             TableBlueprintAndKey key = new TableBlueprintAndKey(childTableBlueprint, childKey);
             trackedValues.remove(key);
@@ -188,7 +224,7 @@ public class PhotonEntityState
         // All children of orphans are also orphans and need to be removed as well.
         for(FieldBlueprint childFieldBlueprint : childEntityBlueprint.getFieldsWithChildEntities())
         {
-            for(TableKey childKey : childKeysToRemove)
+            for(TableValue childKey : childKeysToRemove)
             {
                 Set<EntityBlueprintAndKey> grandchildKeys = trackedChildren.get(new FieldBlueprintAndKey(childFieldBlueprint, childKey));
                 if(grandchildKeys == null)
@@ -197,7 +233,7 @@ public class PhotonEntityState
                 }
                 EntityBlueprint grandchildEntityBlueprint =childFieldBlueprint.getChildEntityBlueprint();
                 for(TableBlueprint grandchildTableBlueprint : grandchildEntityBlueprint.getTableBlueprintsForDelete())
-                removeTrackedChildrenRecursive(
+                untrackChildrenRecursive(
                     childFieldBlueprint,
                     childKey,
                     grandchildEntityBlueprint,

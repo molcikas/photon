@@ -516,7 +516,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_saveWithVersion_savesAggregate()
+    public void version_saveWithVersion_savesAggregate()
     {
         registerMyTableWithVersionAggregate();
 
@@ -546,7 +546,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_saveWithOldVersion_throwsConcurrencyException()
+    public void version_saveWithOldVersion_throwsConcurrencyException()
     {
         registerMyTableWithVersionAggregate();
 
@@ -571,7 +571,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_insertWithVersion_insertsAggregate()
+    public void version_insertWithVersion_insertsAggregate()
     {
         registerMyTableWithVersionAggregate();
 
@@ -595,7 +595,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_saveWithChangeTracking_savesChangesOnly()
+    public void track_saveWithChangeTracking_savesChangesOnly()
     {
         photon.registerAggregate(MyTable.class)
             .withId("id")
@@ -624,12 +624,9 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_multipleSavesWithChangeTracking_savesChangesOnly()
+    public void track_multipleSavesWithChangeTracking_savesChangesOnly()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withPrimaryKeyAutoIncrement()
-            .register();
+        registerMyTableOnlyWithAutoIncrementAggregate();
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
@@ -662,12 +659,9 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_noChangeTracking_savesWholeAggregate()
+    public void track_noChangeTracking_savesWholeAggregate()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withPrimaryKeyAutoIncrement()
-            .register();
+        registerMyTableOnlyWithAutoIncrementAggregate();
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
@@ -692,12 +686,9 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_insertWithChangeTracking_savesChangesOnly()
+    public void track_insertWithChangeTracking_savesChangesOnly()
     {
-        photon.registerAggregate(MyTable.class)
-            .withId("id")
-            .withPrimaryKeyAutoIncrement()
-            .register();
+        registerMyTableOnlyWithAutoIncrementAggregate();
 
         try(PhotonTransaction transaction = photon.beginTransaction())
         {
@@ -720,6 +711,99 @@ public class MyTableSaveTests
                 .query(MyTable.class)
                 .noTracking()
                 .fetchById(100);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_trackExistingAggregateAndNoChanges_saveNothing()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        MyTable myTable;
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.track(myTable);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing since no changes were made since tracking started.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_saveUntrackedAggregate_savesAggregate()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        MyTable myTable;
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should re-save the whole aggregate because the aggregate is not tracked by this transaction.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("my2dbvalue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_trackAlreadyTrackedAggregate_onlySavesChangesAfterTrackingStarted()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            myTable.setMyvalue("NewValueBeforeRetracking");
+            transaction.track(myTable);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing because no changes were made since re-tracking the aggregate.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
 
             assertNotNull(myTableRetrieved);
             assertEquals("NewDbValue", myTableRetrieved.getMyvalue());

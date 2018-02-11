@@ -1,6 +1,6 @@
 package com.github.molcikas.photon.blueprints.entity;
 
-import com.github.molcikas.photon.blueprints.table.TableKey;
+import com.github.molcikas.photon.blueprints.table.TableValue;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -11,5 +11,11 @@ import lombok.Getter;
 public class FieldBlueprintAndKey
 {
     private final FieldBlueprint fieldBlueprint;
-    private final TableKey primaryKey;
+    private final TableValue primaryKey;
+
+    @Override
+    public String toString()
+    {
+        return fieldBlueprint.getFieldClass().getSimpleName() + "." + fieldBlueprint.getFieldName() + ":" + primaryKey;
+    }
 }

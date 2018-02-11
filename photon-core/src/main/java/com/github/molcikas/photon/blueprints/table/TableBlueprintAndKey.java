@@ -10,5 +10,11 @@ import lombok.Getter;
 public class TableBlueprintAndKey
 {
     private final TableBlueprint tableBlueprint;
-    private final TableKey primaryKey;
+    private final TableValue primaryKey;
+
+    @Override
+    public String toString()
+    {
+        return tableBlueprint.getTableName() + ":" + primaryKey;
+    }
 }

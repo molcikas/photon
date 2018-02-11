@@ -6,7 +6,7 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldType;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
-import com.github.molcikas.photon.blueprints.table.TableKey;
+import com.github.molcikas.photon.blueprints.table.TableValue;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -73,14 +73,14 @@ public class PopulatedEntity<T>
         return getInstanceValue(columnBlueprint.getMappedFieldBlueprint(), columnBlueprint);
     }
 
-    public TableKey getPrimaryKey()
+    public TableValue getPrimaryKey()
     {
-        return new TableKey(primaryKeyValue);
+        return new TableValue(primaryKeyValue);
     }
 
-    public TableKey getForeignKeyToParent()
+    public TableValue getForeignKeyToParent()
     {
-        return new TableKey(foreignKeyToParentValue);
+        return new TableValue(foreignKeyToParentValue);
     }
 
     public Map<String, Object> getDatabaseValuesForCompoundField(FieldBlueprint fieldBlueprint)
@@ -102,7 +102,7 @@ public class PopulatedEntity<T>
             {
                 return fieldValue;
             }
-            return PhotonPreparedStatement.convertValue(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint));
+            return PhotonPreparedStatement.convertValue(new ParameterValue(fieldValue, columnBlueprint));
         }
 
         Exception thrownException;
@@ -115,7 +115,7 @@ public class PopulatedEntity<T>
             {
                 return fieldValue;
             }
-            return PhotonPreparedStatement.convertValue(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint));
+            return PhotonPreparedStatement.convertValue(new ParameterValue(fieldValue, columnBlueprint));
         }
         catch(IllegalArgumentException ex)
         {
@@ -281,7 +281,7 @@ public class PopulatedEntity<T>
         }
     }
 
-    public List<PhotonPreparedStatement.ParameterValue> getParameterValues(
+    public List<ParameterValue> getParameterValues(
         TableBlueprint tableBlueprint,
         PopulatedEntity parentPopulatedEntity)
     {
@@ -295,7 +295,7 @@ public class PopulatedEntity<T>
             return Collections.emptyList();
         }
 
-        List<PhotonPreparedStatement.ParameterValue> parameterValues = new ArrayList<>();
+        List<ParameterValue> parameterValues = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
 
         ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
@@ -342,12 +342,12 @@ public class PopulatedEntity<T>
                 return Collections.emptyList();
             }
 
-            parameterValues.add(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
+            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
         }
 
         if(versionColumn != null)
         {
-            parameterValues.add(new PhotonPreparedStatement.ParameterValue(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer()));
+            parameterValues.add(new ParameterValue(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer()));
         }
 
         return parameterValues;
@@ -358,13 +358,13 @@ public class PopulatedEntity<T>
     public class GetParameterValuesResult
     {
         private final boolean skipped;
-        private final List<PhotonPreparedStatement.ParameterValue> values;
+        private final List<ParameterValue> values;
     }
 
     public GetParameterValuesResult getParameterValuesForUpdate(
         TableBlueprint tableBlueprint,
         PopulatedEntity<?> parentPopulatedEntity,
-        List<PhotonPreparedStatement.ParameterValue> trackedValues)
+        List<ParameterValue> trackedValues)
     {
         if(primaryKeyValue == null)
         {
@@ -376,7 +376,7 @@ public class PopulatedEntity<T>
             return new GetParameterValuesResult(true, Collections.emptyList());
         }
 
-        List<PhotonPreparedStatement.ParameterValue> parameterValues =
+        List<ParameterValue> parameterValues =
             getParameterValues(tableBlueprint, parentPopulatedEntity);
 
         // The tracked entity is identical to the current entity, so do not create an update statement for it.
@@ -388,12 +388,12 @@ public class PopulatedEntity<T>
         return new GetParameterValuesResult(false, parameterValues);
     }
 
-    public List<PhotonPreparedStatement.ParameterValue> getParameterValuesForInsert(
+    public List<ParameterValue> getParameterValuesForInsert(
         TableBlueprint tableBlueprint,
         PopulatedEntity parentPopulatedEntity,
         boolean alwaysIncludePrimaryKey)
     {
-        List<PhotonPreparedStatement.ParameterValue> parameterValues = new ArrayList<>();
+        List<ParameterValue> parameterValues = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
 
         for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement(alwaysIncludePrimaryKey))
@@ -435,7 +435,7 @@ public class PopulatedEntity<T>
                 );
             }
 
-            parameterValues.add(new PhotonPreparedStatement.ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
+            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
         }
 
         return parameterValues;

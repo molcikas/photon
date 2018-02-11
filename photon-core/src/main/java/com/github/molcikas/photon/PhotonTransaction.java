@@ -133,7 +133,7 @@ public class PhotonTransaction implements Closeable
      * @param fieldsToExclude - A list of fields that will NOT be saved to the database. Orphaned rows will also
      *                        not be removed.
      */
-    public void saveWithExcludedFields(Object aggregate, List<String> fieldsToExclude)
+    public void saveWithExcludedFields(Object aggregate, Collection<String> fieldsToExclude)
     {
         verifyConnectionIsAvailable("save", false);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
@@ -160,7 +160,7 @@ public class PhotonTransaction implements Closeable
      *
      * @param aggregates - The aggregate instances to save
      */
-    public void saveAll(List<?> aggregates)
+    public void saveAll(Collection<?> aggregates)
     {
         saveAllAndExcludeFields(aggregates, null);
     }
@@ -173,14 +173,14 @@ public class PhotonTransaction implements Closeable
      * @param fieldsToExclude - A list of fields that will NOT be saved to the database. Orphaned rows will also
      *                        not be removed.
      */
-    public void saveAllAndExcludeFields(List<?> aggregates, List<String> fieldsToExclude)
+    public void saveAllAndExcludeFields(Collection<?> aggregates, Collection<String> fieldsToExclude)
     {
         verifyConnectionIsAvailable("save", false);
         if(aggregates == null || aggregates.isEmpty())
         {
             return;
         }
-        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.iterator().next().getClass());
         new PhotonAggregateSave(aggregateBlueprint, connection, photonEntityState, photon.getOptions())
             .saveAll(aggregates, fieldsToExclude);
         hasUncommittedChanges = true;
@@ -219,14 +219,14 @@ public class PhotonTransaction implements Closeable
      *
      * @param aggregates - The aggregate instances to insert
      */
-    public void insertAll(List<?> aggregates)
+    public void insertAll(Collection<?> aggregates)
     {
         verifyConnectionIsAvailable("insert", true);
         if(aggregates == null || aggregates.isEmpty())
         {
             return;
         }
-        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.iterator().next().getClass());
         new PhotonAggregateSave(aggregateBlueprint, connection, photonEntityState, photon.getOptions())
             .insertAll(aggregates);
         hasUncommittedChanges = true;
@@ -261,16 +261,82 @@ public class PhotonTransaction implements Closeable
      *
      * @param aggregates - The aggregate instances to delete
      */
-    public void deleteAll(List<?> aggregates)
+    public void deleteAll(Collection<?> aggregates)
     {
         verifyConnectionIsAvailable("delete", false);
         if(aggregates == null || aggregates.isEmpty())
         {
             return;
         }
-        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.get(0).getClass());
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregates.iterator().next().getClass());
         new PhotonAggregateDelete(aggregateBlueprint, connection, photonEntityState, photon.getOptions()).deleteAll(aggregates);
         hasUncommittedChanges = true;
+    }
+
+    /**
+     * Add an aggregate in its current state to the change tracker. Only changes made to the aggregate after tracking is
+     * started will be saved. Therefore, this method should only be used to track aggregates that were created outside
+     * the transaction. Aggregates created via a fetch query in the current transaction are already tracked by default.
+     *
+     * @param aggregate - The aggregate to start tracking changes for
+     * @param <T> - The aggregate's class
+     */
+    public <T> void track(T aggregate)
+    {
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
+        PopulatedEntity<T> populatedEntity =
+            new PopulatedEntity<>(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregate);
+        photonEntityState.track(populatedEntity);
+    }
+
+    /**
+     * Add an aggregate in its current state to the change tracker. Only changes made to the aggregate after tracking is
+     * started will be saved. Therefore, this method should only be used to track aggregates that were created outside
+     * the transaction. Aggregates created via a fetch query in the current transaction are already tracked by default.
+     *
+     * @param aggregates - The aggregates to start tracking changes for
+     * @param <T> - The aggregate's class
+     */
+    public <T> void trackAll(Collection<T> aggregates)
+    {
+        if(aggregates == null || aggregates.isEmpty())
+        {
+            return;
+        }
+        aggregates.forEach(this::track);
+    }
+
+    /**
+     * Removes an aggregate from tracking. This is useful if the aggregate is no longer needed but the transaction
+     * is still active. The aggregate should not be saved or deleted once untracked, otherwise the entire aggregate
+     * will be re-saved or deleted, which could cause performance issues.
+     *
+     * @param aggregate - The aggregate to stop tracking changes for
+     * @param <T> - The aggregate's class
+     */
+    public <T> void untrack(T aggregate)
+    {
+        AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
+        PopulatedEntity<T> populatedEntity =
+            new PopulatedEntity<>(aggregateBlueprint.getAggregateRootEntityBlueprint(), aggregate);
+        photonEntityState.untrack(populatedEntity);
+    }
+
+    /**
+     * Removes an aggregate from tracking. This is useful if the aggregate is no longer needed but the transaction
+     * is still active. The aggregate should not be saved or deleted once untracked, otherwise the entire aggregate
+     * will be re-saved or deleted, which could cause performance issues.
+     *
+     * @param aggregates - The aggregates to stop tracking changes for
+     * @param <T> - The aggregate's class
+     */
+    public <T> void untrackAll(Collection<T> aggregates)
+    {
+        if(aggregates == null || aggregates.isEmpty())
+        {
+            return;
+        }
+        aggregates.forEach(this::untrack);
     }
 
     /**
