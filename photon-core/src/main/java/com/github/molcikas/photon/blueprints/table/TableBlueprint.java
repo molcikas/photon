@@ -6,6 +6,8 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.query.PopulatedEntity;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,15 +26,36 @@ public class TableBlueprint
     private String parentTableName;
     private Class entityClass;
 
+    @Getter  @Setter
     private String selectSql;
+
+    @Getter  @Setter
+    private String selectWithQuestionSql;
+
+    @Getter  @Setter
     private String selectWhereSql;
+
+    @Getter  @Setter
     private String selectByIdSql;
+
+    @Getter  @Setter
     private String updateSql;
+
+    @Getter  @Setter
     private String insertSql;
+
+    @Getter  @Setter
     private String insertWithPrimaryKeySql;
+
+    @Getter  @Setter
     private String deleteSql;
+
+    @Getter  @Setter
     private String deleteChildrenExceptSql;
+
+    @Getter  @Setter
     private String selectOrphansSql;
+
     private Map<Integer, String> deleteOrphansSql;
 
     TableBlueprint(
@@ -183,99 +206,9 @@ public class TableBlueprint
         return primaryKeyColumn.getCustomSerializer();
     }
 
-    public String getSelectSql()
-    {
-        return selectSql;
-    }
-
-    public String getSelectWhereSql()
-    {
-        return selectWhereSql;
-    }
-
-    public String getSelectByIdSql()
-    {
-        return selectByIdSql;
-    }
-
-    public String getUpdateSql()
-    {
-        return updateSql;
-    }
-
-    public String getInsertSql()
-    {
-        return insertSql;
-    }
-
-    public String getInsertWithPrimaryKeySql()
-    {
-        return insertWithPrimaryKeySql;
-    }
-
-    public String getDeleteSql()
-    {
-        return deleteSql;
-    }
-
-    public String getDeleteChildrenExceptSql()
-    {
-        return deleteChildrenExceptSql;
-    }
-
-    public String getSelectOrphansSql()
-    {
-        return selectOrphansSql;
-    }
-
     public String getDeleteOrphansSql(int level)
     {
         return deleteOrphansSql.get(level);
-    }
-
-    public void setSelectSql(String selectSql)
-    {
-        this.selectSql = selectSql;
-    }
-
-    public void setSelectWhereSql(String selectWhereSql)
-    {
-        this.selectWhereSql = selectWhereSql;
-    }
-
-    public void setSelectByIdSql(String selectByIdSql)
-    {
-        this.selectByIdSql = selectByIdSql;
-    }
-
-    public void setUpdateSql(String updateSql)
-    {
-        this.updateSql = updateSql;
-    }
-
-    public void setInsertSql(String insertSql)
-    {
-        this.insertSql = insertSql;
-    }
-
-    public void setInsertWithPrimaryKeySql(String insertWithPrimaryKeySql)
-    {
-        this.insertWithPrimaryKeySql = insertWithPrimaryKeySql;
-    }
-
-    public void setDeleteSql(String deleteSql)
-    {
-        this.deleteSql = deleteSql;
-    }
-
-    public void setDeleteChildrenExceptSql(String deleteChildrenExceptSql)
-    {
-        this.deleteChildrenExceptSql = deleteChildrenExceptSql;
-    }
-
-    public void setSelectOrphansSql(String selectOrphansSql)
-    {
-        this.selectOrphansSql = selectOrphansSql;
     }
 
     public void setDeleteOrphansSql(String deleteOrphanSql, int parentLevelsUpForOrphanIds)

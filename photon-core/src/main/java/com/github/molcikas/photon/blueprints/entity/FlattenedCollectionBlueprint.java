@@ -20,7 +20,13 @@ public class FlattenedCollectionBlueprint
     private final String foreignKeyToParent;
 
     @Getter
+    private final String foreignKeyToParentLowerCase;
+
+    @Getter
     private final String columnName;
+
+    @Getter
+    private final String columnNameLowerCase;
 
     @Getter
     private final ColumnDataType columnDataType;
@@ -47,13 +53,20 @@ public class FlattenedCollectionBlueprint
         this.fieldClass = fieldClass;
         this.tableName = tableName;
         this.foreignKeyToParent = foreignKeyToParent;
+        this.foreignKeyToParentLowerCase = foreignKeyToParent.toLowerCase();
         this.columnName = columnName;
+        this.columnNameLowerCase = columnName.toLowerCase();
         this.columnDataType = columnDataType;
     }
 
     public List<String> getSelectColumnNames()
     {
         return Arrays.asList(columnName, foreignKeyToParent);
+    }
+
+    public List<String> getSelectColumnNamesLowerCase()
+    {
+        return Arrays.asList(columnNameLowerCase, foreignKeyToParentLowerCase);
     }
 
     public void setSelectSql(String selectSql)

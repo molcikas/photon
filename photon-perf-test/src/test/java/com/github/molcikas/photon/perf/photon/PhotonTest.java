@@ -2,8 +2,6 @@ package com.github.molcikas.photon.perf.photon;
 
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import org.apache.commons.lang3.time.StopWatch;
-import org.junit.Before;
-import org.junit.Test;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.perf.RecipeDbSetup;
@@ -13,10 +11,27 @@ import java.util.UUID;
 
 public class PhotonTest
 {
-    private Photon photon;
+    public static void main(String[] args)
+    {
+        System.out.println("Warming up...");
 
-    @Before
-    public void setupDatabase()
+        setupDatabase();
+        runPerformanceTest();
+
+        for(int i = 0; i < 5; i++)
+        {
+            System.out.println(String.format("Running test iteration %s.", i + 1));
+            StopWatch stopWatch = new StopWatch();
+            stopWatch.start();
+            runPerformanceTest();
+            long totalTime = stopWatch.getTime();
+            System.out.println(String.format("Test finished after %s ms.", totalTime));
+        }
+    }
+
+    private static Photon photon;
+
+    private static void setupDatabase()
     {
         RecipeDbSetup.setupDatabase();
 
@@ -39,25 +54,7 @@ public class PhotonTest
             .register();
     }
 
-    @Test
-    public void photonPerformanceTest()
-    {
-        System.out.println("Warming up...");
-
-        runPerformanceTest();
-
-        for(int i = 0; i < 5; i++)
-        {
-            System.out.println(String.format("Running test iteration %s.", i + 1));
-            StopWatch stopWatch = new StopWatch();
-            stopWatch.start();
-            runPerformanceTest();
-            long totalTime = stopWatch.getTime();
-            System.out.println(String.format("Test finished after %s ms.", totalTime));
-        }
-    }
-
-    private void runPerformanceTest()
+    private static void runPerformanceTest()
     {
         UUID recipeId = UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010");
         UUID recipeIngredient1Id = UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011");
@@ -187,6 +184,7 @@ public class PhotonTest
             {
                 Recipe recipe = transaction
                     .query(Recipe.class)
+                    .noTracking()
                     .fetchById(recipeId);
             }
 

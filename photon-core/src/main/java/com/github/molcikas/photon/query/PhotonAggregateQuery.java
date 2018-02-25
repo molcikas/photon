@@ -164,7 +164,7 @@ public class PhotonAggregateQuery<T>
 
         if(ids != null)
         {
-            String selectSql = String.format(entityBlueprint.getTableBlueprint().getSelectSql(), "?");
+            String selectSql = entityBlueprint.getTableBlueprint().getSelectWithQuestionSql();
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(selectSql, false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(
@@ -172,7 +172,7 @@ public class PhotonAggregateQuery<T>
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
                     entityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer()
                 );
-                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified());
+                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified(), entityBlueprint.getAllColumnNamesQualifiedLowerCase());
             }
         }
         else if(photonQuery != null)
@@ -192,7 +192,7 @@ public class PhotonAggregateQuery<T>
                 {
                     statement.setNextParameter(photonSqlParameter);
                 }
-                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified());
+                queryResultRows = statement.executeQuery(entityBlueprint.getAllColumnNamesQualified(), entityBlueprint.getAllColumnNamesQualifiedLowerCase());
             }
         }
         else
@@ -224,7 +224,9 @@ public class PhotonAggregateQuery<T>
             try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photon.getOptions()))
             {
                 statement.setNextArrayParameter(ids, flattenedCollectionBlueprint.getColumnDataType(), null);
-                List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
+                List<PhotonQueryResultRow> queryResultRows = statement.executeQuery(
+                    flattenedCollectionBlueprint.getSelectColumnNames(),
+                    flattenedCollectionBlueprint.getSelectColumnNamesLowerCase());
                 populatedEntityMap.setFieldValuesOnEntityInstances(queryResultRows, fieldBlueprint, entityBlueprint);
             }
         }

@@ -3,9 +3,10 @@ package com.github.molcikas.photon.blueprints.entity;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.ListValuedMap;
+import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Constructor;
@@ -19,7 +20,16 @@ public class EntityBlueprint
     private final Class entityClass;
 
     private final EntityClassDiscriminator entityClassDiscriminator;
-    private final List<FieldBlueprint> fields;
+    private final Map<String, FieldBlueprint> fields;
+
+    @Getter
+    private final List<FieldBlueprint> fieldsWithChildEntities;
+
+    @Getter
+    private final List<FieldBlueprint> flattenedCollectionFields;
+
+    @Getter
+    private final List<FieldBlueprint> compoundCustomValueMapperFields;
 
     @Getter
     private final FieldBlueprint versionField;
@@ -30,11 +40,34 @@ public class EntityBlueprint
     @Getter
     private final TableBlueprint tableBlueprint;
 
+    @Getter
     private final List<TableBlueprint> joinedTableBlueprints;
 
     private final List<ColumnBlueprint> allColumns;
+
+    @Getter
+    private final List<String> allColumnNames;
+
+    @Getter
+    private final List<String> allColumnNamesLowerCase;
+
+    @Getter
+    private final List<String> allColumnNamesQualified;
+
+    @Getter
+    private final List<String> allColumnNamesQualifiedLowerCase;
+
+    @Getter
     private final List<TableBlueprint> tableBlueprintsForInsertOrUpdate;
+
+    @Getter
     private final List<TableBlueprint> tableBlueprintsForDelete;
+
+    private final ListValuedMap<String, FieldBlueprint> fieldsForColumnNameQualified;
+
+    private final Map<String, FieldBlueprint> fieldForColumnNameQualified;
+
+    private final Map<String, FieldBlueprint> fieldForColumnNameUnqualified;
 
     EntityBlueprint(
         Class entityClass,
@@ -47,15 +80,73 @@ public class EntityBlueprint
     {
         this.entityClass = entityClass;
         this.entityClassDiscriminator = entityClassDiscriminator;
-        this.fields = fields;
         this.tableBlueprint = tableBlueprint;
-        this.joinedTableBlueprints = joinedTableBlueprints;
+        this.joinedTableBlueprints = Collections.unmodifiableList(joinedTableBlueprints);
         this.childCollectionConstructor = childCollectionConstructor;
+
+        this.fields = fields
+            .stream()
+            .collect(Collectors.toMap(FieldBlueprint::getFieldName, f -> f));
+
+        this.fieldsWithChildEntities = Collections.unmodifiableList(fields
+            .stream()
+            .filter(f -> f.getFieldType() == FieldType.Entity || f.getFieldType() == FieldType.EntityList)
+            .collect(Collectors.toList()));
+
+        this.flattenedCollectionFields = Collections.unmodifiableList(fields
+            .stream()
+            .filter(f -> f.getFieldType() == FieldType.FlattenedCollection)
+            .collect(Collectors.toList()));
+
+        this.compoundCustomValueMapperFields = Collections.unmodifiableList(fields
+            .stream()
+            .filter(f -> f.getFieldType() == FieldType.CompoundCustomValueMapper)
+            .collect(Collectors.toList()));
 
         this.allColumns = Collections.unmodifiableList(ListUtils.union(
             tableBlueprint.getColumns(),
             joinedTableBlueprints.stream().flatMap(j -> j.getColumns().stream()).collect(Collectors.toList())
         ));
+
+        this.allColumnNames = Collections.unmodifiableList(allColumns
+            .stream()
+            .map(ColumnBlueprint::getColumnName)
+            .collect(Collectors.toList()));
+
+        this.allColumnNamesLowerCase = Collections.unmodifiableList(allColumnNames
+            .stream()
+            .map(String::toLowerCase)
+            .collect(Collectors.toList()));
+
+        this.allColumnNamesQualified = Collections.unmodifiableList(allColumns
+            .stream()
+            .map(ColumnBlueprint::getColumnNameQualified)
+            .collect(Collectors.toList()));
+
+        this.allColumnNamesQualifiedLowerCase = allColumnNamesQualified
+            .stream()
+            .map(String::toLowerCase)
+            .collect(Collectors.toList());
+
+        this.fieldsForColumnNameQualified = new ArrayListValuedHashMap<>();
+        this.fieldForColumnNameQualified = new HashMap<>();
+        this.fieldForColumnNameUnqualified = new HashMap<>();
+        for(ColumnBlueprint columnBlueprint : allColumns)
+        {
+            if(columnBlueprint.getMappedFieldBlueprint() != null)
+            {
+                fieldsForColumnNameQualified.put(
+                    columnBlueprint.getColumnNameQualified(),
+                    columnBlueprint.getMappedFieldBlueprint());
+                fieldForColumnNameQualified.put(
+                    columnBlueprint.getColumnNameQualified(),
+                    columnBlueprint.getMappedFieldBlueprint());
+                fieldForColumnNameUnqualified.put(
+                    columnBlueprint.getColumnName(),
+                    columnBlueprint.getMappedFieldBlueprint()
+                );
+            }
+        }
 
         List<TableBlueprint> allTableBlueprints = ListUtils.union(Collections.singletonList(tableBlueprint), joinedTableBlueprints);
         if(mainTableInsertedFirst)
@@ -76,22 +167,6 @@ public class EntityBlueprint
             .filter(FieldBlueprint::isVersionField)
             .findFirst()
             .orElse(null);
-    }
-
-    public List<FieldBlueprint> getFieldsWithChildEntities()
-    {
-        return fields
-            .stream()
-            .filter(f -> f.getFieldType() == FieldType.Entity || f.getFieldType() == FieldType.EntityList)
-            .collect(Collectors.toList());
-    }
-
-    public List<FieldBlueprint> getFlattenedCollectionFields()
-    {
-        return fields
-            .stream()
-            .filter(f -> f.getFieldType() == FieldType.FlattenedCollection)
-            .collect(Collectors.toList());
     }
 
     public Constructor getEntityConstructor(Map<String, Object> entityValues)
@@ -125,12 +200,12 @@ public class EntityBlueprint
 
     public Field getReflectedField(String fieldName)
     {
-        return fields
-            .stream()
-            .filter(f -> f.getFieldName().equals(fieldName))
-            .map(FieldBlueprint::getReflectedField)
-            .findFirst()
-            .orElse(null);
+        FieldBlueprint fieldBlueprint = fields.get(fieldName);
+        if(fieldBlueprint == null)
+        {
+            return null;
+        }
+        return fieldBlueprint.getReflectedField();
     }
 
     public String getEntityClassName()
@@ -140,66 +215,22 @@ public class EntityBlueprint
 
     public FieldBlueprint getFieldForColumnNameUnqualified(String columnNameUnqualified)
     {
-        return allColumns
-            .stream()
-            .filter(c -> c.getColumnName().equals(columnNameUnqualified))
-            .map(ColumnBlueprint::getMappedFieldBlueprint)
-            .findFirst()
-            .orElse(null);
+        return fieldForColumnNameUnqualified.get(columnNameUnqualified);
     }
 
     public FieldBlueprint getFieldForColumnNameQualified(String columnNameQualified)
     {
-        List<FieldBlueprint> fields = getFieldsForColumnNameQualified(columnNameQualified);
-        return !fields.isEmpty() ? fields.get(0) : null;
+        return fieldForColumnNameQualified.get(columnNameQualified);
     }
 
     public List<FieldBlueprint> getFieldsForColumnNameQualified(String columnNameQualified)
     {
-        return allColumns
-            .stream()
-            .filter(c -> c.getColumnNameQualified().equals(columnNameQualified))
-            .map(ColumnBlueprint::getMappedFieldBlueprint)
-            .collect(Collectors.toList());
-    }
-
-    public List<FieldBlueprint> getCompoundCustomValueMapperFields()
-    {
-        return fields
-            .stream()
-            .filter(f -> f.getFieldType() == FieldType.CompoundCustomValueMapper)
-            .collect(Collectors.toList());
-    }
-
-    public List<TableBlueprint> getJoinedTableBlueprints()
-    {
-        return Collections.unmodifiableList(joinedTableBlueprints);
-    }
-
-    public List<TableBlueprint> getTableBlueprintsForInsertOrUpdate()
-    {
-        return tableBlueprintsForInsertOrUpdate;
-    }
-
-    public List<TableBlueprint> getTableBlueprintsForDelete()
-    {
-        return tableBlueprintsForDelete;
-    }
-
-    public List<String> getAllColumnNames()
-    {
-        return allColumns
-            .stream()
-            .map(ColumnBlueprint::getColumnName)
-            .collect(Collectors.toList());
-    }
-
-    public List<String> getAllColumnNamesQualified()
-    {
-        return allColumns
-            .stream()
-            .map(ColumnBlueprint::getColumnNameQualified)
-            .collect(Collectors.toList());
+        List<FieldBlueprint> fieldBlueprints = fieldsForColumnNameQualified.get(columnNameQualified);
+        if(fieldBlueprints == null)
+        {
+            return Collections.emptyList();
+        }
+        return Collections.unmodifiableList(fieldBlueprints);
     }
 
     void setMainTableBlueprintParent(List<TableBlueprint> parentEntityTableBlueprints)

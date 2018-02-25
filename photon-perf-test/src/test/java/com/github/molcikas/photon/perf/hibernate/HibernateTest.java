@@ -1,8 +1,6 @@
 package com.github.molcikas.photon.perf.hibernate;
 
 import org.apache.commons.lang3.time.StopWatch;
-import org.junit.Before;
-import org.junit.Test;
 import com.github.molcikas.photon.perf.RecipeDbSetup;
 
 import javax.persistence.EntityManager;
@@ -15,21 +13,11 @@ import java.util.UUID;
 
 public class HibernateTest
 {
-    private EntityManagerFactory entityManagerFactory;
-
-    @Before
-    public void setupDatabase()
-    {
-        RecipeDbSetup.setupDatabase();
-
-        entityManagerFactory = Persistence.createEntityManagerFactory("app");
-    }
-
-    @Test
-    public void hibernatePerformanceTest()
+    public static void main(String[] args)
     {
         System.out.println("Warming up...");
 
+        setupDatabase();
         runPerformanceTest();
 
         for(int i = 0; i < 5; i++)
@@ -43,7 +31,16 @@ public class HibernateTest
         }
     }
 
-    private void runPerformanceTest()
+    private static EntityManagerFactory entityManagerFactory;
+
+    private static void setupDatabase()
+    {
+        RecipeDbSetup.setupDatabase();
+
+        entityManagerFactory = Persistence.createEntityManagerFactory("app");
+    }
+
+    private static void runPerformanceTest()
     {
         UUID recipeId = UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010");
         UUID recipeIngredient1Id = UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000011");

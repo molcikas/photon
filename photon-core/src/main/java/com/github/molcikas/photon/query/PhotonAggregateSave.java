@@ -224,7 +224,7 @@ public class PhotonAggregateSave
                     tableBlueprint.getPrimaryKeyColumn().getColumnDataType(),
                     tableBlueprint.getPrimaryKeyColumnSerializer());
                 List<PhotonQueryResultRow> rows =
-                    statement.executeQuery(Collections.singletonList(primaryKeyColumnName));
+                    statement.executeQuery(Collections.singletonList(primaryKeyColumnName), Collections.singletonList(primaryKeyColumnName.toLowerCase()));
                 orphanIds =
                     rows.stream().map(r -> r.getValue(primaryKeyColumnName)).collect(Collectors.toList());
             }
@@ -324,7 +324,7 @@ public class PhotonAggregateSave
                         tableBlueprint.getPrimaryKeyColumn().getColumnDataType(),
                         tableBlueprint.getPrimaryKeyColumnSerializer());
                     List<PhotonQueryResultRow> rows =
-                        statement.executeQuery(Collections.singletonList(primaryKeyColumnName));
+                        statement.executeQuery(Collections.singletonList(primaryKeyColumnName), Collections.singletonList(primaryKeyColumnName.toLowerCase()));
                     orphanIds =
                         rows.stream().map(r -> r.getValue(primaryKeyColumnName)).collect(Collectors.toList());
                 }
@@ -716,7 +716,9 @@ public class PhotonAggregateSave
         try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photonOptions))
         {
             statement.setNextArrayParameter(ids, flattenedCollectionBlueprint.getColumnDataType(), null);
-            photonQueryResultRows = statement.executeQuery(flattenedCollectionBlueprint.getSelectColumnNames());
+            photonQueryResultRows = statement.executeQuery(
+                flattenedCollectionBlueprint.getSelectColumnNames(),
+                flattenedCollectionBlueprint.getSelectColumnNamesLowerCase());
         }
 
         Converter valueConverter = Convert.getConverterIfExists(flattenedCollectionBlueprint.getFieldClass());

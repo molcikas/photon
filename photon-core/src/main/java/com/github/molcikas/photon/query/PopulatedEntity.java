@@ -169,8 +169,8 @@ public class PopulatedEntity<T>
             return Collections.emptyList();
         }
 
-        return Arrays
-            .stream(childEntityInstances.toArray())
+        return (List<PopulatedEntity<?>>) childEntityInstances
+            .stream()
             .map(instance -> new PopulatedEntity<>(fieldBlueprint.getChildEntityBlueprint(), instance))
             .collect(Collectors.toList());
     }

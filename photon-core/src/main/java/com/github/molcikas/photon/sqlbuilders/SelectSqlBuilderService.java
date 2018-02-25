@@ -81,6 +81,7 @@ public final class SelectSqlBuilderService
         else
         {
             mainTableBlueprint.setSelectSql(selectSql);
+            mainTableBlueprint.setSelectWithQuestionSql(String.format(selectSql, "?"));
         }
     }
 

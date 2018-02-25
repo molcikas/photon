@@ -206,7 +206,7 @@ public class PhotonPreparedStatement implements Closeable
         return resultRows;
     }
 
-    public List<PhotonQueryResultRow> executeQuery(List<String> columnNames)
+    public List<PhotonQueryResultRow> executeQuery(List<String> columnNames, List<String> columnNamesLowerCase)
     {
         List<PhotonQueryResultRow> resultRows = new ArrayList<>(100);
 
@@ -217,18 +217,21 @@ public class PhotonPreparedStatement implements Closeable
         try(ResultSet resultSet = preparedStatement.executeQuery())
         {
             ResultSetMetaData metaData = resultSet.getMetaData();
-            List<String> resultColumns = new ArrayList<>(metaData.getColumnCount());
+            List<String> resultColumnsLowerCase = new ArrayList<>(metaData.getColumnCount());
             for(int i = 1; i <= metaData.getColumnCount(); i++)
             {
-                resultColumns.add(metaData.getColumnLabel(i).toLowerCase());
+                resultColumnsLowerCase.add(metaData.getColumnLabel(i).toLowerCase());
             }
 
             while (resultSet.next())
             {
                 PhotonQueryResultRow row = new PhotonQueryResultRow();
-                for (String columnName : columnNames)
+                for(int i = 0; i < columnNames.size(); i++)
                 {
-                    if(!resultColumns.contains(columnName.toLowerCase()))
+                    String columnName = columnNames.get(i);
+                    String columnNameLowerCase = columnNamesLowerCase.get(i);
+
+                    if(!resultColumnsLowerCase.contains(columnNameLowerCase))
                     {
                         continue;
                     }
