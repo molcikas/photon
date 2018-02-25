@@ -60,6 +60,7 @@ public class SqlServerIntegrationTest
         }
     }
 
+    // TODO: This test fails if run during standard time instead of DST. The time is off by one hour.
     @Test
     public void fetchExistingAggregateById_populatesValues()
     {

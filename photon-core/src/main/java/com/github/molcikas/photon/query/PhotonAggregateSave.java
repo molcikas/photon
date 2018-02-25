@@ -488,19 +488,12 @@ public class PhotonAggregateSave
                         Long generatedKey = insertStatement.getGeneratedKeys().get(0);
                         populatedEntity.setPrimaryKeyValue(generatedKey);
 
-                        // TODO: Make these two calls into a single call
-                        photonEntityState.updateTrackedValues(
+                        updateTrackedValuesAndAddTrackedChild(
+                            populatedEntity,
                             tableBlueprint,
-                            populatedEntity.getPrimaryKey(),
-                            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
-                        if(parentPopulatedEntity != null)
-                        {
-                            photonEntityState.addTrackedChild(
-                                parentFieldBlueprint,
-                                parentPopulatedEntity.getPrimaryKey(),
-                                entityBlueprint,
-                                populatedEntity.getPrimaryKey());
-                        }
+                            parentPopulatedEntity,
+                            parentFieldBlueprint
+                        );
                     }
                 }
             }
@@ -548,18 +541,11 @@ public class PhotonAggregateSave
 
                     for (PopulatedEntity populatedEntity : insertedEntityBatchList)
                     {
-                        photonEntityState.updateTrackedValues(
+                        updateTrackedValuesAndAddTrackedChild(populatedEntity,
                             tableBlueprint,
-                            populatedEntity.getPrimaryKey(),
-                            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
-                        if(parentPopulatedEntity != null)
-                        {
-                            photonEntityState.addTrackedChild(
-                                parentFieldBlueprint,
-                                parentPopulatedEntity.getPrimaryKey(),
-                                entityBlueprint,
-                                populatedEntity.getPrimaryKey());
-                        }
+                            parentPopulatedEntity,
+                            parentFieldBlueprint
+                        );
                     }
                 }
 
@@ -584,22 +570,36 @@ public class PhotonAggregateSave
 
                         for(PopulatedEntity populatedEntity : insertEntityWithPrimaryKeySqlBatchList)
                         {
-                            photonEntityState.updateTrackedValues(
+                            updateTrackedValuesAndAddTrackedChild(
+                                populatedEntity,
                                 tableBlueprint,
-                                populatedEntity.getPrimaryKey(),
-                                populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
-                            if(parentPopulatedEntity != null)
-                            {
-                                photonEntityState.addTrackedChild(
-                                    parentFieldBlueprint,
-                                    parentPopulatedEntity.getPrimaryKey(),
-                                    entityBlueprint,
-                                    populatedEntity.getPrimaryKey());
-                            }
+                                parentPopulatedEntity,
+                                parentFieldBlueprint
+                            );
                         }
                     }
                 }
             }
+        }
+    }
+
+    private void updateTrackedValuesAndAddTrackedChild(
+        PopulatedEntity<?> populatedEntity,
+        TableBlueprint tableBlueprint,
+        PopulatedEntity<?> parentPopulatedEntity,
+        FieldBlueprint parentFieldBlueprint)
+    {
+        photonEntityState.updateTrackedValues(
+            tableBlueprint,
+            populatedEntity.getPrimaryKey(),
+            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+        if(parentPopulatedEntity != null)
+        {
+            photonEntityState.addTrackedChild(
+                parentFieldBlueprint,
+                parentPopulatedEntity.getPrimaryKey(),
+                populatedEntity.getEntityBlueprint(),
+                populatedEntity.getPrimaryKey());
         }
     }
 

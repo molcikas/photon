@@ -473,8 +473,6 @@ public class MyOneToManyTableSaveTests
         }
     }
 
-    // TODO: Flattened collection test
-
     private void registerMyOneToManyTableAggregate()
     {
         photon.registerAggregate(MyOneToManyTable.class)
