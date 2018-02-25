@@ -489,11 +489,39 @@ PhotonTransaction transaction = photon.beginTransaction();
 
 If you want to ensure that Photon that does modify the state of the connection, you can wrap the connection with `new ReadOnlyConnection(existingConnection)`. Note that this only prevents the `Conection` itself from being modified, such as closing it, committing it, or changing the auto-commit state. You can still execute `INSERT`, `UPDATE`, and other SQL statements that modify database data (including DDL statements).
 
-## Sessionless
+## Change Tracking
 
-Photon does not maintain any in-memory cache of entities (the "session") that can get stale or consume large amounts of memory. Entities do not need to be attached to Photon in order for them to save correctly, and there is no concept of "flushing" changes. Queries are always executed immediately.
+By default, photon tracks the state of each entity in each aggregate and only saves an entity if a change occurred. There is no concept of "flushing" changes. All queries (including inserts and updates) are always executed immediately.
 
-Aggregates should be loaded and saved as whole units (unless this would cause significant performance issues). Photon does not track pending changes for entities and does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)". Therefore, it is important to keep your aggregates small and to avoid using aggregates as view models. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
+If a queried aggregate will not be updated during a transaction, you can disable change tracking to optimize memory and performance.
+
+```java
+MyTable myTable = transaction
+    .query(MyTable.class)
+    .noTracking()
+    .fetchById(2);
+```
+
+If you have a long-running transaction with aggregates falling out of scope and being garbage collected, you have Photon clear the tracked state to optimize memory usage.
+
+```java
+try(PhotonTransaction transaction = photon.beginTransaction())
+{
+    Recipe recipe = transaction
+        .query(Recipe.class)
+        .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+    // ... later, when the recipe entity falls out of scope ...
+
+    transaction.untrack(recipe);
+}
+```
+
+Aggregates/entities do not need to be tracked by Photon in order for them to save correctly. If an untracked aggregate is saved, the entire aggregate will be re-saved into the database. Therefore, it is recommended to have the aggregates be tracked if they are going to be saved during the transaction.
+
+## Lazy Loading
+
+Aggregates are loaded as whole units. Photon does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)" because an aggregate should not be used to control the loading of other aggregates. All entities in an aggregate are eager loaded. Therefore, it is important to keep your aggregates small. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
 
 ## Limitations
 
