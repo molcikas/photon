@@ -1,13 +1,14 @@
 package com.github.molcikas.photon.query;
+
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
-import com.github.molcikas.photon.options.PhotonOptions;
-import edu.umd.cs.findbugs.annotations.SuppressWarnings;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.options.PhotonOptions;
+import edu.umd.cs.findbugs.annotations.SuppressWarnings;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.Closeable;
 import java.sql.*;
 import java.util.ArrayList;
@@ -16,24 +17,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class PhotonPreparedStatement implements Closeable
 {
-    private static final Logger log = LoggerFactory.getLogger(PhotonPreparedStatement.class);
-
-    private static class ParameterValue
-    {
-        public final Object value;
-        public final ColumnDataType dataType;
-        public final Converter customSerializer;
-
-        public ParameterValue(Object value, ColumnDataType dataType, Converter customSerializer)
-        {
-            this.value = value;
-            this.dataType = dataType;
-            this.customSerializer = customSerializer;
-        }
-    }
-
     private final Connection connection;
     private final String originalSqlText;
     private final boolean populateGeneratedKeys;
@@ -111,6 +97,11 @@ public class PhotonPreparedStatement implements Closeable
         parameterValues.add(new ParameterValue(value, dataType, customSerializer));
     }
 
+    public void setNextParameters(List<ParameterValue> parameterValues)
+    {
+        this.parameterValues.addAll(parameterValues);
+    }
+
     public void addToBatch()
     {
         prepareStatement();
@@ -127,7 +118,7 @@ public class PhotonPreparedStatement implements Closeable
                 {
                     log.debug("Photon query batch added with params:\n" +
                         StringUtils.join(parameterValues.stream()
-                            .map(p -> p.value)
+                            .map(ParameterValue::getRawValue)
                             .collect(Collectors.toList()), ','));
 
                 }
@@ -353,10 +344,74 @@ public class PhotonPreparedStatement implements Closeable
         }
     }
 
-    private <T> T convertValue(ParameterValue parameterValue, Class<T> toClass)
+    public static Object convertValue(ParameterValue parameterValue)
     {
-        Converter<T> converter = parameterValue.customSerializer != null ?
-            parameterValue.customSerializer :
+        if(parameterValue == null || parameterValue.getRawValue() == null)
+        {
+            return null;
+        }
+
+        if (parameterValue.getDataType() == null)
+        {
+            return parameterValue.getRawValue();
+        }
+
+        Class<?> toClass;
+
+        switch (parameterValue.getDataType())
+        {
+            case BIT:
+            case BOOLEAN:
+                toClass = Boolean.class;
+                break;
+            case TINYINT:
+            case SMALLINT:
+            case INTEGER:
+                toClass = Integer.class;
+                break;
+            case BIGINT:
+                toClass = Long.class;
+                break;
+            case FLOAT:
+                toClass = Float.class;
+                break;
+            case REAL:
+            case DOUBLE:
+            case NUMERIC:
+            case DECIMAL:
+                toClass = Double.class;
+                break;
+            case CHAR:
+            case VARCHAR:
+            case LONGVARCHAR:
+                toClass = String.class;
+                break;
+            case DATE:
+            case TIME:
+            case TIMESTAMP:
+                toClass = Timestamp.class;
+                break;
+            case BINARY:
+            case VARBINARY:
+            case LONGVARBINARY:
+                toClass = byte[].class;
+                break;
+            case NULL:
+            case OTHER:
+            case JAVA_OBJECT:
+            case DISTINCT:
+            case STRUCT:
+            case ARRAY:
+            case BLOB:
+            case CLOB:
+            case REF:
+            case DATALINK:
+            default:
+                return parameterValue.getRawValue();
+        }
+
+        Converter converter = parameterValue.getCustomSerializer() != null ?
+            parameterValue.getCustomSerializer() :
             Convert.getConverterIfExists(toClass);
 
         if(converter == null)
@@ -364,7 +419,7 @@ public class PhotonPreparedStatement implements Closeable
             throw new PhotonException("No converter found for class '%s'.", toClass.getName());
         }
 
-        return converter.convert(parameterValue.value);
+        return converter.convert(parameterValue.getRawValue());
     }
 
     private String getQuestionMarks(int count)
@@ -420,55 +475,56 @@ public class PhotonPreparedStatement implements Closeable
 
             try
             {
-                if(parameterValue.value == null)
+                if(parameterValue.getRawValue() == null)
                 {
-                    preparedStatement.setNull(parameterIndex, parameterValue.dataType != null ? parameterValue.dataType.getJdbcType() : ColumnDataType.VARCHAR.getJdbcType());
+                    preparedStatement.setNull(parameterIndex,
+                        parameterValue.getDataType() != null ? parameterValue.getDataType().getJdbcType() : ColumnDataType.VARCHAR.getJdbcType());
                     continue;
                 }
 
-                if (parameterValue.dataType == null)
+                if (parameterValue.getDataType() == null)
                 {
-                    preparedStatement.setObject(parameterIndex, parameterValue.value);
+                    preparedStatement.setObject(parameterIndex, parameterValue.getRawValue());
                     continue;
                 }
 
-                switch (parameterValue.dataType)
+                switch (parameterValue.getDataType())
                 {
                     case BIT:
                     case BOOLEAN:
-                        preparedStatement.setBoolean(parameterIndex, convertValue(parameterValue, Boolean.class));
+                        preparedStatement.setBoolean(parameterIndex, (Boolean) convertValue(parameterValue));
                         continue;
                     case TINYINT:
                     case SMALLINT:
                     case INTEGER:
-                        preparedStatement.setInt(parameterIndex, convertValue(parameterValue, Integer.class));
+                        preparedStatement.setInt(parameterIndex, (Integer) convertValue(parameterValue));
                         continue;
                     case BIGINT:
-                        preparedStatement.setLong(parameterIndex, convertValue(parameterValue, Long.class));
+                        preparedStatement.setLong(parameterIndex, (Long) convertValue(parameterValue));
                         continue;
                     case FLOAT:
-                        preparedStatement.setFloat(parameterIndex, convertValue(parameterValue, Float.class));
+                        preparedStatement.setFloat(parameterIndex, (Float) convertValue(parameterValue));
                         continue;
                     case REAL:
                     case DOUBLE:
                     case NUMERIC:
                     case DECIMAL:
-                        preparedStatement.setDouble(parameterIndex, convertValue(parameterValue, Double.class));
+                        preparedStatement.setDouble(parameterIndex, (Double) convertValue(parameterValue));
                         continue;
                     case CHAR:
                     case VARCHAR:
                     case LONGVARCHAR:
-                        preparedStatement.setString(parameterIndex, convertValue(parameterValue, String.class));
+                        preparedStatement.setString(parameterIndex, (String) convertValue(parameterValue));
                         continue;
                     case DATE:
                     case TIME:
                     case TIMESTAMP:
-                        preparedStatement.setTimestamp(parameterIndex, convertValue(parameterValue, Timestamp.class));
+                        preparedStatement.setTimestamp(parameterIndex, (Timestamp) convertValue(parameterValue));
                         continue;
                     case BINARY:
                     case VARBINARY:
                     case LONGVARBINARY:
-                        preparedStatement.setBytes(parameterIndex, convertValue(parameterValue, byte[].class));
+                        preparedStatement.setBytes(parameterIndex, (byte[]) convertValue(parameterValue));
                         continue;
                     case NULL:
                     case OTHER:
@@ -481,7 +537,7 @@ public class PhotonPreparedStatement implements Closeable
                     case REF:
                     case DATALINK:
                     default:
-                        preparedStatement.setObject(parameterIndex, parameterValue.value, parameterValue.dataType.getJdbcType());
+                        preparedStatement.setObject(parameterIndex, parameterValue.getRawValue(), parameterValue.getDataType().getJdbcType());
                 }
             }
             catch(Exception ex)
@@ -490,8 +546,8 @@ public class PhotonPreparedStatement implements Closeable
                     ex,
                     "Error setting parameter %s with type %s to '%s'.",
                     parameterIndex,
-                    parameterValue.dataType,
-                    parameterValue.value
+                    parameterValue.getDataType(),
+                    parameterValue.getRawValue()
                 );
             }
         }
@@ -520,7 +576,7 @@ public class PhotonPreparedStatement implements Closeable
                         "Photon {}query executing with params:\n{}\nSQL:\n{}",
                         StringUtils.isBlank(queryType) ? queryType : queryType + " ",
                         StringUtils.join(parameterValues.stream()
-                            .map(p -> p.value)
+                            .map(ParameterValue::getRawValue)
                             .collect(Collectors.toList()), ','),
                         sqlText);
                 }

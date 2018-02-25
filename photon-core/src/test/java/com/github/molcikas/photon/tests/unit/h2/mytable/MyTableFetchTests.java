@@ -45,7 +45,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
         }
     }
@@ -62,7 +62,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
         }
     }
@@ -98,9 +98,9 @@ public class MyTableFetchTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(4, myTables.get(0).getId());
+            assertEquals(new Integer(4), myTables.get(0).getId());
             assertEquals("my4dbvalue", myTables.get(0).getMyvalue());
-            assertEquals(2, myTables.get(1).getId());
+            assertEquals(new Integer(2), myTables.get(1).getId());
             assertEquals("my2dbvalue", myTables.get(1).getMyvalue());
         }
     }
@@ -117,7 +117,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
 
             assertNull(myTable.getMyOtherTable());
@@ -136,7 +136,7 @@ public class MyTableFetchTests
                 .fetchById(5);
 
             assertNotNull(myTable);
-            assertEquals(5, myTable.getId());
+            assertEquals(new Integer(5), myTable.getId());
             assertEquals("my5dbvalue", myTable.getMyvalue());
 
             MyOtherTable myOtherTable = myTable.getMyOtherTable();
@@ -160,16 +160,16 @@ public class MyTableFetchTests
             assertNotNull(myTables);
             assertEquals(4, myTables.size());
 
-            assertEquals(1, myTables.get(0).getId());
+            assertEquals(new Integer(1), myTables.get(0).getId());
             assertNull(myTables.get(0).getMyOtherTable());
 
-            assertEquals(2, myTables.get(1).getId());
+            assertEquals(new Integer(2), myTables.get(1).getId());
             assertNull(myTables.get(1).getMyOtherTable());
 
-            assertEquals(3, myTables.get(2).getId());
+            assertEquals(new Integer(3), myTables.get(2).getId());
             assertEquals(3, myTables.get(2).getMyOtherTable().getId());
 
-            assertEquals(4, myTables.get(3).getId());
+            assertEquals(new Integer(4), myTables.get(3).getId());
             assertEquals(4, myTables.get(3).getMyOtherTable().getId());
         }
     }
@@ -189,7 +189,7 @@ public class MyTableFetchTests
                 .fetchById(3);
 
             assertNotNull(myTable);
-            assertEquals(3, myTable.getId());
+            assertEquals(new Integer(3), myTable.getId());
             assertNull(myTable.getMyvalue());
         }
     }
@@ -227,7 +227,7 @@ public class MyTableFetchTests
                 .fetchById(3);
 
             assertNotNull(myTable);
-            assertEquals(3, myTable.getId());
+            assertEquals(new Integer(3), myTable.getId());
             assertEquals("my3dbvalue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
         }
     }
@@ -246,7 +246,7 @@ public class MyTableFetchTests
                 .fetch();
 
             assertNotNull(myTable);
-            assertEquals(3, myTable.getId());
+            assertEquals(new Integer(3), myTable.getId());
             assertEquals("my3otherdbvalue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
         }
     }
@@ -267,9 +267,9 @@ public class MyTableFetchTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(3, myTables.get(0).getId());
+            assertEquals(new Integer(3), myTables.get(0).getId());
             assertEquals("my3otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
-            assertEquals(4, myTables.get(1).getId());
+            assertEquals(new Integer(4), myTables.get(1).getId());
             assertEquals("my4otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
         }
     }
@@ -290,9 +290,9 @@ public class MyTableFetchTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(4, myTables.get(0).getId());
+            assertEquals(new Integer(4), myTables.get(0).getId());
             assertEquals("my4otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
-            assertEquals(5, myTables.get(1).getId());
+            assertEquals(new Integer(5), myTables.get(1).getId());
             assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
         }
     }
@@ -312,9 +312,9 @@ public class MyTableFetchTests
 
             assertNotNull(myTables);
             assertEquals(2, myTables.size());
-            assertEquals(4, myTables.get(0).getId());
+            assertEquals(new Integer(4), myTables.get(0).getId());
             assertEquals("my4otherdbvalue", myTables.get(0).getMyOtherTable().getMyOtherValueWithDiffName());
-            assertEquals(5, myTables.get(1).getId());
+            assertEquals(new Integer(5), myTables.get(1).getId());
             assertEquals("my5otherdbvalue", myTables.get(1).getMyOtherTable().getMyOtherValueWithDiffName());
 
             transaction.commit();
@@ -334,7 +334,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
         }
     }
@@ -387,7 +387,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
         }
     }
@@ -428,7 +428,7 @@ public class MyTableFetchTests
                 .fetchById(2);
 
             assertNotNull(myTable);
-            assertEquals(2, myTable.getId());
+            assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
 
             myTable = transaction

@@ -6,7 +6,12 @@ import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldType;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
+import com.github.molcikas.photon.blueprints.table.TableValue;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.SneakyThrows;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.Convert;
@@ -19,40 +24,35 @@ import java.util.stream.Collectors;
 
 public class PopulatedEntity<T>
 {
+    @Getter
     private final EntityBlueprint entityBlueprint;
+
+    @Getter
     private T entityInstance;
+
+    @Getter
     private Object primaryKeyValue;
+
+    @Getter
     private Object foreignKeyToParentValue;
 
-    public EntityBlueprint getEntityBlueprint()
-    {
-        return entityBlueprint;
-    }
+    // TODO: Does this need to be a field? Can it be changed back to a method arg?
+    private PhotonQueryResultRow photonQueryResultRow;
 
-    public T getEntityInstance()
-    {
-        return entityInstance;
-    }
-
-    public Object getPrimaryKeyValue()
-    {
-        return primaryKeyValue;
-    }
-
-    public Object getForeignKeyToParentValue()
-    {
-        return foreignKeyToParentValue;
-    }
+    @Getter
+    @Setter
+    private PopulatedEntity<?> parentPopulatedEntity;
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow)
     {
         this(entityBlueprint, queryResultRow, true);
     }
 
-    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
+    public PopulatedEntity(EntityBlueprint entityBlueprint, PhotonQueryResultRow photonQueryResultRow, boolean columnsFullyQualified)
     {
         this.entityBlueprint = entityBlueprint;
-        constructOrphanEntityInstance(queryResultRow, columnsFullyQualified);
+        this.photonQueryResultRow = photonQueryResultRow;
+        constructOrphanEntityInstance(columnsFullyQualified);
     }
 
     public PopulatedEntity(EntityBlueprint entityBlueprint, T entityInstance)
@@ -70,7 +70,17 @@ public class PopulatedEntity<T>
             return null;
         }
 
-        return getInstanceValue(columnBlueprint.getMappedFieldBlueprint());
+        return getInstanceValue(columnBlueprint.getMappedFieldBlueprint(), columnBlueprint);
+    }
+
+    public TableValue getPrimaryKey()
+    {
+        return new TableValue(primaryKeyValue);
+    }
+
+    public TableValue getForeignKeyToParent()
+    {
+        return new TableValue(foreignKeyToParentValue);
     }
 
     public Map<String, Object> getDatabaseValuesForCompoundField(FieldBlueprint fieldBlueprint)
@@ -78,7 +88,7 @@ public class PopulatedEntity<T>
         return fieldBlueprint.getCompoundEntityFieldValueMapping().getDatabaseValues(entityInstance);
     }
 
-    public Object getInstanceValue(FieldBlueprint fieldBlueprint)
+    public Object getInstanceValue(FieldBlueprint fieldBlueprint, ColumnBlueprint columnBlueprint)
     {
         if(fieldBlueprint == null)
         {
@@ -87,7 +97,12 @@ public class PopulatedEntity<T>
 
         if(fieldBlueprint.getEntityFieldValueMapping() != null)
         {
-            return fieldBlueprint.getEntityFieldValueMapping().getFieldValue(entityInstance);
+            Object fieldValue = fieldBlueprint.getEntityFieldValueMapping().getFieldValue(entityInstance);
+            if(columnBlueprint == null)
+            {
+                return fieldValue;
+            }
+            return PhotonPreparedStatement.convertValue(new ParameterValue(fieldValue, columnBlueprint));
         }
 
         Exception thrownException;
@@ -95,7 +110,12 @@ public class PopulatedEntity<T>
         try
         {
             Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-            return field.get(entityInstance);
+            Object fieldValue = field.get(entityInstance);
+            if(columnBlueprint == null)
+            {
+                return fieldValue;
+            }
+            return PhotonPreparedStatement.convertValue(new ParameterValue(fieldValue, columnBlueprint));
         }
         catch(IllegalArgumentException ex)
         {
@@ -120,10 +140,10 @@ public class PopulatedEntity<T>
         );
     }
 
-    public List<PopulatedEntity> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
+    public List<PopulatedEntity<?>> getChildPopulatedEntitiesForField(FieldBlueprint fieldBlueprint)
     {
         Collection childEntityInstances;
-        Object fieldValue = getInstanceValue(fieldBlueprint);
+        Object fieldValue = getInstanceValue(fieldBlueprint, null);
         EntityBlueprint childEntityBlueprint = fieldBlueprint.getChildEntityBlueprint();
         ChildCollectionConstructor childCollectionConstructor = childEntityBlueprint.getChildCollectionConstructor();
 
@@ -144,9 +164,14 @@ public class PopulatedEntity<T>
             childEntityInstances = Collections.singletonList(fieldValue);
         }
 
+        if(childEntityInstances == null)
+        {
+            return Collections.emptyList();
+        }
+
         return Arrays
             .stream(childEntityInstances.toArray())
-            .map(instance -> new PopulatedEntity(fieldBlueprint.getChildEntityBlueprint(), instance))
+            .map(instance -> new PopulatedEntity<>(fieldBlueprint.getChildEntityBlueprint(), instance))
             .collect(Collectors.toList());
     }
 
@@ -184,7 +209,7 @@ public class PopulatedEntity<T>
             throw new PhotonException("Field '%s' is not a foreign key list field.", fieldBlueprint.getFieldName());
         }
 
-        Object fieldCollection = getInstanceValue(fieldBlueprint);
+        Object fieldCollection = getInstanceValue(fieldBlueprint, null);
 
         Converter converter = Convert.getConverterIfExists(fieldBlueprint.getFlattenedCollectionBlueprint().getFieldClass());
         Object fieldValue = converter.convert(value);
@@ -193,17 +218,14 @@ public class PopulatedEntity<T>
 
     public void mapEntityInstanceChildren(PopulatedEntityMap populatedEntityMap)
     {
-        Object primaryKey = getPrimaryKeyValue();
-
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getFieldsWithChildEntities())
         {
             ChildCollectionConstructor childCollectionConstructor = fieldBlueprint.getChildEntityBlueprint().getChildCollectionConstructor();
-            Class childEntityClass = fieldBlueprint.getChildEntityBlueprint().getEntityClass();
 
             if(fieldBlueprint.getFieldType() == FieldType.EntityList)
             {
                 Collection collection = childCollectionConstructor != null ? new ArrayList() : createCompatibleCollection(fieldBlueprint.getFieldClass());
-                populatedEntityMap.addNextInstancesWithClassAndForeignKeyToParent(collection, childEntityClass, primaryKey);
+                populatedEntityMap.setParentAndAddChildrenToCollection(collection, fieldBlueprint.getChildEntityBlueprint(), this);
 
                 if(collection.isEmpty())
                 {
@@ -236,13 +258,14 @@ public class PopulatedEntity<T>
             }
             else if(fieldBlueprint.getFieldClass().equals(fieldBlueprint.getChildEntityBlueprint().getEntityClass()))
             {
-                Object childInstance = populatedEntityMap.getNextInstanceWithClassAndForeignKeyToParent(childEntityClass, primaryKey);
-                if(childInstance != null)
+                PopulatedEntity<?> childPopulatedEntity =
+                    populatedEntityMap.setParentAndGetNextChild(fieldBlueprint.getChildEntityBlueprint(), this);
+                if(childPopulatedEntity != null)
                 {
                     try
                     {
                         Field field = entityBlueprint.getReflectedField(fieldBlueprint.getFieldName());
-                        field.set(entityInstance, childInstance);
+                        field.set(entityInstance, childPopulatedEntity.getEntityInstance());
                     }
                     catch (Exception ex)
                     {
@@ -258,18 +281,21 @@ public class PopulatedEntity<T>
         }
     }
 
-    public boolean addUpdateToBatch(PhotonPreparedStatement updateStatement, TableBlueprint tableBlueprint, PopulatedEntity parentPopulatedEntity)
+    public List<ParameterValue> getParameterValues(
+        TableBlueprint tableBlueprint,
+        PopulatedEntity parentPopulatedEntity)
     {
         if(primaryKeyValue == null)
         {
-            return false;
+            return Collections.emptyList();
         }
 
         if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
-            return false;
+            return Collections.emptyList();
         }
 
+        List<ParameterValue> parameterValues = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
 
         ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
@@ -303,7 +329,7 @@ public class PopulatedEntity<T>
                 }
                 else
                 {
-                    fieldValue = getInstanceValue(fieldBlueprint);
+                    fieldValue = getInstanceValue(fieldBlueprint, null);
                     customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
@@ -313,38 +339,61 @@ public class PopulatedEntity<T>
             }
             else
             {
-                return false;
+                return Collections.emptyList();
             }
 
-            updateStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
+            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
         }
 
         if(versionColumn != null)
         {
-            updateStatement.setNextParameter(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer());
+            parameterValues.add(new ParameterValue(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer()));
         }
 
-        updateStatement.addToBatch();
-
-        return true;
+        return parameterValues;
     }
 
-    public void addInsertToBatch(
-        PhotonPreparedStatement insertStatement,
+    @AllArgsConstructor
+    @Getter
+    public class GetParameterValuesResult
+    {
+        private final boolean skipped;
+        private final List<ParameterValue> values;
+    }
+
+    public GetParameterValuesResult getParameterValuesForUpdate(
+        TableBlueprint tableBlueprint,
+        PopulatedEntity<?> parentPopulatedEntity,
+        List<ParameterValue> trackedValues)
+    {
+        if(primaryKeyValue == null)
+        {
+            return new GetParameterValuesResult(true, Collections.emptyList());
+        }
+
+        if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
+        {
+            return new GetParameterValuesResult(true, Collections.emptyList());
+        }
+
+        List<ParameterValue> parameterValues =
+            getParameterValues(tableBlueprint, parentPopulatedEntity);
+
+        // The tracked entity is identical to the current entity, so do not create an update statement for it.
+        if(CollectionUtils.isEqualCollection(parameterValues, trackedValues))
+        {
+            return new GetParameterValuesResult(false, Collections.emptyList());
+        }
+
+        return new GetParameterValuesResult(false, parameterValues);
+    }
+
+    public List<ParameterValue> getParameterValuesForInsert(
         TableBlueprint tableBlueprint,
         PopulatedEntity parentPopulatedEntity,
         boolean alwaysIncludePrimaryKey)
     {
-        addParametersToInsertStatement(insertStatement, tableBlueprint, parentPopulatedEntity, alwaysIncludePrimaryKey);
-        insertStatement.addToBatch();
-    }
-
-    public void addParametersToInsertStatement(
-        PhotonPreparedStatement insertStatement,
-        TableBlueprint tableBlueprint,
-        PopulatedEntity parentPopulatedEntity,
-        boolean alwaysIncludePrimaryKey)
-    {
+        List<ParameterValue> parameterValues = new ArrayList<>();
         Map<String, Object> values = new HashMap<>();
 
         for (ColumnBlueprint columnBlueprint : tableBlueprint.getColumnsForInsertStatement(alwaysIncludePrimaryKey))
@@ -365,7 +414,7 @@ public class PopulatedEntity<T>
                 }
                 else
                 {
-                    fieldValue = getInstanceValue(fieldBlueprint);
+                    fieldValue = getInstanceValue(fieldBlueprint, null);
                     customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
@@ -386,25 +435,27 @@ public class PopulatedEntity<T>
                 );
             }
 
-            insertStatement.setNextParameter(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer);
+            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
         }
+
+        return parameterValues;
     }
 
     @SneakyThrows
-    private void constructOrphanEntityInstance(PhotonQueryResultRow queryResultRow, boolean columnsFullyQualified)
+    private void constructOrphanEntityInstance(boolean columnsFullyQualified)
     {
-        Constructor<T> constructor = entityBlueprint.getEntityConstructor(queryResultRow.getValuesMap());
+        Constructor<T> constructor = entityBlueprint.getEntityConstructor(photonQueryResultRow.getValuesMap());
 
         entityInstance = constructor.newInstance();
 
-        for(Map.Entry<String, Object> entry : queryResultRow.getValues())
+        for(Map.Entry<String, Object> entry : photonQueryResultRow.getValues())
         {
             setInstanceFieldToDatabaseValue(entry.getKey(), entry.getValue(), columnsFullyQualified);
         }
 
         for(FieldBlueprint fieldBlueprint : entityBlueprint.getCompoundCustomValueMapperFields())
         {
-            Map<String, Object> databaseValues = queryResultRow
+            Map<String, Object> databaseValues = photonQueryResultRow
                 .getValues()
                 .stream()
                 .filter(v -> entityBlueprint.getFieldsForColumnNameQualified(v.getKey()).contains(fieldBlueprint))

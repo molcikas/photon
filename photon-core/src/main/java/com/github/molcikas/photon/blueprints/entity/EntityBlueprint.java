@@ -3,6 +3,7 @@ package com.github.molcikas.photon.blueprints.entity;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;

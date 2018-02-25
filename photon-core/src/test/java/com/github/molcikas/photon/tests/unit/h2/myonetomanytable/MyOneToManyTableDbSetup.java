@@ -39,7 +39,7 @@ public class MyOneToManyTableDbSetup
             transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (4, 5, 'my51otherdbvalue')").executeUpdate();
             transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (5, 5, 'my52otherdbvalue')").executeUpdate();
             transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (6, 5, 'my53otherdbvalue')").executeUpdate();
-            transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (7, 6, 'my62otherdbvalue')").executeUpdate();
+            transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (7, 6, 'my61otherdbvalue')").executeUpdate();
             transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (8, 6, 'my62otherdbvalue')").executeUpdate();
             transaction.query("insert into `mymanytable` (`id`, `parent`, `myothervalue`) values (9, 6, 'my63otherdbvalue')").executeUpdate();
 

@@ -4,6 +4,7 @@ import com.github.molcikas.photon.PhotonUtils;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.converters.Converter;
+import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.query.PopulatedEntity;
 
 import java.util.*;
@@ -150,10 +151,18 @@ public class TableBlueprint
             .orElse(null);
     }
 
-    public boolean shouldInsertUsingPrimaryKeySql(PopulatedEntity populatedEntity)
+    public boolean shouldInsertUsingPrimaryKeySql(PopulatedEntity populatedEntity, TableBlueprint tableBlueprint)
     {
-        if (!getPrimaryKeyColumn().isAutoIncrementColumn())
+        if (!primaryKeyColumn.isAutoIncrementColumn())
         {
+            boolean isNumericType = tableBlueprint.isPrimaryKeyMappedToField() &&
+                PhotonUtils.isNumericType(tableBlueprint.getPrimaryKeyColumn().getMappedFieldBlueprint().getFieldClass());
+            if(populatedEntity.getPrimaryKeyValue() == null && isNumericType)
+            {
+                throw new PhotonException(
+                    "Cannot insert %s entity with a null primary key because the primary key is not an auto increment column.",
+                    populatedEntity.getEntityBlueprint().getEntityClassName());
+            }
             return false;
         }
         Object primaryKey = populatedEntity.getPrimaryKeyValue();

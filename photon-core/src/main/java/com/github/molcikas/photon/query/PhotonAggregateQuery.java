@@ -1,6 +1,7 @@
 package com.github.molcikas.photon.query;
 
 import com.github.molcikas.photon.Photon;
+import com.github.molcikas.photon.PhotonEntityState;
 import com.github.molcikas.photon.blueprints.AggregateBlueprint;
 import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
@@ -16,16 +17,20 @@ public class PhotonAggregateQuery<T>
 {
     private final AggregateBlueprint<T> aggregateBlueprint;
     private final Connection connection;
+    private final PhotonEntityState photonEntityState;
     private final Photon photon;
     private final List<String> excludedFieldPaths;
+    private boolean trackChanges = true;
 
     public PhotonAggregateQuery(
         AggregateBlueprint<T> aggregateBlueprint,
         Connection connection,
+        PhotonEntityState photonEntityState,
         Photon photon)
     {
         this.aggregateBlueprint = aggregateBlueprint;
         this.connection = connection;
+        this.photonEntityState = photonEntityState;
         this.photon = photon;
         this.excludedFieldPaths = new ArrayList<>();
     }
@@ -37,6 +42,12 @@ public class PhotonAggregateQuery<T>
             throw new PhotonException("Excluded field name cannot be blank.");
         }
         excludedFieldPaths.add(fieldName);
+        return this;
+    }
+
+    public PhotonAggregateQuery<T> noTracking()
+    {
+        this.trackChanges = false;
         return this;
     }
 
@@ -130,8 +141,13 @@ public class PhotonAggregateQuery<T>
 
         populatedEntityMap.mapAllEntityInstanceChildren();
 
+        if(trackChanges)
+        {
+            photonEntityState.track(populatedEntityMap);
+        }
+
         return populatedEntityMap
-            .getPopulatedEntitiesForClass(aggregateBlueprint.getAggregateRootClass())
+            .getPopulatedEntitiesForBlueprint(aggregateBlueprint.getAggregateRootEntityBlueprint())
             .stream()
             .map(pe -> (T) pe.getEntityInstance())
             .collect(Collectors.toList());
@@ -189,7 +205,7 @@ public class PhotonAggregateQuery<T>
         if(ids == null)
         {
             ids = populatedEntityMap
-                .getPopulatedEntitiesForClass(entityBlueprint.getEntityClass())
+                .getPopulatedEntitiesForBlueprint(entityBlueprint)
                 .stream()
                 .map(PopulatedEntity::getPrimaryKeyValue)
                 .collect(Collectors.toList());

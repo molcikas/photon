@@ -225,6 +225,7 @@ public class ShapeCrudTests
     private void registerAggregate()
     {
         photon.registerAggregate(Shape.class)
+            .withPrimaryKeyAutoIncrement()
             .withMappedClass(Circle.class)
             .withMappedClass(Rectangle.class)
             .withClassDiscriminator(valuesMap ->

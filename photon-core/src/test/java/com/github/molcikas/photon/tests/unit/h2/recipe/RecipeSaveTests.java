@@ -1,5 +1,6 @@
 package com.github.molcikas.photon.tests.unit.h2.recipe;
 
+import com.github.molcikas.photon.blueprints.table.ColumnDataType;
 import org.apache.commons.lang3.math.Fraction;
 import org.junit.Before;
 import org.junit.Test;
@@ -389,6 +390,89 @@ public class RecipeSaveTests
             assertEquals(6, recipe3.getInstructions().size());
 
             transaction.commit();
+        }
+    }
+
+    @Test
+    public void untrack_saveUnTrackedAggregate_resavesAllChanges()
+    {
+        RecipeDbSetup.registerRecipeAggregate(photon);
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Recipe recipe = transaction
+                .query(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            int rowsUpdated = transaction.query("UPDATE recipe SET name = 'UpdatedName' WHERE recipeId = :recipeId")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(1, rowsUpdated);
+
+            rowsUpdated = transaction.query("DELETE FROM recipeingredient WHERE recipeId = :recipeId")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(17, rowsUpdated);
+
+            rowsUpdated = transaction.query("DELETE FROM recipeinstruction WHERE recipeId = :recipeId AND stepNumber NOT IN (2, 4)")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(4, rowsUpdated);
+
+            transaction.untrack(recipe);
+
+            // This should re-save the entire aggregate since it is untracked.
+            transaction.save(recipe);
+
+            Recipe recipeFetched = transaction
+                .query(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            assertNotNull(recipeFetched);
+            assertEquals("Spaghetti with Lentil and Tomato Sauce", recipeFetched.getName());
+            assertEquals(17, recipeFetched.getIngredients().size());
+            assertEquals(6, recipeFetched.getInstructions().size());
+        }
+    }
+
+    @Test
+    public void track_saveTrackedAggregate_savesNothing()
+    {
+        RecipeDbSetup.registerRecipeAggregate(photon);
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            Recipe recipe = transaction
+                .query(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            int rowsUpdated = transaction.query("UPDATE recipe SET name = 'UpdatedName' WHERE recipeId = :recipeId")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(1, rowsUpdated);
+
+            rowsUpdated = transaction.query("DELETE FROM recipeingredient WHERE recipeId = :recipeId")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(17, rowsUpdated);
+
+            rowsUpdated = transaction.query("DELETE FROM recipeinstruction WHERE recipeId = :recipeId AND stepNumber NOT IN (2, 4)")
+                .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
+                .executeUpdate();
+            assertEquals(4, rowsUpdated);
+
+            // This should save nothing since the aggregate has no changes.
+            transaction.save(recipe);
+
+            Recipe recipeFetched = transaction
+                .query(Recipe.class)
+                .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            assertNotNull(recipeFetched);
+            assertEquals("UpdatedName", recipeFetched.getName());
+            // Ingredients don't have the primary key in the entity, so if the list changes, we have to re-save the entire list.
+            assertEquals(17, recipeFetched.getIngredients().size());
+            assertEquals(2, recipeFetched.getInstructions().size());
         }
     }
 }

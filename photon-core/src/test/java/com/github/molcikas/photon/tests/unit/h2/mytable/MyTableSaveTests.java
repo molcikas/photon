@@ -51,7 +51,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -82,7 +82,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MyNewSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -107,7 +107,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
 
             // Not committing, but that won't matter because this transaction does not make any changes.
@@ -154,9 +154,29 @@ public class MyTableSaveTests
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals(new Integer(1111), myTableRetrieved.getId());
             assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
+        }
+    }
+
+    @Test
+    public void aggregate_save_insertSimpleEntityWithNullKey_throwsError()
+    {
+        registerMyTableOnlyAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(null, "MyInsertedSavedValue", null);
+
+            try
+            {
+                transaction.save(myTable);
+            }
+            catch(PhotonException ex)
+            {
+                assertTrue(ex.getMessage().contains("null primary key"));
+            }
         }
     }
 
@@ -179,7 +199,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MyAutoIncrementedInsertedSavedValue", myTableRetrieved.getMyvalue());
         }
     }
@@ -204,7 +224,7 @@ public class MyTableSaveTests
                 .fetchById(3);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(3, myTableRetrieved.getId());
+            assertEquals(new Integer(3), myTableRetrieved.getId());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
@@ -236,7 +256,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MySavedValueAutoInc", myTableRetrieved.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved.getMyOtherTable();
@@ -271,7 +291,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved1);
-            assertEquals(7, myTableRetrieved1.getId());
+            assertEquals(new Integer(7), myTableRetrieved1.getId());
             assertEquals("MySavedValueAutoInc1", myTableRetrieved1.getMyvalue());
 
             MyOtherTable myOtherTableRetrieved = myTableRetrieved1.getMyOtherTable();
@@ -341,7 +361,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
             MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
@@ -375,7 +395,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals("MYSAVEDVALUEAUTOINC", myTableRetrieved.getMyvalue());
 
             MyTable myOtherTableRaw = transaction.query("SELECT * FROM MyTable WHERE id = 7").fetch(MyTable.class);
@@ -414,7 +434,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTable);
-            assertEquals(7, myTable.getId());
+            assertEquals(new Integer(7), myTable.getId());
             assertEquals("oops", myTable.getMyvalue());
 
             transaction.commit();
@@ -441,7 +461,7 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTable);
-            assertEquals(7, myTable.getId());
+            assertEquals(new Integer(7), myTable.getId());
             assertEquals("MySavedMappedEntityValue", myTable.getMyOtherTable().getMyOtherValueWithDiffName());
 
             transaction.commit();
@@ -468,7 +488,7 @@ public class MyTableSaveTests
                 .fetchById(1111);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(1111, myTableRetrieved.getId());
+            assertEquals(new Integer(1111), myTableRetrieved.getId());
             assertEquals("MyInsertedSavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
         }
@@ -496,7 +516,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_saveWithVersion_savesAggregate()
+    public void version_saveWithVersion_savesAggregate()
     {
         registerMyTableWithVersionAggregate();
 
@@ -518,7 +538,7 @@ public class MyTableSaveTests
                 .fetchById(2);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(2, myTableRetrieved.getId());
+            assertEquals(new Integer(2), myTableRetrieved.getId());
             assertEquals(3, myTableRetrieved.getVersion());
             assertEquals("MySavedValue", myTableRetrieved.getMyvalue());
             transaction.commit();
@@ -526,7 +546,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_saveWithOldVersion_throwsConcurrencyException()
+    public void version_saveWithOldVersion_throwsConcurrencyException()
     {
         registerMyTableWithVersionAggregate();
 
@@ -551,7 +571,7 @@ public class MyTableSaveTests
     }
 
     @Test
-    public void aggregate_insertWithVersion_insertsAggregate()
+    public void version_insertWithVersion_insertsAggregate()
     {
         registerMyTableWithVersionAggregate();
 
@@ -567,10 +587,226 @@ public class MyTableSaveTests
                 .fetchById(7);
 
             assertNotNull(myTableRetrieved);
-            assertEquals(7, myTableRetrieved.getId());
+            assertEquals(new Integer(7), myTableRetrieved.getId());
             assertEquals(1, myTableRetrieved.getVersion());
             assertEquals("NewVal", myTableRetrieved.getMyvalue());
             transaction.commit();
+        }
+    }
+
+    @Test
+    public void track_saveWithChangeTracking_savesChangesOnly()
+    {
+        photon.registerAggregate(MyTable.class)
+            .withId("id")
+            .withPrimaryKeyAutoIncrement()
+            .register();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing because we're tracking changes and none were made.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_multipleSavesWithChangeTracking_savesChangesOnly()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            myTable.setMyvalue("MyNewValueInTheAggregate");
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("MyNewValueInTheAggregate", myTableRetrieved.getMyvalue());
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing because we're tracking changes and none were made.
+            transaction.save(myTable);
+
+            myTableRetrieved = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_noChangeTracking_savesWholeAggregate()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should re-write value back to the database since the aggregate is untracked.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("my2dbvalue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_insertWithChangeTracking_savesChangesOnly()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = new MyTable(100, "InsertedValue", null);
+            transaction.insert(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(100);
+            assertNotNull(myTableRetrieved);
+            assertEquals("InsertedValue", myTableRetrieved.getMyvalue());
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 100").executeUpdate();
+
+            // Save should do nothing because we're tracking changes and none were made.
+            transaction.save(myTable);
+
+            myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(100);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_trackExistingAggregateAndNoChanges_saveNothing()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        MyTable myTable;
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.track(myTable);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing since no changes were made since tracking started.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_saveUntrackedAggregate_savesAggregate()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        MyTable myTable;
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should re-save the whole aggregate because the aggregate is not tracked by this transaction.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("my2dbvalue", myTableRetrieved.getMyvalue());
+        }
+    }
+
+    @Test
+    public void track_trackAlreadyTrackedAggregate_onlySavesChangesAfterTrackingStarted()
+    {
+        registerMyTableOnlyWithAutoIncrementAggregate();
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            MyTable myTable = transaction
+                .query(MyTable.class)
+                .fetchById(2);
+
+            myTable.setMyvalue("NewValueBeforeRetracking");
+            transaction.track(myTable);
+
+            transaction.query("UPDATE MyTable SET myvalue = 'NewDbValue' WHERE id = 2").executeUpdate();
+
+            // Save should do nothing because no changes were made since re-tracking the aggregate.
+            transaction.save(myTable);
+
+            MyTable myTableRetrieved = transaction
+                .query(MyTable.class)
+                .noTracking()
+                .fetchById(2);
+
+            assertNotNull(myTableRetrieved);
+            assertEquals("NewDbValue", myTableRetrieved.getMyvalue());
         }
     }
 
