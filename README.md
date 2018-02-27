@@ -1,13 +1,14 @@
 # Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon) [![Code Coverage](https://img.shields.io/codecov/c/github/molcikas/photon/master.svg)](https://codecov.io/github/molcikas/photon?branch=master)
-A micro ORM that gives developers the ability to write complex SELECT statements when performance is critical while also shielding them from having to hand-write routine CRUD SQL.
 
-Traditional ORMs are complex and cryptic. They are often orders of magnitude slower than lower-level frameworks like JDBC. Since they hide the SQL they are executing, diagnosing and troubleshooting issues requires deep knowledge about how the ORM works. They usually require the object-to-table mapping to be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence details and require the entities to be modeled after the database tables rather than the business domain.
+Photon is a unique Java ORM that aims to combine the best aspects of traditional and micro ORMs. Photon supports some of the features of traditional ORMs, such as eager loading and change tracking, but it also feels and acts like a micro ORM. When you want to do a query, you write real SQL, not a custom query language that isn't quite SQL.
 
-Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving clusters of entities ("[aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)" in DDD terms).
+Traditional ORMs can be complex and cryptic. Since they hide the SQL they are executing behind leaky abstractions, diagnosing and troubleshooting issues requires deep knowledge about the inner workings of the ORM. Photon queries are just plain SQL, so you always know exactly what query the ORM is running.
 
-The goal of Photon is to capture the best of both worlds by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates. It allows entities to remain free from the details of how they are persisted.
+Photon is the only Java ORM that supports a fluent API. Other ORMs require the object-to-table mapping to be specified in XML or using annotations. XML is error prone and difficult to maintain. Annotations clutter domain entities with persistence details and require the entities to be modeled after the database tables rather than the business domain. A fluent API allows entities to remain free from the details of how they are persisted.
 
-Photon does not require you to learn a custom query language or a complex set of query functions, but you do need to to know SQL, especially `SELECT` statements.
+Micro ORMs give developers greater control of the SQL but can be cumbersome to use, especially when loading and saving clusters of entities ("[aggregates](https://martinfowler.com/bliki/DDD_Aggregate.html)" in DDD terms). Photon gives developers the ability to specify relationships between entities in an aggregate so that you don't have to write cumbersome queries to do basic CRUD operations.
+
+The goal of Photon is to capture the best of the micro and tradition ORMs by giving developers control over the SQL executed while still providing an easy way to do routine CRUD operations on aggregates.
 
 ## Getting Started
 
@@ -18,6 +19,18 @@ The latest JAR is available in the [Maven Central Repository](https://mvnreposit
 ### Initializing Photon
 
 Construct a `Photon` object with a `DataSource` (which can be retrieved from connection poolers like `HikariCP`) or a JDBC url, username, and password. Then, register your aggregates using `registerAggregate()`.
+
+```java
+HikariConfig hikariConfig = new HikariConfig();
+hikariConfig.setJdbcUrl(databaseUrl);
+hikariConfig.setUsername(databaseUser);
+hikariConfig.setPassword(databasePassword);
+hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+Photon photon = new Photon(new HikariDataSource(hikariConfig));
+```
 
 ### Registering Aggregates
 
@@ -99,7 +112,9 @@ try(PhotonTransaction transaction = photon.beginTransaction())
     return productsInLargeOrders;
 }
 ```
-    
+
+## Beyond the Basics
+
 ### Constructing View Models using SQL
 
 User interfaces often need to display data from many different tables. Or, they need to show summaries and aggregations of data, such as averages, counts, or sums. One method for getting this data is to select all the entities that contain the necessary data and construct the view model in code. But there are several problems with this approach. First, you end up selecting more data than you need from the database, which creates unnecessary latency in your query and load on your database and application servers. Second, your entity object graphs become too large because they have to support these queries. A better approach is to have separate models that are specifically for displaying and reporting.
@@ -202,7 +217,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-## Working with Value Objects
+### Working with Value Objects
 
 ORMs typically very little support for [value objects](https://en.wikipedia.org/wiki/Value_object). They expect you to only use primitive values likes strings and integers in your entities. Photon provides several mechanisms to make it easier for you to use value objects.
 
@@ -293,7 +308,7 @@ photon.registerAggregate(Recipe.class)
     .register();
 ```
 
-## Partial Aggregate Loading and Saving
+### Partial Aggregate Loading and Saving
 
 While not recommended for most circumstances, Photon does support loading and saving partial aggregates. This can be useful if a simple update is needed and the overhead of loading and re-saving unmodified child entities would cause performance issues. 
 
@@ -328,7 +343,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
     return recipe;
 ```
 
-## Inheritance
+### Inheritance
 
 Photon supports mapping fields from super classes and sub classes.
 
@@ -395,7 +410,7 @@ photon.registerAggregate(Shape.class)
     .register();
 ```
 
-## Custom Child Field Types
+### Custom Child Field Types
 
 If you want to use something other than a `List` or `Set` for a child list of entities, you can use `withChildCollectionConstructor`. Photon will call `toFieldValue` when hydrating your entity list and `toCollection` when persisting it to the database.
 
@@ -431,7 +446,7 @@ photon.registerAggregate(Recipe.class)
     .register();
 ```
 
-## Many-to-Many Relationships and Flattened Collections
+### Many-to-Many Relationships and Flattened Collections
 
 Many-to-many relationships don't make sense inside an aggregate. If an entity can be related to more than one entity, then each entity should be their own aggregate. For example, if you have an `Order` entity and an `OrderAddress` entity with a many-to-many relationship, meaning that an `Order` can have many `OrderAddresses` and an `OrderAddress` can be linked to many `Orders`, then the `Order` and `OrderAddress` entities should be in separate aggregates.
 
@@ -450,7 +465,7 @@ This will map the `List<Integer> addresses` field on `Order` to have the `orderA
 
 In JPA 2.0, the equivalent implementation would be to have a list field decorated with `@ElementCollection` and `@CollectionTable` with a `@JoinColumn` with both `joinColumns` and `referencedColumnName` set.
 
-## Optimistic Concurrency
+### Optimistic Concurrency
 
 Photon supports optimistic concurrency using an incrementing version number on the aggregate root.
 
@@ -471,23 +486,6 @@ photon.registerAggregate(Recipe.class)
 ```
 
 Photon will automatically increment the version number each time it is saved. If the version number in the database does not match the one being saved, a `PhotonOptimisticConcurrencyException` will be thrown. Note that you *cannot* use `photonTransaction.save()` to upsert aggregates with a version field because the `save()` will throw a `PhotonOptimisticConcurrencyException` if the update fails. You *must* use `insert()` to insert new aggregates and `save()` to update existing ones.
-
-## Using Photon Alongside another ORM
-
-While Photon is powerful enough to be used as the sole ORM on a project, it does provide ways to use it alongside another ORM. The `ExistingConnectionDataSource` can be used to have Photon share a database connection with another ORM.
-
-```java
-// During application initialization...
-ExistingConnectionDataSource dataSource = new ExistingConnectionDataSource();
-Photon photon = new Photon(dataSource);
-
-// ... Later, when you need to run a query using photon ...
-((ExistingConnectionDataSource) photon.getDataSource()).setConnection(existingConnection);
-PhotonTransaction transaction = photon.beginTransaction();
-// ... Do Photon queries as normal ...
-```
-
-If you want to ensure that Photon that does modify the state of the connection, you can wrap the connection with `new ReadOnlyConnection(existingConnection)`. Note that this only prevents the `Conection` itself from being modified, such as closing it, committing it, or changing the auto-commit state. You can still execute `INSERT`, `UPDATE`, and other SQL statements that modify database data (including DDL statements).
 
 ## Change Tracking
 
@@ -522,6 +520,23 @@ Aggregates do not need to be tracked by Photon in order for them to save correct
 ## Lazy Loading
 
 Aggregates are loaded as whole units. Photon does not support "[lazy loading](http://www.mehdi-khalili.com/orm-anti-patterns-part-3-lazy-loading)" because an aggregate should not be used to control the loading of other aggregates. All entities in an aggregate are eager loaded. Therefore, it is important to keep your aggregates small. See [Effective Aggregate Design](https://vaughnvernon.co/?p=838) for more information on these design concepts.
+
+## Using Photon Alongside another ORM
+
+While Photon is powerful enough to be used as the sole ORM on a project, it does provide ways to use it alongside another ORM. The `ExistingConnectionDataSource` can be used to have Photon share a database connection with another ORM.
+
+```java
+// During application initialization...
+ExistingConnectionDataSource dataSource = new ExistingConnectionDataSource();
+Photon photon = new Photon(dataSource);
+
+// ... Later, when you need to run a query using photon ...
+((ExistingConnectionDataSource) photon.getDataSource()).setConnection(existingConnection);
+PhotonTransaction transaction = photon.beginTransaction();
+// ... Do Photon queries as normal ...
+```
+
+If you want to ensure that Photon that does modify the state of the connection, you can wrap the connection with `new ReadOnlyConnection(existingConnection)`. Note that this only prevents the `Conection` itself from being modified, such as closing it, committing it, or changing the auto-commit state. You can still execute `INSERT`, `UPDATE`, and other SQL statements that modify database data (including DDL statements).
 
 ## Limitations
 
