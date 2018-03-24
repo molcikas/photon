@@ -361,11 +361,6 @@ public class PhotonTransaction implements Closeable
      */
     public void close()
     {
-        if(hasUncommittedChanges)
-        {
-            log.warn("Closing a transaction with uncommitted changes.");
-        }
-
         try
         {
             connection.close();
