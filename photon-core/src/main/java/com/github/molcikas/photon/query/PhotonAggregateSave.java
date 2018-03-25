@@ -212,9 +212,7 @@ public class PhotonAggregateSave
                     continue;
                 }
 
-                String setClauseSql = UpdateSqlBuilderService
-                    .buildSetClauseSql(tableBlueprint, valuesForUpdateResult.getValues().keySet(), photonOptions);
-                String updateSql = String.format(tableBlueprint.getUpdateSql(), setClauseSql);
+                String updateSql = tableBlueprint.getUpdateSql(valuesForUpdateResult.getValues().keySet(), photonOptions);
 
                 try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, false, connection, photonOptions))
                 {

@@ -1,10 +1,12 @@
 package com.github.molcikas.photon.options;
 
 import com.github.molcikas.photon.blueprints.table.ColumnDataType;
+import lombok.Getter;
 
 /**
  * The options for photon.
  */
+@Getter
 public class PhotonOptions
 {
     public static final ColumnDataType DEFAULT_UUID_DATA_TYPE = ColumnDataType.BINARY;
@@ -15,36 +17,6 @@ public class PhotonOptions
     private final boolean enableBatchInsertsForAutoIncrementEntities;
     private final boolean enableJdbcGetGeneratedKeys;
     private final ColumnDataType defaultUuidDataType;
-
-    public String getDelimitIdentifierStart()
-    {
-        return delimitIdentifierStart;
-    }
-
-    public String getDelimitIdentifierEnd()
-    {
-        return delimitIdentifierEnd;
-    }
-
-    public DefaultTableName getDefaultTableName()
-    {
-        return defaultTableName;
-    }
-
-    public boolean isEnableBatchInsertsForAutoIncrementEntities()
-    {
-        return enableBatchInsertsForAutoIncrementEntities;
-    }
-
-    public boolean isEnableJdbcGetGeneratedKeys()
-    {
-        return enableJdbcGetGeneratedKeys;
-    }
-
-    public ColumnDataType getDefaultUuidDataType()
-    {
-        return defaultUuidDataType;
-    }
 
     /**
      * Constructor. Defaults the UUID data type to PhotonOptions.DEFAULT_UUID_DATA_TYPE.

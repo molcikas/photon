@@ -5,11 +5,15 @@ import com.github.molcikas.photon.blueprints.entity.EntityBlueprint;
 import com.github.molcikas.photon.blueprints.entity.FieldBlueprint;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonException;
+import com.github.molcikas.photon.options.PhotonOptions;
 import com.github.molcikas.photon.query.PopulatedEntity;
+import com.github.molcikas.photon.sqlbuilders.UpdateSqlBuilderService;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
 public class TableBlueprint
@@ -38,7 +42,7 @@ public class TableBlueprint
     @Getter  @Setter
     private String selectByIdSql;
 
-    @Getter  @Setter
+    @Setter
     private String updateSql;
 
     @Getter  @Setter
@@ -57,6 +61,8 @@ public class TableBlueprint
     private String selectOrphansSql;
 
     private Map<Integer, String> deleteOrphansSql;
+
+    private ConcurrentMap<Set<String>, String> updateSqlCache;
 
     TableBlueprint(
         TableBlueprint parentTableBlueprint,
@@ -81,6 +87,7 @@ public class TableBlueprint
         this.tableName = tableName;
         this.orderBySql = orderBySql;
         this.deleteOrphansSql = new HashMap<>();
+        this.updateSqlCache = new ConcurrentHashMap<>();
     }
 
     public JoinType getJoinType()
@@ -219,5 +226,14 @@ public class TableBlueprint
     public void setParentTableBlueprint(TableBlueprint parentTableBlueprint)
     {
         this.parentTableBlueprint = parentTableBlueprint;
+    }
+
+    public String getUpdateSql(Set<String> columnNames, PhotonOptions photonOptions)
+    {
+        return updateSqlCache.computeIfAbsent(new HashSet<>(columnNames), (cols) -> {
+            String setClauseSql = UpdateSqlBuilderService
+                .buildSetClauseSql(this, cols, photonOptions);
+            return String.format(updateSql, setClauseSql);
+        });
     }
 }
