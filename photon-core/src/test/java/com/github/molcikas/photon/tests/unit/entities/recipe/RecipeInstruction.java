@@ -37,6 +37,11 @@ public class RecipeInstruction
         this.description = description;
     }
 
+    public void setDescription(String description)
+    {
+        this.description = description;
+    }
+
     @Override
     public boolean equals(Object o)
     {

@@ -19,6 +19,44 @@ public final class UpdateSqlBuilderService
         buildUpdateSqlRecursive(aggregateRootEntityBlueprint, photonOptions);
     }
 
+    public static String buildSetClauseSql(TableBlueprint tableBlueprint, Set<String> columnNames, PhotonOptions photonOptions)
+    {
+        StringBuilder sqlBuilder = new StringBuilder();
+
+        Collection<ColumnBlueprint> columnBlueprints = tableBlueprint
+            .getColumns()
+            .stream()
+            .filter(c -> !c.isPrimaryKeyColumn() && columnNames.contains(c.getColumnName()))
+            .sorted(Comparator.comparingInt(ColumnBlueprint::getColumnIndex))
+            .collect(Collectors.toList());
+
+        if(columnBlueprints.isEmpty())
+        {
+            // UPDATE statements cannot have an empty SET list, but we need to run an update to see if the row
+            // exists in the table, so set the id equal to itself as a "dummy" set.
+            sqlBuilder.append(String.format("[%s].[%s] = [%s].[%s]",
+                tableBlueprint.getTableName(),
+                tableBlueprint.getPrimaryKeyColumnName(),
+                tableBlueprint.getTableName(),
+                tableBlueprint.getPrimaryKeyColumnName()
+            ));
+        }
+
+        int collectionIndex = 0;
+
+        for(ColumnBlueprint columnBlueprint : columnBlueprints)
+        {
+            sqlBuilder.append(String.format("[%s].[%s] = ?%s",
+                tableBlueprint.getTableName(),
+                columnBlueprint.getColumnName(),
+                collectionIndex < columnBlueprints.size() - 1 ? ", " : ""
+            ));
+            collectionIndex++;
+        }
+
+        return SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
+    }
+
     private static void buildUpdateSqlRecursive(
         EntityBlueprint entityBlueprint,
         PhotonOptions photonOptions)
@@ -40,7 +78,7 @@ public final class UpdateSqlBuilderService
         StringBuilder sqlBuilder = new StringBuilder(initialCapacity);
 
         buildUpdateClauseSql(sqlBuilder, tableBlueprint);
-        buildSetClauseSql(sqlBuilder, tableBlueprint);
+        sqlBuilder.append("\nSET %s");
         buildWhereClauseSql(sqlBuilder, tableBlueprint, entityBlueprint);
 
         String updateSql = SqlBuilderApplyOptionsService.applyPhotonOptionsToSql(sqlBuilder.toString(), photonOptions);
@@ -51,43 +89,6 @@ public final class UpdateSqlBuilderService
     private static void buildUpdateClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
     {
         sqlBuilder.append(String.format("UPDATE [%s]", tableBlueprint.getTableName()));
-    }
-
-    private static void buildSetClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint)
-    {
-        sqlBuilder.append("\nSET ");
-
-        Collection<ColumnBlueprint> columnBlueprints = tableBlueprint
-            .getColumns()
-            .stream()
-            .filter(c -> !c.isPrimaryKeyColumn())
-            .sorted(Comparator.comparingInt(ColumnBlueprint::getColumnIndex))
-            .collect(Collectors.toList());
-
-        if(columnBlueprints.isEmpty())
-        {
-            // UPDATE statements cannot have an empty SET list, but we need to run an update to see if the row
-            // exists in the table, so set the id equal to itself as a "dummy" set.
-            sqlBuilder.append(String.format("[%s].[%s] = [%s].[%s]",
-                tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumnName(),
-                tableBlueprint.getTableName(),
-                tableBlueprint.getPrimaryKeyColumnName()
-            ));
-            return;
-        }
-
-        int collectionIndex = 0;
-
-        for(ColumnBlueprint columnBlueprint : columnBlueprints)
-        {
-            sqlBuilder.append(String.format("[%s].[%s] = ?%s",
-                tableBlueprint.getTableName(),
-                columnBlueprint.getColumnName(),
-                collectionIndex < columnBlueprints.size() - 1 ? ", " : ""
-            ));
-            collectionIndex++;
-        }
     }
 
     private static void buildWhereClauseSql(StringBuilder sqlBuilder, TableBlueprint tableBlueprint, EntityBlueprint entityBlueprint)

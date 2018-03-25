@@ -436,7 +436,7 @@ public class RecipeSaveTests
     }
 
     @Test
-    public void track_saveTrackedAggregate_savesNothing()
+    public void track_saveTrackedAggregate_savesChangesOnly()
     {
         RecipeDbSetup.registerRecipeAggregate(photon);
 
@@ -445,6 +445,9 @@ public class RecipeSaveTests
             Recipe recipe = transaction
                 .query(Recipe.class)
                 .fetchById(UUID.fromString("3e038307-a9b6-11e6-ab83-0a0027000010"));
+
+            recipe.setPrepTime(777);
+            recipe.getInstructions().get(1).setDescription("New Description 2");
 
             int rowsUpdated = transaction.query("UPDATE recipe SET name = 'UpdatedName' WHERE recipeId = :recipeId")
                 .addParameter("recipeId", recipe.getRecipeId(), ColumnDataType.BINARY)
@@ -461,7 +464,7 @@ public class RecipeSaveTests
                 .executeUpdate();
             assertEquals(4, rowsUpdated);
 
-            // This should save nothing since the aggregate has no changes.
+            // This should only save things that have changed.
             transaction.save(recipe);
 
             Recipe recipeFetched = transaction
@@ -470,9 +473,11 @@ public class RecipeSaveTests
 
             assertNotNull(recipeFetched);
             assertEquals("UpdatedName", recipeFetched.getName());
+            assertEquals(777, recipeFetched.getPrepTime());
             // Ingredients don't have the primary key in the entity, so if the list changes, we have to re-save the entire list.
             assertEquals(17, recipeFetched.getIngredients().size());
             assertEquals(2, recipeFetched.getInstructions().size());
+            assertEquals("New Description 2", recipeFetched.getInstructions().get(0).getDescription());
         }
     }
 }

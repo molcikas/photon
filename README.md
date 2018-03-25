@@ -489,7 +489,7 @@ Photon will automatically increment the version number each time it is saved. If
 
 ## Change Tracking
 
-By default, photon tracks the state of each entity in each aggregate and only saves a row if at least one column changed. There is no concept of "flushing" changes. All queries (including inserts and updates) are always executed immediately.
+By default, photon tracks the state of each entity in each aggregate and only saves changes when `save()` is called. There is no concept of "flushing" changes. All queries (including inserts and updates) are always executed immediately.
 
 If a queried aggregate will not be updated during a transaction, you can disable change tracking to reduce memory usage and improve performance.
 
@@ -515,7 +515,7 @@ try(PhotonTransaction transaction = photon.beginTransaction())
 }
 ```
 
-Aggregates do not need to be tracked by Photon in order for them to save correctly. If an untracked aggregate is saved, every row for every entity in the aggregate will be re-saved. Therefore, it is recommended to have aggregates be tracked if they are going to be saved during the transaction.
+Aggregates do not need to be tracked by Photon in order for them to save correctly. If an untracked aggregate is saved, the entire aggregate will be re-saved (as if the entire aggregate had changed).
 
 ## Lazy Loading
 

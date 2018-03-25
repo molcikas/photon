@@ -7,11 +7,9 @@ import com.github.molcikas.photon.blueprints.entity.FieldType;
 import com.github.molcikas.photon.blueprints.table.ColumnBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableBlueprint;
 import com.github.molcikas.photon.blueprints.table.TableValue;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.converters.Convert;
@@ -281,21 +279,23 @@ public class PopulatedEntity<T>
         }
     }
 
-    public List<ParameterValue> getParameterValues(
+    public GetParameterValuesResult getParameterValuesForUpdate(
         TableBlueprint tableBlueprint,
-        PopulatedEntity parentPopulatedEntity)
+        PopulatedEntity parentPopulatedEntity,
+        Map<String, ParameterValue> trackedValues)
     {
         if(primaryKeyValue == null)
         {
-            return Collections.emptyList();
+            return GetParameterValuesResult.skipped();
         }
 
         if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
         {
-            return Collections.emptyList();
+            return GetParameterValuesResult.skipped();
         }
 
-        List<ParameterValue> parameterValues = new ArrayList<>();
+        boolean isChanged = false;
+        Map<String, ParameterValue> parameterValues = new LinkedHashMap<>();
         Map<String, Object> values = new HashMap<>();
 
         ColumnBlueprint versionColumn = tableBlueprint.getVersionColumn(entityBlueprint);
@@ -311,7 +311,8 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
-            Converter customColumnSerializer = null;
+            ParameterValue trackedValue =
+                trackedValues != null ? trackedValues.get(columnBlueprint.getColumnName()) : null;
 
             if(columnBlueprint.equals(versionColumn))
             {
@@ -330,7 +331,6 @@ public class PopulatedEntity<T>
                 else
                 {
                     fieldValue = getInstanceValue(fieldBlueprint, null);
-                    customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
             else if (columnBlueprint.isForeignKeyToParentColumn())
@@ -339,53 +339,34 @@ public class PopulatedEntity<T>
             }
             else
             {
-                return Collections.emptyList();
+                return GetParameterValuesResult.unchanged();
             }
 
-            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
+            ParameterValue value = new ParameterValue(fieldValue, columnBlueprint);
+
+            boolean isColumnChanged = trackedValue == null || !trackedValue.equals(value);
+            if(isColumnChanged)
+            {
+                isChanged = true;
+            }
+
+            if(isColumnChanged || columnBlueprint.isPrimaryKeyColumn() || columnBlueprint.equals(versionColumn))
+            {
+                parameterValues.put(columnBlueprint.getColumnName(), value);
+            }
+        }
+
+        if(trackedValues != null && !isChanged)
+        {
+            return GetParameterValuesResult.unchanged();
         }
 
         if(versionColumn != null)
         {
-            parameterValues.add(new ParameterValue(version, versionColumn.getColumnDataType(), versionColumn.getCustomSerializer()));
+            parameterValues.put(versionColumn.getColumnName() + "_Where", new ParameterValue(version, versionColumn));
         }
 
-        return parameterValues;
-    }
-
-    @AllArgsConstructor
-    @Getter
-    public class GetParameterValuesResult
-    {
-        private final boolean skipped;
-        private final List<ParameterValue> values;
-    }
-
-    public GetParameterValuesResult getParameterValuesForUpdate(
-        TableBlueprint tableBlueprint,
-        PopulatedEntity<?> parentPopulatedEntity,
-        List<ParameterValue> trackedValues)
-    {
-        if(primaryKeyValue == null)
-        {
-            return new GetParameterValuesResult(true, Collections.emptyList());
-        }
-
-        if(tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && primaryKeyValue.equals(0))
-        {
-            return new GetParameterValuesResult(true, Collections.emptyList());
-        }
-
-        List<ParameterValue> parameterValues =
-            getParameterValues(tableBlueprint, parentPopulatedEntity);
-
-        // The tracked entity is identical to the current entity, so do not create an update statement for it.
-        if(CollectionUtils.isEqualCollection(parameterValues, trackedValues))
-        {
-            return new GetParameterValuesResult(false, Collections.emptyList());
-        }
-
-        return new GetParameterValuesResult(false, parameterValues);
+        return new GetParameterValuesResult(false, true, parameterValues);
     }
 
     public List<ParameterValue> getParameterValuesForInsert(
@@ -400,7 +381,6 @@ public class PopulatedEntity<T>
         {
             Object fieldValue;
             FieldBlueprint fieldBlueprint = columnBlueprint.getMappedFieldBlueprint();
-            Converter customColumnSerializer = null;
 
             if(fieldBlueprint != null)
             {
@@ -415,7 +395,6 @@ public class PopulatedEntity<T>
                 else
                 {
                     fieldValue = getInstanceValue(fieldBlueprint, null);
-                    customColumnSerializer = columnBlueprint.getCustomSerializer();
                 }
             }
             else if(columnBlueprint.isForeignKeyToParentColumn())
@@ -435,7 +414,7 @@ public class PopulatedEntity<T>
                 );
             }
 
-            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint.getColumnDataType(), customColumnSerializer));
+            parameterValues.add(new ParameterValue(fieldValue, columnBlueprint));
         }
 
         return parameterValues;

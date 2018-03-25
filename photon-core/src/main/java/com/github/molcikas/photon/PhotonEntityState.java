@@ -11,26 +11,21 @@ import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.query.ParameterValue;
 import com.github.molcikas.photon.query.PopulatedEntity;
 import com.github.molcikas.photon.query.PopulatedEntityMap;
-import org.apache.commons.collections4.ListValuedMap;
 import org.apache.commons.collections4.SetValuedMap;
-import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 import org.apache.commons.collections4.multimap.HashSetValuedHashMap;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PhotonEntityState
 {
-    private final ListValuedMap<TableBlueprintAndKey, ParameterValue> trackedValues;
+    private final Map<TableBlueprintAndKey, Map<String, ParameterValue>> trackedValues;
     private final SetValuedMap<FieldBlueprintAndKey, EntityBlueprintAndKey> trackedChildren;
     private final SetValuedMap<FieldBlueprintAndKey, Object> trackedFlattenedCollectionValues;
 
     public PhotonEntityState()
     {
-        this.trackedValues = new ArrayListValuedHashMap<>();
+        this.trackedValues = new HashMap<>();
         this.trackedChildren = new HashSetValuedHashMap<>();
         this.trackedFlattenedCollectionValues = new HashSetValuedHashMap<>();
     }
@@ -39,8 +34,9 @@ public class PhotonEntityState
     {
         for(TableBlueprint tableBlueprint : populatedEntity.getEntityBlueprint().getTableBlueprintsForInsertOrUpdate())
         {
-            List<ParameterValue> values =
-                populatedEntity.getParameterValues(tableBlueprint, populatedEntity.getParentPopulatedEntity());
+            Map<String, ParameterValue> values = populatedEntity
+                .getParameterValuesForUpdate(tableBlueprint, populatedEntity.getParentPopulatedEntity(), null)
+                .getValues();
 
             updateTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey(), values);
         }
@@ -85,11 +81,10 @@ public class PhotonEntityState
         populatedEntityMap.getAllPopulatedEntities().forEach(this::track);
     }
 
-    public List<ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableValue primaryKey)
+    public Map<String, ParameterValue> getTrackedValues(TableBlueprint tableBlueprint, TableValue primaryKey)
     {
-        List<ParameterValue> values =
-            trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
-        return values != null ? values : Collections.emptyList();
+        Map<String, ParameterValue> values = trackedValues.get(new TableBlueprintAndKey(tableBlueprint, primaryKey));
+        return values != null ? values : Collections.emptyMap();
     }
 
     public List<TableValue> getTrackedKeys(TableBlueprint tableBlueprint, List<TableValue> primaryKeys)
@@ -100,12 +95,12 @@ public class PhotonEntityState
             .collect(Collectors.toList());
     }
 
-    public void updateTrackedValues(TableBlueprint tableBlueprint, TableValue tableKey, List<ParameterValue> values)
+    public void updateTrackedValues(TableBlueprint tableBlueprint, TableValue tableKey, Map<String, ParameterValue> values)
     {
         updateTrackedValues(new TableBlueprintAndKey(tableBlueprint, tableKey), values);
     }
 
-    public void updateTrackedValues(TableBlueprintAndKey key, List<ParameterValue> values)
+    public void updateTrackedValues(TableBlueprintAndKey key, Map<String, ParameterValue> values)
     {
         if(!key.getTableBlueprint().isPrimaryKeyMappedToField())
         {
@@ -117,7 +112,7 @@ public class PhotonEntityState
             throw new PhotonException("Null table primary keys are not allowed in tracking.");
         }
         trackedValues.remove(key);
-        trackedValues.putAll(key, values);
+        trackedValues.put(key, values);
     }
 
     public Set<TableValue> getTrackedChildrenKeys(FieldBlueprint fieldBlueprint, TableValue parentKey)

@@ -12,13 +12,13 @@ import com.github.molcikas.photon.converters.Convert;
 import com.github.molcikas.photon.converters.Converter;
 import com.github.molcikas.photon.exceptions.PhotonOptimisticConcurrencyException;
 import com.github.molcikas.photon.options.PhotonOptions;
+import com.github.molcikas.photon.sqlbuilders.UpdateSqlBuilderService;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Connection;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class PhotonAggregateSave
 {
@@ -188,7 +188,6 @@ public class PhotonAggregateSave
 
         for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
         {
-            String updateSql = tableBlueprint.getUpdateSql();
             final List<PopulatedEntity> updatedPopulatedEntitiesForTable = new ArrayList<>(populatedEntities.size());
 
             for (PopulatedEntity<?> populatedEntity : populatedEntities)
@@ -198,24 +197,28 @@ public class PhotonAggregateSave
                     continue;
                 }
 
-                List<ParameterValue> trackedValues =
+                Map<String, ParameterValue> trackedValues =
                     photonEntityState.getTrackedValues(tableBlueprint, populatedEntity.getPrimaryKey());
-                PopulatedEntity.GetParameterValuesResult valuesForUpdateResult =
+                GetParameterValuesResult valuesForUpdateResult =
                     populatedEntity.getParameterValuesForUpdate(tableBlueprint, parentPopulatedEntity, trackedValues);
 
                 if(valuesForUpdateResult.isSkipped())
                 {
                     continue;
                 }
-                if(valuesForUpdateResult.getValues().isEmpty())
+                if(!valuesForUpdateResult.isChanged())
                 {
                     updatedPopulatedEntitiesForTable.add(populatedEntity);
                     continue;
                 }
 
+                String setClauseSql = UpdateSqlBuilderService
+                    .buildSetClauseSql(tableBlueprint, valuesForUpdateResult.getValues().keySet(), photonOptions);
+                String updateSql = String.format(tableBlueprint.getUpdateSql(), setClauseSql);
+
                 try(PhotonPreparedStatement updateStatement = new PhotonPreparedStatement(updateSql, false, connection, photonOptions))
                 {
-                    updateStatement.setNextParameters(valuesForUpdateResult.getValues());
+                    updateStatement.setNextParameters(new ArrayList<>(valuesForUpdateResult.getValues().values()));
                     int rowsUpdated = updateStatement.executeUpdate();
 
                     if(rowsUpdated > 0)
@@ -383,7 +386,7 @@ public class PhotonAggregateSave
         photonEntityState.updateTrackedValues(
             tableBlueprint,
             populatedEntity.getPrimaryKey(),
-            populatedEntity.getParameterValues(tableBlueprint, parentPopulatedEntity));
+            populatedEntity.getParameterValuesForUpdate(tableBlueprint, parentPopulatedEntity, null).getValues());
         if(parentPopulatedEntity != null)
         {
             photonEntityState.addTrackedChild(
