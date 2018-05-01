@@ -2,6 +2,7 @@ package com.github.molcikas.photon.tests.integration;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.options.PhotonOptions;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -21,7 +22,7 @@ public class MySqlIntegrationTest
     public void setup()
     {
         String url = "jdbc:mysql://localhost/PhotonTestDb";
-        photon = new Photon(url, "root", "bears");
+        photon = new Photon(url, "root", "bears", PhotonOptions.mysqlOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)

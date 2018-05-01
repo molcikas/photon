@@ -2,7 +2,6 @@ package com.github.molcikas.photon.tests.integration;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.options.DefaultTableName;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,8 +24,7 @@ public class SqlServerIntegrationTest
     public void setup()
     {
         String url = "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=PhotonTestDb;integratedSecurity=true";
-        PhotonOptions photonOptions = new PhotonOptions("[", "]", DefaultTableName.ClassName, false, null);
-        photon = new Photon(url, null, null, photonOptions);
+        photon = new Photon(url, null, null, PhotonOptions.sqlServerOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)

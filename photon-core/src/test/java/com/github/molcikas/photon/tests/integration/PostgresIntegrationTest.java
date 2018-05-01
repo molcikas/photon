@@ -2,7 +2,6 @@ package com.github.molcikas.photon.tests.integration;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
-import com.github.molcikas.photon.options.DefaultTableName;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,8 +22,7 @@ public class PostgresIntegrationTest
     public void setup()
     {
         String url = "jdbc:postgresql://localhost/PhotonTestDb";
-        PhotonOptions photonOptions = new PhotonOptions("\"", "\"", DefaultTableName.ClassName, true, null, null);
-        photon = new Photon(url, "postgres", "bears", photonOptions);
+        photon = new Photon(url, "postgres", "bears", PhotonOptions.postgresOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)

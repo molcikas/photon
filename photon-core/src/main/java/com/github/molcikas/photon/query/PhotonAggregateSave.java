@@ -251,125 +251,45 @@ public class PhotonAggregateSave
         }
         for(TableBlueprint tableBlueprint : entityBlueprint.getTableBlueprintsForInsertOrUpdate())
         {
-            if (tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn() && !photonOptions.isEnableBatchInsertsForAutoIncrementEntities())
+            for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
             {
-                for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
+                if (!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
                 {
-                    if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
-                    {
-                        continue;
-                    }
-                    String insertSql = tableBlueprint.getInsertSql();
-                    boolean populateGeneratedKeys = tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn();
-                    boolean shouldInsertUsingPrimaryKeySql = tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity, tableBlueprint);
-                    if(shouldInsertUsingPrimaryKeySql)
-                    {
-                        insertSql = tableBlueprint.getInsertWithPrimaryKeySql();
-                        populateGeneratedKeys = false;
-                    }
-                    try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
-                        insertSql,
-                        populateGeneratedKeys,
-                        connection,
-                        photonOptions))
-                    {
-                        List<ParameterValue> values = populatedEntity
-                            .getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, shouldInsertUsingPrimaryKeySql);
-                        insertStatement.setNextParameters(values);
-                        insertStatement.executeInsert();
-                        Long generatedKey = insertStatement.getGeneratedKeys().get(0);
-                        populatedEntity.setPrimaryKeyValue(generatedKey);
-
-                        updateTrackedValuesAndAddTrackedChild(
-                            populatedEntity,
-                            tableBlueprint,
-                            parentPopulatedEntity,
-                            parentFieldBlueprint
-                        );
-                    }
+                    continue;
                 }
-            }
-            else
-            {
-                List<PopulatedEntity> insertedEntityBatchList = new ArrayList<>();
-                List<PopulatedEntity> insertEntityWithPrimaryKeySqlBatchList = new ArrayList<>();
-
+                String insertSql = tableBlueprint.getInsertSql();
+                boolean populateGeneratedKeys = tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn();
+                boolean shouldInsertUsingPrimaryKeySql = tableBlueprint
+                    .shouldInsertUsingPrimaryKeySql(populatedEntity, tableBlueprint);
+                if (shouldInsertUsingPrimaryKeySql)
+                {
+                    insertSql = tableBlueprint.getInsertWithPrimaryKeySql();
+                    populateGeneratedKeys = false;
+                }
                 try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
-                    tableBlueprint.getInsertSql(),
-                    tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn(),
+                    insertSql,
+                    populateGeneratedKeys,
                     connection,
                     photonOptions))
                 {
-                    for (PopulatedEntity populatedEntity : populatedEntities.get(tableBlueprint))
+                    List<ParameterValue> values = populatedEntity
+                        .getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity,
+                            shouldInsertUsingPrimaryKeySql);
+                    insertStatement.setNextParameters(values);
+                    insertStatement.executeInsert();
+
+                    if (populateGeneratedKeys)
                     {
-                        if(!tableBlueprint.isApplicableForEntityClass(populatedEntity.getEntityInstance().getClass()))
-                        {
-                            continue;
-                        }
-                        if(tableBlueprint.shouldInsertUsingPrimaryKeySql(populatedEntity, tableBlueprint))
-                        {
-                            insertEntityWithPrimaryKeySqlBatchList.add(populatedEntity);
-                            continue;
-                        }
-                        List<ParameterValue> values =
-                            populatedEntity.getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, false);
-                        insertStatement.setNextParameters(values);
-                        insertStatement.addToBatch();
-                        insertedEntityBatchList.add(populatedEntity);
+                        Long generatedKey = insertStatement.getGeneratedKeys().get(0);
+                        populatedEntity.setPrimaryKeyValue(generatedKey);
                     }
 
-                    insertStatement.executeBatch();
-
-                    if (tableBlueprint.getPrimaryKeyColumn().isAutoIncrementColumn())
-                    {
-                        List<Long> generatedKeys = insertStatement.getGeneratedKeys();
-                        int index = 0;
-                        for (PopulatedEntity populatedEntity : insertedEntityBatchList)
-                        {
-                            populatedEntity.setPrimaryKeyValue(generatedKeys.get(index));
-                            index++;
-                        }
-                    }
-
-                    for (PopulatedEntity populatedEntity : insertedEntityBatchList)
-                    {
-                        updateTrackedValuesAndAddTrackedChild(populatedEntity,
-                            tableBlueprint,
-                            parentPopulatedEntity,
-                            parentFieldBlueprint
-                        );
-                    }
-                }
-
-                if(!insertEntityWithPrimaryKeySqlBatchList.isEmpty())
-                {
-                    try (PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(
-                        tableBlueprint.getInsertWithPrimaryKeySql(),
-                        false,
-                        connection,
-                        photonOptions))
-                    {
-                        for (PopulatedEntity populatedEntity : insertEntityWithPrimaryKeySqlBatchList)
-                        {
-                            List<ParameterValue> values =
-                                populatedEntity.getParameterValuesForInsert(tableBlueprint, parentPopulatedEntity, true);
-                            insertStatement.setNextParameters(values);
-                            insertStatement.addToBatch();
-                            insertedEntityBatchList.add(populatedEntity);
-                        }
-
-                        insertStatement.executeBatch();
-
-                        for(PopulatedEntity populatedEntity : insertEntityWithPrimaryKeySqlBatchList)
-                        {
-                            updateTrackedValuesAndAddTrackedChild(
-                                populatedEntity,
-                                tableBlueprint,
-                                parentPopulatedEntity,
-                                parentFieldBlueprint
-                            );
-                        }
-                    }
+                    updateTrackedValuesAndAddTrackedChild(
+                        populatedEntity,
+                        tableBlueprint,
+                        parentPopulatedEntity,
+                        parentFieldBlueprint
+                    );
                 }
             }
         }

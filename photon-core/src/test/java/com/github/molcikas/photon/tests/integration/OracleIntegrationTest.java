@@ -27,8 +27,7 @@ public class OracleIntegrationTest
     public void setup()
     {
         String url = "jdbc:oracle:thin:@localhost:1521:ORCL";
-        PhotonOptions photonOptions = new PhotonOptions(null, null, null, null, false);
-        photon = new Photon(url, "system", "bears", photonOptions);
+        photon = new Photon(url, "system", "bears2", PhotonOptions.oracleOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)
