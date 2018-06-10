@@ -8,19 +8,19 @@ jdk:
   - oraclejdk8
 
 before_cache:
-- rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+  - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
 
 cache:
   directories:
-  - "$HOME/.gradle/caches/"
-  - "$HOME/.gradle/wrapper/"
-
-before_script:
- - docker-compose up -d
- - sleep 60
+    - "$HOME/.gradle/caches/"
+    - "$HOME/.gradle/wrapper/"
 
 before_install:
- - chmod +x gradlew
+  - chmod +x gradlew
+
+before_script:
+  - docker-compose up -d
+  - sleep 30
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
