@@ -3,12 +3,14 @@ package com.github.molcikas.photon.tests.integration;
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.options.PhotonOptions;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -17,11 +19,26 @@ import static org.junit.Assert.assertNotNull;
 public class MySqlIntegrationTest
 {
     private Photon photon;
+    private TimeZone timeZone;
 
     @Before
     public void setup()
     {
-        String url = "jdbc:mysql://localhost/PhotonTestDb";
+        timeZone = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("America/Chicago"));
+
+        String url = "jdbc:mysql://localhost:13306";
+        photon = new Photon(url, "root", "bears", PhotonOptions.mysqlOptions().build());
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.query(
+                "CREATE DATABASE IF NOT EXISTS photon_test_db"
+            ).executeInsert();
+            transaction.commit();
+        }
+
+        url = "jdbc:mysql://localhost:13306/photon_test_db";
         photon = new Photon(url, "root", "bears", PhotonOptions.mysqlOptions().build());
 
         photon
@@ -50,6 +67,12 @@ public class MySqlIntegrationTest
 
             transaction.commit();
         }
+    }
+
+    @After
+    public void cleanUp()
+    {
+        TimeZone.setDefault(timeZone);
     }
 
     @Test

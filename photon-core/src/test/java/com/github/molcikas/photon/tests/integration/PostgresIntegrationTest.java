@@ -2,7 +2,9 @@ package com.github.molcikas.photon.tests.integration;
 
 import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
+import com.github.molcikas.photon.exceptions.PhotonException;
 import com.github.molcikas.photon.options.PhotonOptions;
+import lombok.SneakyThrows;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,10 +20,26 @@ public class PostgresIntegrationTest
 {
     private Photon photon;
 
+    @SneakyThrows
     @Before
     public void setup()
     {
-        String url = "jdbc:postgresql://localhost/PhotonTestDb";
+        String url = "jdbc:postgresql://localhost:15432/";
+        photon = new Photon(url, "postgres", "bears", PhotonOptions.postgresOptions().build());
+
+        try(PhotonTransaction transaction = photon.beginAutoCommitTransaction())
+        {
+            transaction.executeUpdate("CREATE DATABASE photon_test_db");
+        }
+        catch(PhotonException ex)
+        {
+            if(ex.getCause() == null || !ex.getCause().getMessage().equals("ERROR: database \"photon_test_db\" already exists"))
+            {
+                throw ex;
+            }
+        }
+
+        url = "jdbc:postgresql://localhost:15432/photon_test_db";
         photon = new Photon(url, "postgres", "bears", PhotonOptions.postgresOptions().build());
 
         photon

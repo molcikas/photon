@@ -23,8 +23,18 @@ public class SqlServerIntegrationTest
     @Before
     public void setup()
     {
-        String url = "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=PhotonTestDb;integratedSecurity=true";
-        photon = new Photon(url, null, null, PhotonOptions.sqlServerOptions().build());
+        String url = "jdbc:sqlserver://localhost:11433";
+        photon = new Photon(url, "sa", "Gobears123", PhotonOptions.sqlServerOptions().build());
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            transaction.executeUpdate(
+                "if not exists(select * from sys.databases where name = 'photon_test_db') " +
+                 "create database photon_test_db");
+        }
+
+        url = "jdbc:sqlserver://localhost:11433;databaseName=photon_test_db";
+        photon = new Photon(url, "sa", "Gobears123", PhotonOptions.sqlServerOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)

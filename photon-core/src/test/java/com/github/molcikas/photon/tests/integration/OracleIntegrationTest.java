@@ -4,6 +4,7 @@ import com.github.molcikas.photon.Photon;
 import com.github.molcikas.photon.PhotonTransaction;
 import com.github.molcikas.photon.options.PhotonOptions;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * For running these tests, you will need to download and install the Oracle JDBC driver (ojdbc6.jar) to src/test/libs.
  */
+@Ignore("The oracle docker container takes a very long time to start, so only run this test manually.")
 public class OracleIntegrationTest
 {
     private Photon photon;
@@ -26,8 +28,8 @@ public class OracleIntegrationTest
     @Before
     public void setup()
     {
-        String url = "jdbc:oracle:thin:@localhost:1521:ORCL";
-        photon = new Photon(url, "system", "bears2", PhotonOptions.oracleOptions().build());
+        String url = "jdbc:oracle:thin:@localhost:11521:xe";
+        photon = new Photon(url, "system", "oracle", PhotonOptions.oracleOptions().build());
 
         photon
             .registerAggregate(PhotonTestTable.class)

@@ -1,0 +1,37 @@
+version: '2.3'
+
+services:
+
+  mysql57:
+    image: mysql:5.7.21
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: bears
+      TZ: "America/Chicago"
+    ports:
+      - 13306:3306
+
+  postgres104:
+    image: postgres:10.4
+    environment:
+      POSTGRES_PASSWORD: bears
+    ports:
+      - 15432:5432
+
+  mssql2017:
+    image: microsoft/mssql-server-linux:2017-latest
+    environment:
+      SA_PASSWORD: Gobears123
+      ACCEPT_EULA: Y
+    ports:
+      - 11433:1433
+
+# This container takes a VERY long time to start (10+ minutes). Leave commented out so it doesn't run during CI build.
+#  oracle12c:
+#    image: sath89/oracle-12c
+#    environment:
+#      DBCA_TOTAL_MEMORY: 1024
+#      WEB_CONSOLE: "false"
+#    ports:
+#      - 11521:1521
+#      - 8080:8080

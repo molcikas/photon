@@ -100,9 +100,25 @@ public class Photon
     {
         return new PhotonTransaction(
             getConnection(),
+            false,
             registeredAggregates,
             registeredViewModelAggregates,
             this
+        );
+    }
+
+    /**
+     * Obtains a connection and starts a new "transaction" where each statement is auto committed immediately.
+     * @return - the transaction
+     */
+    public PhotonTransaction beginAutoCommitTransaction()
+    {
+        return new PhotonTransaction(
+                getConnection(),
+                true,
+                registeredAggregates,
+                registeredViewModelAggregates,
+                this
         );
     }
 

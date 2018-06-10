@@ -24,6 +24,7 @@ public class PhotonTransaction implements Closeable
 
     public PhotonTransaction(
         Connection connection,
+        boolean autoCommit,
         Map<Class, AggregateBlueprint> registeredAggregates,
         Map<String, AggregateBlueprint> registeredViewModelAggregates,
         Photon photon)
@@ -36,7 +37,7 @@ public class PhotonTransaction implements Closeable
 
         try
         {
-            connection.setAutoCommit(false);
+            connection.setAutoCommit(autoCommit);
         }
         catch (Exception ex)
         {
@@ -45,15 +46,28 @@ public class PhotonTransaction implements Closeable
     }
 
     /**
+     * Shortcut method for creating a query and executing an update.
+     *
+     * @param sqlText - the plain sql text
+     * @return - the number of rows updated
+     */
+    public int executeUpdate(String sqlText)
+    {
+        verifyConnectionIsAvailable("update", false);
+        PhotonQuery query = query(sqlText);
+        return query.executeUpdate();
+    }
+
+    /**
      * Create a photon query. Can be used for ad-hoc queries that return custom read models, or to execute ad-hoc
      * SQL commands.
      *
      * @param sqlText - the plain parameterized SQL text
-     * @return - the phton query
+     * @return - the photon query
      */
     public PhotonQuery query(String sqlText)
     {
-        verifyConnectionIsAvailable("query", false);
+        verifyConnectionIsAvailable("query", true);
         return query(sqlText, false);
     }
 
@@ -68,7 +82,7 @@ public class PhotonTransaction implements Closeable
      */
     public PhotonQuery query(String sqlText, boolean populateGeneratedKeys)
     {
-        verifyConnectionIsAvailable("query", false);
+        verifyConnectionIsAvailable("query", true);
         return new PhotonQuery(sqlText, populateGeneratedKeys, connection, photon);
     }
 
@@ -81,7 +95,7 @@ public class PhotonTransaction implements Closeable
      */
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass)
     {
-        verifyConnectionIsAvailable("query", false);
+        verifyConnectionIsAvailable("query", true);
         AggregateBlueprint<T> aggregateBlueprint = getAggregateBlueprint(aggregateClass);
         return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonEntityState, photon);
     }
@@ -96,7 +110,7 @@ public class PhotonTransaction implements Closeable
      */
     public <T> PhotonAggregateQuery<T> query(Class<T> aggregateClass, String viewModelAggregateBlueprintName)
     {
-        verifyConnectionIsAvailable("query", false);
+        verifyConnectionIsAvailable("query", true);
         AggregateBlueprint<T> aggregateBlueprint = getViewModelAggregateBlueprint(aggregateClass, viewModelAggregateBlueprintName);
         return new PhotonAggregateQuery<>(aggregateBlueprint, connection, photonEntityState, photon);
     }
@@ -135,7 +149,7 @@ public class PhotonTransaction implements Closeable
      */
     public void saveWithExcludedFields(Object aggregate, Collection<String> fieldsToExclude)
     {
-        verifyConnectionIsAvailable("save", false);
+        verifyConnectionIsAvailable("save", true);
         AggregateBlueprint aggregateBlueprint = getAggregateBlueprint(aggregate.getClass());
         new PhotonAggregateSave(aggregateBlueprint, connection, photonEntityState, photon.getOptions())
             .save(aggregate, fieldsToExclude);
@@ -175,7 +189,7 @@ public class PhotonTransaction implements Closeable
      */
     public void saveAllAndExcludeFields(Collection<?> aggregates, Collection<String> fieldsToExclude)
     {
-        verifyConnectionIsAvailable("save", false);
+        verifyConnectionIsAvailable("save", true);
         if(aggregates == null || aggregates.isEmpty())
         {
             return;
