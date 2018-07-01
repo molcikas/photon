@@ -1,4 +1,8 @@
-# Photon [![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon) [![Code Coverage](https://img.shields.io/codecov/c/github/molcikas/photon/master.svg)](https://codecov.io/github/molcikas/photon?branch=master)
+# Photon 
+
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.molcikas/photon-core/badge.png)](https://mvnrepository.com/artifact/com.github.molcikas/photon-core)
+[![Build Status](https://travis-ci.org/molcikas/photon.svg?branch=master)](https://travis-ci.org/molcikas/photon) 
+[![Code Coverage](https://img.shields.io/codecov/c/github/molcikas/photon/master.svg)](https://codecov.io/github/molcikas/photon?branch=master)
 
 Photon is a unique Java ORM that aims to combine the best aspects of traditional and micro ORMs. Photon supports some of the features of traditional ORMs, such as eager loading and change tracking, but it also feels and acts like a micro ORM. When you want to write a query, you use real SQL, not a custom query language that isn't quite SQL.
 
