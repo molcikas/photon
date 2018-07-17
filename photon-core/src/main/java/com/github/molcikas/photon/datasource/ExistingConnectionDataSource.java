@@ -69,4 +69,9 @@ public class ExistingConnectionDataSource implements DataSource
     {
         return false;
     }
+
+    public void setConnection(Connection connection)
+    {
+        this.connection = connection;
+    }
 }

@@ -390,6 +390,19 @@ public class MyTableFetchTests
             assertEquals(new Integer(2), myTable.getId());
             assertEquals("my2dbvalue", myTable.getMyvalue());
         }
+
+        ((ExistingConnectionDataSource)photon2.getDataSource()).setConnection(connection);
+
+        try(PhotonTransaction transaction = photon2.beginTransaction())
+        {
+            MyTable myTable = transaction
+                    .query(MyTable.class)
+                    .fetchById(2);
+
+            assertNotNull(myTable);
+            assertEquals(new Integer(2), myTable.getId());
+            assertEquals("my2dbvalue", myTable.getMyvalue());
+        }
     }
 
     @Test
