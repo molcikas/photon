@@ -338,96 +338,93 @@ public class PhotonAggregateSave
             return;
         }
 
-        List<Object> ids = populatedEntities
-            .stream()
-            .map(PopulatedEntity::getPrimaryKeyValue)
-            .collect(Collectors.toList());
-
         for (FieldBlueprint fieldBlueprint : flattenedCollectionFields)
         {
             FlattenedCollectionBlueprint flattenedCollectionBlueprint = fieldBlueprint.getFlattenedCollectionBlueprint();
-            Map<TableValue, Collection> existingFlattenedCollectionValues = getExistingFlattenedCollectionValues(ids, flattenedCollectionBlueprint);
 
-            try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getInsertSql(), false, connection, photonOptions))
+            for (PopulatedEntity populatedEntity : populatedEntities)
             {
-                for (PopulatedEntity populatedEntity : populatedEntities)
+                Collection values = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
+                if(values == null)
                 {
-                    Collection flattenedCollectionValues = (Collection) populatedEntity.getInstanceValue(fieldBlueprint, null);
-                    if(flattenedCollectionValues == null)
-                    {
-                        flattenedCollectionValues = Collections.emptyList();
-                    }
+                    values = Collections.emptyList();
+                }
 
-                    Collection trackedValues = photonEntityState
-                        .getTrackedFlattenedCollectionValues(fieldBlueprint, populatedEntity.getPrimaryKey());
-                    if(trackedValues != null && CollectionUtils.isEqualCollection(trackedValues, flattenedCollectionValues))
-                    {
-                        continue;
-                    }
-
-                    EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
-                    Collection existingCollectionValues = existingFlattenedCollectionValues.get(populatedEntity.getPrimaryKey());
-                    if(existingCollectionValues == null)
-                    {
-                        existingCollectionValues = Collections.emptyList();
-                    }
-                    final Collection existingCollectionValuesFinal = existingCollectionValues;
-
-                    final Collection flattenedCollectionValuesFinal = (Collection) flattenedCollectionValues
-                        .stream()
-                        .distinct()
-                        .collect(Collectors.toList());
-
-                    Collection valuesToDelete = (Collection) existingCollectionValues
-                        .stream()
-                        .filter(value -> !flattenedCollectionValuesFinal.contains(value))
-                        .collect(Collectors.toList());
-
-                    if(!valuesToDelete.isEmpty())
-                    {
-                        try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(
-                            flattenedCollectionBlueprint.getDeleteForeignKeysSql(),
-                            false,
-                            connection,
-                            photonOptions))
-                        {
-                            deleteStatement.setNextArrayParameter(valuesToDelete, flattenedCollectionBlueprint.getColumnDataType(), null);
-                            deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
-                            deleteStatement.executeUpdate();
-                        }
-                    }
-
-                    Collection valuesToInsert = (Collection) flattenedCollectionValuesFinal
-                        .stream()
-                        .filter(value -> !existingCollectionValuesFinal.contains(value))
-                        .collect(Collectors.toList());
-
-                    for (Object foreignKeyValue : valuesToInsert)
-                    {
-                        insertStatement.setNextParameter(foreignKeyValue, flattenedCollectionBlueprint.getColumnDataType(), null);
-                        insertStatement.setNextParameter(
+                Collection existingValues = photonEntityState
+                    .getTrackedFlattenedCollectionValues(fieldBlueprint, populatedEntity.getPrimaryKey());
+                if (CollectionUtils.isEmpty(existingValues))
+                {
+                    existingValues = getExistingFlattenedCollectionValues(
                             populatedEntity.getPrimaryKeyValue(),
-                            populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
-                            populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
-                        insertStatement.addToBatch();
+                            flattenedCollectionBlueprint);
+                }
+                if (existingValues == null)
+                {
+                    existingValues = Collections.emptyList();
+                }
+                if(CollectionUtils.isEqualCollection(existingValues, values))
+                {
+                    continue;
+                }
+
+                EntityBlueprint populatedEntityBlueprint = populatedEntity.getEntityBlueprint();
+                final Collection existingValuesFinal = existingValues;
+
+                final Collection valuesFinal = (Collection) values
+                    .stream()
+                    .distinct()
+                    .collect(Collectors.toList());
+
+                Collection valuesToDelete = (Collection) existingValues
+                    .stream()
+                    .filter(value -> !valuesFinal.contains(value))
+                    .collect(Collectors.toList());
+
+                if(!valuesToDelete.isEmpty())
+                {
+                    try(PhotonPreparedStatement deleteStatement = new PhotonPreparedStatement(
+                        flattenedCollectionBlueprint.getDeleteForeignKeysSql(),
+                        false,
+                        connection,
+                        photonOptions))
+                    {
+                        deleteStatement.setNextArrayParameter(valuesToDelete, flattenedCollectionBlueprint.getColumnDataType(), null);
+                        deleteStatement.setNextParameter(populatedEntity.getPrimaryKeyValue(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(), populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
+                        deleteStatement.executeUpdate();
                     }
                 }
 
-                insertStatement.executeBatch();
+                Collection valuesToInsert = (Collection) valuesFinal
+                    .stream()
+                    .filter(value -> !existingValuesFinal.contains(value))
+                    .collect(Collectors.toList());
+
+                for (Object foreignKeyValue : valuesToInsert)
+                {
+                    try(PhotonPreparedStatement insertStatement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getInsertSql(), false, connection, photonOptions))
+                    {
+                        insertStatement.setNextParameter(foreignKeyValue, flattenedCollectionBlueprint.getColumnDataType(), null);
+                        insertStatement.setNextParameter(
+                                populatedEntity.getPrimaryKeyValue(),
+                                populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumn().getColumnDataType(),
+                                populatedEntityBlueprint.getTableBlueprint().getPrimaryKeyColumnSerializer());
+                        insertStatement.executeInsert();
+                    }
+                }
             }
         }
     }
 
-    private Map<TableValue, Collection> getExistingFlattenedCollectionValues(
-        List<Object> ids,
+    private Collection getExistingFlattenedCollectionValues(
+        Object id,
         FlattenedCollectionBlueprint flattenedCollectionBlueprint)
     {
-        Map<TableValue, Collection> existingFlattenedCollectionValues = new HashMap<>();
+        Collection exitingValues = new ArrayList();
         List<PhotonQueryResultRow> photonQueryResultRows;
 
         try (PhotonPreparedStatement statement = new PhotonPreparedStatement(flattenedCollectionBlueprint.getSelectSql(), false, connection, photonOptions))
         {
-            statement.setNextArrayParameter(ids, flattenedCollectionBlueprint.getColumnDataType(), null);
+            statement.setNextArrayParameter(Collections.singletonList(id), flattenedCollectionBlueprint.getColumnDataType(), null);
             photonQueryResultRows = statement.executeQuery(
                 flattenedCollectionBlueprint.getSelectColumnNames(),
                 flattenedCollectionBlueprint.getSelectColumnNamesLowerCase());
@@ -437,12 +434,10 @@ public class PhotonAggregateSave
 
         for(PhotonQueryResultRow photonQueryResultRow : photonQueryResultRows)
         {
-            Object joinColumnValue = photonQueryResultRow.getValue(flattenedCollectionBlueprint.getForeignKeyToParent());
             Object value = valueConverter.convert(photonQueryResultRow.getValue(flattenedCollectionBlueprint.getColumnName()));
-            Collection values = existingFlattenedCollectionValues.computeIfAbsent(new TableValue(joinColumnValue), k -> new ArrayList<>());
-            values.add(value);
+            exitingValues.add(value);
         }
 
-        return existingFlattenedCollectionValues;
+        return exitingValues;
     }
 }

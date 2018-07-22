@@ -253,6 +253,36 @@ public class TwoAggregatesTests
         }
     }
 
+    @Test
+    public void aggregate_save_addAndDeleteFromFlattenedCollectionUntracked_addsAndDeletes()
+    {
+        registerAggregates();
+
+        AggregateOne aggregateOne;
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            aggregateOne = transaction
+                    .query(AggregateOne.class)
+                    .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"));
+
+            aggregateOne.getAggregateTwos().clear();
+        }
+
+        try(PhotonTransaction transaction = photon.beginTransaction())
+        {
+            aggregateOne.getAggregateTwos().add(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000022"));
+            transaction.save(aggregateOne);
+
+            AggregateOne aggregateOneFetched = transaction
+                    .query(AggregateOne.class)
+                    .fetchById(UUID.fromString("3DFFC3B3-A9B6-11E6-AB83-0A0027000011"));
+
+            assertNotNull(aggregateOneFetched);
+            assertEquals(1, aggregateOneFetched.getAggregateTwos().size());
+        }
+    }
+
     private void registerAggregates()
     {
         photon.registerAggregate(AggregateOne.class)
